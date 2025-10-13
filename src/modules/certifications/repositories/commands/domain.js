@@ -23,7 +23,7 @@ class Certification {
     }
 
     const newPayload = {
-      id: uuidv4,
+      id: uuidv4(),
       ...payload,
     };
 
@@ -60,7 +60,7 @@ class Certification {
       return wrapper.error(new BadRequestError("Tidak ada data untuk diupdate"));
     }
 
-    const updateResult = await this.query.updateOneNew({ id, worker_id }, updateData);
+    const updateResult = await this.command.updateOneNew({ id, worker_id }, updateData);
     if (updateResult.err) {
       return wrapper.error(new InternalServerError("Update certification failed"));
     }
