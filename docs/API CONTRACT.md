@@ -11,6 +11,7 @@
 **Req.Query**: role_id
 
 **Response**:
+
 ```json
 {
   "code": 200,
@@ -19,7 +20,7 @@
   "data": {
     "token": string,
     "refreshToken": string
-  } 
+  }
 }
 
 ```
@@ -1443,37 +1444,40 @@ Response:
 ```
 
 B. Recruiters Section
-  ## Recruiters Table
-  ### Get One Recruiter By User Id:
-  **Method**: GET
-  **Endpoint**: "/api/v1/recruiters/:user_id"
-  **req.param**: user_id
-  **Query**:  - SELECT  recruiters.id,
-                        recruiters.user_id,
-                        recruiters.company_name,
-                        recruiters.avatar_url,
-                        recruiters.company_website,
-                        recruiters.contact_name,
-                        recruiters.contact_phone,
-                        recruiters.address,
-                        industries.name,
-                        recruiters.description,
-                        recruiters.created_at,
-                        recruiters.updated_at FROM recruiters 
-                        JOIN industries ON industries.id = recruiters.industry_id
-                        WHERE recruiters.user_id='1111-dddd-...';
 
-              - SELECT  job_posts.id, 
-                        job_posts.recruiter_id, 
-                        job_posts.title, 
-                        job_posts.description, 
-                        job_posts.location, 
-                        employment_types.name AS employment_type, 
-                        job_posts.salary_min, 
-                        job_posts.salary_max, 
-                        currencies.name AS currency, 
-                        job_posts.published_at, 
-                        job_posts.deadline, 
+## Recruiters Table
+
+### Get One Recruiter By User Id:
+
+**Method**: GET
+**Endpoint**: "/api/v1/recruiters/:user_id"
+**req.param**: user_id
+**Query**: - SELECT recruiters.id,
+recruiters.user_id,
+recruiters.company_name,
+recruiters.avatar_url,
+recruiters.company_website,
+recruiters.contact_name,
+recruiters.contact_phone,
+recruiters.address,
+industries.name,
+recruiters.description,
+recruiters.created_at,
+recruiters.updated_at FROM recruiters
+JOIN industries ON industries.id = recruiters.industry_id
+WHERE recruiters.user_id='1111-dddd-...';
+
+              - SELECT  job_posts.id,
+                        job_posts.recruiter_id,
+                        job_posts.title,
+                        job_posts.description,
+                        job_posts.location,
+                        employment_types.name AS employment_type,
+                        job_posts.salary_min,
+                        job_posts.salary_max,
+                        currencies.name AS currency,
+                        job_posts.published_at,
+                        job_posts.deadline,
                         job_post_statuses.name AS status,
                         job_posts.created_at,
                         job_posts.updated_at FROM job_posts
@@ -1481,309 +1485,295 @@ B. Recruiters Section
                         JOIN currencies ON currencies.id = job_posts.currency_id
                         JOIN job_post_statuses ON job_post_statuses.id = job_posts.status_id
                         WHERE job_posts.recruiter_id = '1111-dddd-....';
-  **Response**: {
-                  data: {
-                    id,
-                    user_id,
-                    company_name,
-                    avatar_url,
-                    company_website,
-                    contact_name,
-                    contact_phone,
-                    address,
-                    industry,
-                    description,
-                    created_at,
-                    updated_at,
-                    job_posts: [{
-                      id,
-                      recruiter_id,
-                      title,
-                      description,
-                      location,
-                      employment_type,
-                      salary_min,
-                      salary_max,
-                      currency,
-                      published_at,
-                      deadline,
-                      status,
-                      created_at,
-                      updated_at
-                    }]
-                  }
-                }
 
-  ### Get All Recruiters:
-  **Method**: GET
-  **Endpoint**: "/api/v1/recruiters"
-  **req.param**: None
-  **Query**:  - SELECT  recruiters.id,
-                        recruiters.user_id,
-                        recruiters.company_name,
-                        recruiters.avatar_url,
-                        recruiters.company_website,
-                        recruiters.contact_name,
-                        recruiters.contact_phone,
-                        recruiters.address,
-                        industries.name,
-                        recruiters.description,
-                        recruiters.created_at,
-                        recruiters.updated_at FROM recruiters
-                        JOIN industries ON industries.id = recruiters.industry_id;
-              - SELECT  job_posts.id,            
-                        job_posts.recruiter_id,                 
-                        job_posts.title,                 
-                        job_posts.description,                 
-                        job_posts.location,                 
-                        employment_types.name AS employment_type,
-                        job_posts.salary_min,                 
-                        job_posts.salary_max,                 
-                        currencies.name AS currency,                 
-                        job_posts.published_at,                 
-                        job_posts.deadline,                 
-                        job_post_statuses.name AS status,                
-                        job_posts.created_at,                
-                        job_posts.updated_at FROM job_posts 
-                        JOIN employment_types ON employment_types.id = job_posts.employment_type_id                
-                        JOIN currencies ON currencies.id = job_posts.currency_id                
-                        JOIN job_post_statuses ON job_post_statuses.id = job_posts.status_id                
-                        WHERE job_posts.recruiter_id IN (SELECT id FROM recruiters);
-  **Response**: {
-                  data: [{
-                      id,
-                      user_id,
-                      company_name,
-                      avatar_url,
-                      company_website,
-                      contact_name,
-                      contact_phone,
-                      address,
-                      industry,
-                      description,
-                      created_at,
-                      updated_at,
-                      job_posts: [{
-                        id,
-                        recruiter_id,
-                        title,
-                        description,
-                        location,
-                        employment_type,
-                        salary_min,
-                        salary_max,
-                        currency,
-                        published_at,
-                        deadline,
-                        status,
-                        created_at,
-                        updated_at
-                      }]
-                    }]
-                }
+**Response**: {
+data: {
+id,
+user_id,
+company_name,
+avatar_url,
+company_website,
+contact_name,
+contact_phone,
+address,
+industry,
+description,
+created_at,
+updated_at,
+job_posts: [{
+id,
+recruiter_id,
+title,
+description,
+location,
+employment_type,
+salary_min,
+salary_max,
+currency,
+published_at,
+deadline,
+status,
+created_at,
+updated_at
+}]
+}
+}
 
-  ### Create Recruiter
-  **Method**: POST
-  **Endpoint**: /api/v1/recruiters
-  **Request Body (JSON)**:  {
-                              "user_id": "usr-1111-dddd-aaaa",
-                              "company_name": "Innovatech Solutions",
-                              "avatar_url": "https://example.com/avatars/innovatech.jpg",
-                              "company_website": "https://innovatech.com",
-                              "contact_name": "John Doe",
-                              "contact_phone": "+1-555-765-4321",
-                              "address": "456 Innovation Drive, Austin, TX",
-                              "industry_id": 1,
-                              "description": "We build cutting-edge tools for developers."
-                            }
-  **Validation Rules**:
-    - user_id: required, must reference an existing user
-    - company_name: required, max 255 characters
-    - contact_name: required
-    - industry: must exist in allowed lookup (e.g., from industries table)
-    - Email/phone format validation applied
-  **Query**:  INSERT INTO recruiters (
-                                  user_id,
-                                  company_name,
-                                  avatar_url,
-                                  company_website,
-                                  contact_name,
-                                  contact_phone,
-                                  address,
-                                  industry_id,
-                                  description,
-                                  created_at,
-                                  updated_at
-                              ) VALUES (
-                                  'usr-1111-dddd-aaaa',
-                                  'Innovatech Solutions',
-                                  'https://example.com/avatars/innovatech.jpg',
-                                  'https://innovatech.com',
-                                  'John Doe',
-                                  '+1-555-765-4321',
-                                  '456 Innovation Drive, Austin, TX',
-                                  1,
-                                  'We build cutting-edge tools for developers.',
-                                  NOW(),
-                                  NOW()
-                              );
-  **Authentication & Permissions**: Requires authenticated user session matching the user_id. Only one recruiter profile allowed per user_id.
-  **Response (Success - 201 Created)**:
-    {
-      "data": {
-        "id": "rec-002",
-        "user_id": "usr-1111-dddd-aaaa",
-        "company_name": "Innovatech Solutions",
-        "avatar_url": "https://example.com/avatars/innovatech.jpg",
-        "company_website": "https://innovatech.com",
-        "contact_name": "John Doe",
-        "contact_phone": "+1-555-765-4321",
-        "address": "456 Innovation Drive, Austin, TX",
-        "industry": "Software Development",
-        "description": "We build cutting-edge tools for developers.",
-        "created_at": "2025-03-01T08:00:00Z",
-        "updated_at": "2025-03-01T08:00:00Z"
-      }
-    }
-  **Error Responses**:
-    400 Bad Request – Invalid or missing fields
-    409 Conflict – A recruiter profile already exists for this user_id
-    401 Unauthorized – Missing or invalid authentication
+### Get All Recruiters:
 
-  ### Edit Recruiter 
-  **Method**: PUT
-  **Endpoint**: /api/v1/recruiters/:user_id
-  **Request Parameters**:
-    - user_id (in path): The unique identifier of the user (also tied to the recruiter profile)
-  **Request Body (JSON)**:  {
-                              "company_name": "Updated Tech Corp",
-                              "avatar_url": "https://example.com/avatars/updatedtech.jpg",
-                              "company_website": "https://updatedtech.com",
-                              "contact_name": "Jane Smith",
-                              "contact_phone": "+1-555-888-9999",
-                              "address": "789 Updated Street, Seattle, WA",
-                              "industry_id": 2,
-                              "description": "A next-gen cybersecurity firm protecting digital infrastructure."
-                            }
-  **Validation Rules**:
-    - user_id must match the authenticated user or require admin privileges
-    - company_name: required, max 255 characters
-    - industry: must exist in the allowed list (e.g., from industries lookup table)
-    - Email/phone format validation enforced
-    - Partial updates not allowed — full replacement expected (use PATCH if partial updates are desired later)
-  **SQL Update Logic**:
-    UPDATE recruiters
-    SET 
-        company_name = 'Updated Tech Corp',
-        avatar_url = 'https://example.com/avatars/updatedtech.jpg',
-        company_website = 'https://updatedtech.com',
-        contact_name = 'Jane Smith',
-        contact_phone = '+1-555-888-9999',
-        address = '789 Updated Street, Seattle, WA',
-        industry_id = 2,
-        description = 'A next-gen cybersecurity firm protecting digital infrastructure.',
-        updated_at = NOW()
-    WHERE user_id = 'usr-1111-dddd-aaaa';
+**Method**: GET
+**Endpoint**: "/api/v1/recruiters"
+**req.param**: None
+**Query**: - SELECT recruiters.id,
+recruiters.user_id,
+recruiters.company_name,
+recruiters.avatar_url,
+recruiters.company_website,
+recruiters.contact_name,
+recruiters.contact_phone,
+recruiters.address,
+industries.name,
+recruiters.description,
+recruiters.created_at,
+recruiters.updated_at FROM recruiters
+JOIN industries ON industries.id = recruiters.industry_id; - SELECT job_posts.id,  
+ job_posts.recruiter_id,  
+ job_posts.title,  
+ job_posts.description,  
+ job_posts.location,  
+ employment_types.name AS employment_type,
+job_posts.salary_min,  
+ job_posts.salary_max,  
+ currencies.name AS currency,  
+ job_posts.published_at,  
+ job_posts.deadline,  
+ job_post_statuses.name AS status,  
+ job_posts.created_at,  
+ job_posts.updated_at FROM job_posts
+JOIN employment_types ON employment_types.id = job_posts.employment_type_id  
+ JOIN currencies ON currencies.id = job_posts.currency_id  
+ JOIN job_post_statuses ON job_post_statuses.id = job_posts.status_id  
+ WHERE job_posts.recruiter_id IN (SELECT id FROM recruiters);
+**Response**: {
+data: [{
+id,
+user_id,
+company_name,
+avatar_url,
+company_website,
+contact_name,
+contact_phone,
+address,
+industry,
+description,
+created_at,
+updated_at,
+job_posts: [{
+id,
+recruiter_id,
+title,
+description,
+location,
+employment_type,
+salary_min,
+salary_max,
+currency,
+published_at,
+deadline,
+status,
+created_at,
+updated_at
+}]
+}]
+}
 
-  -- Fetch updated record with related job posts (same logic as GET)
-    SELECT 
-        r.id,
-        r.user_id,
-        r.company_name,
-        r.avatar_url,
-        r.company_website,
-        r.contact_name,
-        r.contact_phone,
-        r.address,
-        r.industry_id,
-        r.description,
-        r.created_at,
-        r.updated_at,
-        COALESCE(json_agg(
-            json_build_object(
-                'id', j.id,
-                'recruiter_id', j.recruiter_id,
-                'title', j.title,
-                'description', j.description,
-                'location', j.location,
-                'employment_type', et.name,
-                'salary_min', j.salary_min,
-                'salary_max', j.salary_max,
-                'currency', c.name,
-                'published_at', j.published_at,
-                'deadline', j.deadline,
-                'status', jps.name,
-                'created_at', j.created_at,
-                'updated_at', j.updated_at
-            )
-            ORDER BY j.created_at DESC
-        ) FILTER (WHERE j.id IS NOT NULL), '[]') AS job_posts
-    FROM recruiters r
-    LEFT JOIN job_posts j ON r.id = j.recruiter_id
-    LEFT JOIN employment_types et ON et.id = j.employment_type_id
-    LEFT JOIN currencies c ON c.id = j.currency_id
-    LEFT JOIN job_post_statuses jps ON jps.id = j.status_id
-    WHERE r.user_id = 'usr-1111-dddd-aaaa'
-    GROUP BY r.id;
+### Create Recruiter
 
-  Authentication & Permissions: User must be authenticated and authorized to update the given user_id. Admin override possible if needed.
-  Response (Success - 200 OK):
-    {
-      "data": {
-        "id": "rec-003",
-        "user_id": "usr-1111-dddd-aaaa",
-        "company_name": "Updated Tech Corp",
-        "avatar_url": "https://example.com/avatars/updatedtech.jpg",
-        "company_website": "https://updatedtech.com",
-        "contact_name": "Jane Smith",
-        "contact_phone": "+1-555-888-9999",
-        "address": "789 Updated Street, Seattle, WA",
-        "industry": "Cybersecurity",
-        "description": "A next-gen cybersecurity firm protecting digital infrastructure.",
-        "created_at": "2025-01-10T07:15:00Z",
-        "updated_at": "2025-03-03T10:00:00Z",
-        "job_posts": [
-          {
-            "id": "job-105",
-            "recruiter_id": "rec-003",
-            "title": "Security Analyst",
-            "description": "Monitor and respond to security threats.",
-            "location": "Seattle, WA",
-            "employment_type": "Full-time",
-            "salary_min": 85000,
-            "salary_max": 110000,
-            "currency": "USD",
-            "published_at": "2025-01-12T09:00:00Z",
-            "deadline": "2025-04-15T23:59:59Z",
-            "status": "Open",
-            "created_at": "2025-01-12T09:00:00Z",
-            "updated_at": "2025-01-12T09:00:00Z"
-          }
-        ]
-      }
-    }
+**Method**: POST
+**Endpoint**: /api/v1/recruiters
+**Request Body (JSON)**: {
+"user_id": "usr-1111-dddd-aaaa",
+"company_name": "Innovatech Solutions",
+"avatar_url": "https://example.com/avatars/innovatech.jpg",
+"company_website": "https://innovatech.com",
+"contact_name": "John Doe",
+"contact_phone": "+1-555-765-4321",
+"address": "456 Innovation Drive, Austin, TX",
+"industry_id": 1,
+"description": "We build cutting-edge tools for developers."
+}
+**Validation Rules**: - user_id: required, must reference an existing user - company_name: required, max 255 characters - contact_name: required - industry: must exist in allowed lookup (e.g., from industries table) - Email/phone format validation applied
+**Query**: INSERT INTO recruiters (
+user_id,
+company_name,
+avatar_url,
+company_website,
+contact_name,
+contact_phone,
+address,
+industry_id,
+description,
+created_at,
+updated_at
+) VALUES (
+'usr-1111-dddd-aaaa',
+'Innovatech Solutions',
+'https://example.com/avatars/innovatech.jpg',
+'https://innovatech.com',
+'John Doe',
+'+1-555-765-4321',
+'456 Innovation Drive, Austin, TX',
+1,
+'We build cutting-edge tools for developers.',
+NOW(),
+NOW()
+);
+**Authentication & Permissions**: Requires authenticated user session matching the user_id. Only one recruiter profile allowed per user_id.
+**Response (Success - 201 Created)**:
+{
+"data": {
+"id": "rec-002",
+"user_id": "usr-1111-dddd-aaaa",
+"company_name": "Innovatech Solutions",
+"avatar_url": "https://example.com/avatars/innovatech.jpg",
+"company_website": "https://innovatech.com",
+"contact_name": "John Doe",
+"contact_phone": "+1-555-765-4321",
+"address": "456 Innovation Drive, Austin, TX",
+"industry": "Software Development",
+"description": "We build cutting-edge tools for developers.",
+"created_at": "2025-03-01T08:00:00Z",
+"updated_at": "2025-03-01T08:00:00Z"
+}
+}
+**Error Responses**:
+400 Bad Request – Invalid or missing fields
+409 Conflict – A recruiter profile already exists for this user_id
+401 Unauthorized – Missing or invalid authentication
 
-  Error Responses:
-    - 400 Bad Request – Invalid or missing fields
-    - 404 Not Found – No recruiter profile found for this user_id
-    - 401 Unauthorized – Missing or invalid authentication
-    - 403 Forbidden – User does not have permission to edit this profile
+### Edit Recruiter
 
-  ### Delete Recruiter
-  Method: DELETE
-  Endpoint: /api/v1/recruiters/:user_id
-  Request Parameters:
-    - user_id (in path): The unique identifier of the user whose recruiter profile is to be deleted
-  Authentication & Permissions:
-    - User must be authenticated and authorized to delete this profile
-    - User can only delete their own recruiter profile unless admin override is enabled
-  SQL Deletion Logic:
-    -- Start transaction to ensure data consistency
-    BEGIN;
+**Method**: PUT
+**Endpoint**: /api/v1/recruiters/:user_id
+**Request Parameters**: - user_id (in path): The unique identifier of the user (also tied to the recruiter profile)
+**Request Body (JSON)**: {
+"company_name": "Updated Tech Corp",
+"avatar_url": "https://example.com/avatars/updatedtech.jpg",
+"company_website": "https://updatedtech.com",
+"contact_name": "Jane Smith",
+"contact_phone": "+1-555-888-9999",
+"address": "789 Updated Street, Seattle, WA",
+"industry_id": 2,
+"description": "A next-gen cybersecurity firm protecting digital infrastructure."
+}
+**Validation Rules**: - user_id must match the authenticated user or require admin privileges - company_name: required, max 255 characters - industry: must exist in the allowed list (e.g., from industries lookup table) - Email/phone format validation enforced - Partial updates not allowed — full replacement expected (use PATCH if partial updates are desired later)
+**SQL Update Logic**:
+UPDATE recruiters
+SET
+company_name = 'Updated Tech Corp',
+avatar_url = 'https://example.com/avatars/updatedtech.jpg',
+company_website = 'https://updatedtech.com',
+contact_name = 'Jane Smith',
+contact_phone = '+1-555-888-9999',
+address = '789 Updated Street, Seattle, WA',
+industry_id = 2,
+description = 'A next-gen cybersecurity firm protecting digital infrastructure.',
+updated_at = NOW()
+WHERE user_id = 'usr-1111-dddd-aaaa';
+
+-- Fetch updated record with related job posts (same logic as GET)
+SELECT
+r.id,
+r.user_id,
+r.company_name,
+r.avatar_url,
+r.company_website,
+r.contact_name,
+r.contact_phone,
+r.address,
+r.industry_id,
+r.description,
+r.created_at,
+r.updated_at,
+COALESCE(json_agg(
+json_build_object(
+'id', j.id,
+'recruiter_id', j.recruiter_id,
+'title', j.title,
+'description', j.description,
+'location', j.location,
+'employment_type', et.name,
+'salary_min', j.salary_min,
+'salary_max', j.salary_max,
+'currency', c.name,
+'published_at', j.published_at,
+'deadline', j.deadline,
+'status', jps.name,
+'created_at', j.created_at,
+'updated_at', j.updated_at
+)
+ORDER BY j.created_at DESC
+) FILTER (WHERE j.id IS NOT NULL), '[]') AS job_posts
+FROM recruiters r
+LEFT JOIN job_posts j ON r.id = j.recruiter_id
+LEFT JOIN employment_types et ON et.id = j.employment_type_id
+LEFT JOIN currencies c ON c.id = j.currency_id
+LEFT JOIN job_post_statuses jps ON jps.id = j.status_id
+WHERE r.user_id = 'usr-1111-dddd-aaaa'
+GROUP BY r.id;
+
+Authentication & Permissions: User must be authenticated and authorized to update the given user_id. Admin override possible if needed.
+Response (Success - 200 OK):
+{
+"data": {
+"id": "rec-003",
+"user_id": "usr-1111-dddd-aaaa",
+"company_name": "Updated Tech Corp",
+"avatar_url": "https://example.com/avatars/updatedtech.jpg",
+"company_website": "https://updatedtech.com",
+"contact_name": "Jane Smith",
+"contact_phone": "+1-555-888-9999",
+"address": "789 Updated Street, Seattle, WA",
+"industry": "Cybersecurity",
+"description": "A next-gen cybersecurity firm protecting digital infrastructure.",
+"created_at": "2025-01-10T07:15:00Z",
+"updated_at": "2025-03-03T10:00:00Z",
+"job_posts": [
+{
+"id": "job-105",
+"recruiter_id": "rec-003",
+"title": "Security Analyst",
+"description": "Monitor and respond to security threats.",
+"location": "Seattle, WA",
+"employment_type": "Full-time",
+"salary_min": 85000,
+"salary_max": 110000,
+"currency": "USD",
+"published_at": "2025-01-12T09:00:00Z",
+"deadline": "2025-04-15T23:59:59Z",
+"status": "Open",
+"created_at": "2025-01-12T09:00:00Z",
+"updated_at": "2025-01-12T09:00:00Z"
+}
+]
+}
+}
+
+Error Responses: - 400 Bad Request – Invalid or missing fields - 404 Not Found – No recruiter profile found for this user_id - 401 Unauthorized – Missing or invalid authentication - 403 Forbidden – User does not have permission to edit this profile
+
+### Delete Recruiter
+
+Method: DELETE
+Endpoint: /api/v1/recruiters/:user_id
+Request Parameters: - user_id (in path): The unique identifier of the user whose recruiter profile is to be deleted
+Authentication & Permissions: - User must be authenticated and authorized to delete this profile - User can only delete their own recruiter profile unless admin override is enabled
+SQL Deletion Logic:
+-- Start transaction to ensure data consistency
+BEGIN;
 
     -- Soft delete approach (recommended): Mark recruiter as deleted instead of removing physically
     -- UPDATE recruiters
-    -- SET 
+    -- SET
     --    is_deleted = TRUE,
     --    deleted_at = NOW(),
     --    updated_at = NOW()
@@ -1794,26 +1784,22 @@ B. Recruiters Section
 
     COMMIT;
 
-  Validation Rules:
-    - user_id must exist and have an associated recruiter profile
-    - Must check for active job posts:
-    - If jobs exist, return 409 Conflict unless force-delete (admin) is used
-    - Only allow deletion by the owner or admin
+Validation Rules: - user_id must exist and have an associated recruiter profile - Must check for active job posts: - If jobs exist, return 409 Conflict unless force-delete (admin) is used - Only allow deletion by the owner or admin
 
-  Response (Success - 200 OK):
-    {
-      "message": "Recruiter profile successfully deleted (or marked as deleted).",
-      "data": {
-        "user_id": "usr-1111-dddd-aaaa",
-        "deleted_at": "2025-03-03T12:30:00Z"
-      }
-    }
-  Error Responses:
-    404 Not Found – No recruiter profile found for this user_id
-    400 Bad Request – Invalid user_id format
-    409 Conflict – Cannot delete; active job posts are associated with this recruiter
-    401 Unauthorized – Missing or invalid authentication
-    403 Forbidden – User does not have permission to delete this profile
+Response (Success - 200 OK):
+{
+"message": "Recruiter profile successfully deleted (or marked as deleted).",
+"data": {
+"user_id": "usr-1111-dddd-aaaa",
+"deleted_at": "2025-03-03T12:30:00Z"
+}
+}
+Error Responses:
+404 Not Found – No recruiter profile found for this user_id
+400 Bad Request – Invalid user_id format
+409 Conflict – Cannot delete; active job posts are associated with this recruiter
+401 Unauthorized – Missing or invalid authentication
+403 Forbidden – User does not have permission to delete this profile
 
   ## Job Post Table
   ### Get a job post
@@ -1941,110 +1927,107 @@ B. Recruiters Section
         CASE WHEN :sort_order = 'asc' THEN ASC ELSE DESC END
       LIMIT :limit OFFSET (:page - 1) * :limit;
 
-  **Success Response (200 OK)**:
-    {
-      "data": [
-        {
-          "id": "job-105",
-          "recruiter_id": "rec-003",
-          "company_name": "Tech Innovations Inc.",
-          "avatar_url": "https://example.com/avatars/tech-innovations.jpg",
-          "title": "Senior Software Engineer",
-          "description": "We are looking for an experienced software engineer to join our team...",
-          "location": "San Francisco, CA",
-          "employment_type": "Full-time",
-          "salary_min": 120000,
-          "salary_max": 180000,
-          "currency": "USD",
-          "status_id": 1,
-          "status": "Open",
-          "created_at": "2025-01-15T10:30:00Z",
-          "updated_at": "2025-01-15T10:30:00Z"
-        },
-        {
-          "id": "job-104",
-          "recruiter_id": "rec-002",
-          "company_name": "Digital Solutions LLC",
-          "avatar_url": "https://example.com/avatars/digital-solutions.jpg",
-          "title": "Product Manager",
-          "description": "Seeking a product manager with experience in agile methodologies...",
-          "location": "New York, NY",
-          "employment_type": "Full-time",
-          "salary_min": 100000,
-          "salary_max": 150000,
-          "currency": "USD",
-          "status_id": 1,
-          "status": "Open",
-          "created_at": "2025-01-14T14:20:00Z",
-          "updated_at": "2025-01-14T14:20:00Z"
-        }
-      ],
-      "pagination": {
-        "page": 1,
-        "limit": 10,
-        "total_items": 45,
-        "total_pages": 5
-      }
-    }
-  
-  **400 Bad Request**:
-    Returned when one or more query parameters are invalid.
-      {
-        "error": {
-          "code": "INVALID_PARAMETERS",
-          "message": "One or more query parameters are invalid",
-          "details": {
-            "limit": "must be between 1 and 100",
-            "page": "must be a positive integer"
-          }
-        }
-      }
+**Success Response (200 OK)**:
+{
+"data": [
+{
+"id": "job-105",
+"recruiter_id": "rec-003",
+"company_name": "Tech Innovations Inc.",
+"avatar_url": "https://example.com/avatars/tech-innovations.jpg",
+"title": "Senior Software Engineer",
+"description": "We are looking for an experienced software engineer to join our team...",
+"location": "San Francisco, CA",
+"employment_type": "Full-time",
+"salary_min": 120000,
+"salary_max": 180000,
+"currency": "USD",
+"status_id": 1,
+"status": "Open",
+"created_at": "2025-01-15T10:30:00Z",
+"updated_at": "2025-01-15T10:30:00Z"
+},
+{
+"id": "job-104",
+"recruiter_id": "rec-002",
+"company_name": "Digital Solutions LLC",
+"avatar_url": "https://example.com/avatars/digital-solutions.jpg",
+"title": "Product Manager",
+"description": "Seeking a product manager with experience in agile methodologies...",
+"location": "New York, NY",
+"employment_type": "Full-time",
+"salary_min": 100000,
+"salary_max": 150000,
+"currency": "USD",
+"status_id": 1,
+"status": "Open",
+"created_at": "2025-01-14T14:20:00Z",
+"updated_at": "2025-01-14T14:20:00Z"
+}
+],
+"pagination": {
+"page": 1,
+"limit": 10,
+"total_items": 45,
+"total_pages": 5
+}
+}
 
-  **500 Internal Server Error**:
-    Returned when an unexpected error occurs on the server.
-      {
-        "error": {
-          "code": "INTERNAL_SERVER_ERROR",
-          "message": "An unexpected error occurred while processing your request"
-        }
-      }
-  
-  ### Get All Job Posts per Recruiter
-  Method**: **GET
-  **Endpoint**: /api/v1/recruiters/:recruiter_id/job-posts
-  **Path parameter**: 
-    Parameter   	Type	  Required	Description
-    recruiter_id	string	Yes	      The unique identifier of the recruiter
-  
-  **Query Parameters**:
-    Parameter	              Type	      Required	  Default	      Description
-    page	                  integer	    No	        1	            The page number for pagination
-    limit	                  integer	    No	        20	          The number of job posts to return per page
-    status	                string	    No	        null	        Filter by job post status (e.g., “Open”, “Closed”)
-    employment_type	        string	    No	        null	        Filter by employment type (e.g., “Full-time”, “Part-time”)
-    location	              string	    No	        null	        Filter by location (partial match)
-    salary_min	            integer	    No	        null	        Filter by minimum salary
-    salary_max	            integer	    No	        null	        Filter by maximum salary
-    currency	              string	    No	        null	        Filter by currency code (e.g., “USD”, “EUR”)
-    created_after	          string	    No	        null	        Filter job posts created after this date (ISO 8601 format)
-    created_before	        string	    No	        null	        Filter job posts created before this date (ISO 8601 format)
-    sort_by	                string	    No	        “created_at”	Field to sort by (e.g., “created_at”, “salary_min”)
-    sort_order	            string	    No	        “desc”	      Sort order (“asc” or “desc”)
-  
-  **Authentication and Authorization**:
-    This endpoint requires authentication. The requester must have a valid API token or be authenticated via the appropriate authentication mechanism.
-  
-  **Authorization Rules**:
-    •	Recruiters can only view their own job posts
-    •	Administrators can view job posts for any recruiter
-    •	Other roles might have restricted access based on business logic
+**400 Bad Request**:
+Returned when one or more query parameters are invalid.
+{
+"error": {
+"code": "INVALID_PARAMETERS",
+"message": "One or more query parameters are invalid",
+"details": {
+"limit": "must be between 1 and 100",
+"page": "must be a positive integer"
+}
+}
+}
 
-  **Query parameters for filtering (e.g., status, employment_type, location) and pagination (page, limit)**
-  **Schema-compliant SQL query with accurate JOINs to**:
-    - recruiters → company_name, avatar_url
-    - employment_types → name
-    - currencies → name
-    - job_post_statuses → name
+**500 Internal Server Error**:
+Returned when an unexpected error occurs on the server.
+{
+"error": {
+"code": "INTERNAL_SERVER_ERROR",
+"message": "An unexpected error occurred while processing your request"
+}
+}
+
+### Get All Job Posts per Recruiter
+
+Method**: **GET
+**Endpoint**: /api/v1/recruiters/:recruiter_id/job-posts
+**Path parameter**:
+Parameter Type Required Description
+recruiter_id string Yes The unique identifier of the recruiter
+
+**Query Parameters**:
+Parameter Type Required Default Description
+page integer No 1 The page number for pagination
+limit integer No 20 The number of job posts to return per page
+status string No null Filter by job post status (e.g., “Open”, “Closed”)
+employment_type string No null Filter by employment type (e.g., “Full-time”, “Part-time”)
+location string No null Filter by location (partial match)
+salary_min integer No null Filter by minimum salary
+salary_max integer No null Filter by maximum salary
+currency string No null Filter by currency code (e.g., “USD”, “EUR”)
+created_after string No null Filter job posts created after this date (ISO 8601 format)
+created_before string No null Filter job posts created before this date (ISO 8601 format)
+sort_by string No “created_at” Field to sort by (e.g., “created_at”, “salary_min”)
+sort_order string No “desc” Sort order (“asc” or “desc”)
+
+**Authentication and Authorization**:
+This endpoint requires authentication. The requester must have a valid API token or be authenticated via the appropriate authentication mechanism.
+
+**Authorization Rules**:
+• Recruiters can only view their own job posts
+• Administrators can view job posts for any recruiter
+• Other roles might have restricted access based on business logic
+
+**Query parameters for filtering (e.g., status, employment_type, location) and pagination (page, limit)**
+**Schema-compliant SQL query with accurate JOINs to**: - recruiters → company_name, avatar_url - employment_types → name - currencies → name - job_post_statuses → name
 
   **SQL Query**:
     The following SQL query demonstrates how the endpoint retrieves job posts for a specific recruiter from the database, including joins with related tables to resolve foreign key references:
@@ -2163,36 +2146,36 @@ B. Recruiters Section
       }
     }
 
-  **400 Bad Request**:
-    Returned when the request parameters are invalid or malformed.
-      {
-        "error": {
-          "code": "invalid_parameters",
-          "message": "Invalid request parameters",
-          "details": {
-            "page": "Must be a positive integer",
-            "limit": "Must be between 1 and 100"
-          }
-        }
-      }
+**400 Bad Request**:
+Returned when the request parameters are invalid or malformed.
+{
+"error": {
+"code": "invalid_parameters",
+"message": "Invalid request parameters",
+"details": {
+"page": "Must be a positive integer",
+"limit": "Must be between 1 and 100"
+}
+}
+}
 
-  **401 Unauthorized**:
-    Returned when the request lacks valid authentication credentials.
-    {
-      "error": {
-        "code": "unauthorized",
-        "message": "Authentication required"
-      }
-    }
+**401 Unauthorized**:
+Returned when the request lacks valid authentication credentials.
+{
+"error": {
+"code": "unauthorized",
+"message": "Authentication required"
+}
+}
 
-  **403 Forbidden**:
-    Returned when the authenticated user does not have permission to access the requested recruiter's job posts.
-    {
-      "error": {
-        "code": "forbidden",
-        "message": "You do not have permission to access this recruiter's job posts"
-      }
-    }
+**403 Forbidden**:
+Returned when the authenticated user does not have permission to access the requested recruiter's job posts.
+{
+"error": {
+"code": "forbidden",
+"message": "You do not have permission to access this recruiter's job posts"
+}
+}
 
   **404 Not Found**:
     Returned when the specified recruiter does not exist.
@@ -2426,100 +2409,98 @@ B. Recruiters Section
       }
     }
 
-  ### Delete a Job Post
-  **Method**: DELETE
-  **Path**: /api/v1/job-posts/:id
-  **Path parameter**:
-    Parameter	Type	    Required	Description
-    id	      Integer	  Yes	      ID of the job post to delete
-  **Description**: Permanently deletes a job post by its ID. Only the recruiter who created the job post can delete it.
+### Delete a Job Post
 
-  **SQL DELETE Statement**:
-    DELETE FROM job_posts 
-    WHERE id = :id AND recruiter_id = :recruiter_id
-    RETURNING id, title, NOW() as deleted_at;
-  
-  **Success Response (200 OK)**:
-    Body
-    {
-      "success": true,
-      "message": "Job post deleted successfully",
-      "data": {
-        "id": 1,
-        "title": "Senior Frontend Developer",
-        "deleted_at": "2025-10-03T15:30:45Z"
-      }
-    }
-  
-  **400 Bad Request**
-    Scenario: Invalid job post ID format
-    {
-      "success": false,
-      "error": "INVALID_JOB_POST_ID",
-      "message": "Job post ID must be a valid integer"
-    }
-  **401 Unauthorized**
-    Scenario: Missing or invalid JWT token
-    {
-      "success": false,
-      "error": "UNAUTHORIZED",
-      "message": "Authentication token is required"
-    }
-  **403 Forbidden**:
-    Scenario: User is not a recruiter or doesn’t own the job post
-    {
-      "success": false,
-      "error": "FORBIDDEN",
-      "message": "You do not have permission to delete this job post"
-    }
-  **404 Not Found**:
-    Scenario: Job post with specified ID doesn’t exist
-    {
-      "success": false,
-      "error": "JOB_POST_NOT_FOUND",
-      "message": "Job post with ID 123 does not exist"
-    }
-  **500 Internal Server Error**:
-    Scenario: Database error or server failure
-    {
-      "success": false,
-      "error": "INTERNAL_SERVER_ERROR",
-      "message": "An unexpected error occurred while deleting the job post"
-    }
+**Method**: DELETE
+**Path**: /api/v1/job-posts/:id
+**Path parameter**:
+Parameter Type Required Description
+id Integer Yes ID of the job post to delete
+**Description**: Permanently deletes a job post by its ID. Only the recruiter who created the job post can delete it.
 
-  ## Job post tags Table
-  ### Create a job post tags
-  **Method**: POST
-  **URL**: /api/v1/job-posts/:id/tags
-  **Content-Type**: application/json
-  **Authentication**: Required (Bearer JWT)
-  **Authorization**: Only the job post owner can add tags
-  **Path Parameters**:
-    Parameter	    Type	    Required	    Description
-    id	          UUID	    Yes	          The unique identifier of the job post
-  **Authentication & Authorization**:
-    This endpoint requires a valid JWT token in the Authorization header:
-    Authorization: Bearer <JWT_TOKEN>
-    The token must contain a recruiter_id claim, which will be used to:
-      1.	Verify the user is a recruiter
-      2.	Confirm the recruiter owns the specified job post
-      3.	Prevent unauthorized tag modifications to other recruiters’ job posts
-  **Request Body Schema**:
-    The client must send a JSON object with the following structure:
-      {
-        "tags": ["string"]
-      }
-  **Example Request**
-      {
-        "tags": ["React", "Remote", "Mid-Level", "Full-Stack", "TypeScript"]
-      }
-  **Database Operations**:
-    1.  Verify Job Post Ownership
-        SELECT recruiter_id FROM job_posts WHERE id = $1;
-    2.  Tag Existence Check and Creation
-        For each tag, execute:
-        -- Check if tag exists
-        SELECT id FROM job_tags WHERE LOWER(name) = LOWER($1);
+**SQL DELETE Statement**:
+DELETE FROM job_posts
+WHERE id = :id AND recruiter_id = :recruiter_id
+RETURNING id, title, NOW() as deleted_at;
+
+**Success Response (200 OK)**:
+Body
+{
+"success": true,
+"message": "Job post deleted successfully",
+"data": {
+"id": 1,
+"title": "Senior Frontend Developer",
+"deleted_at": "2025-10-03T15:30:45Z"
+}
+}
+
+**400 Bad Request**
+Scenario: Invalid job post ID format
+{
+"success": false,
+"error": "INVALID_JOB_POST_ID",
+"message": "Job post ID must be a valid integer"
+}
+**401 Unauthorized**
+Scenario: Missing or invalid JWT token
+{
+"success": false,
+"error": "UNAUTHORIZED",
+"message": "Authentication token is required"
+}
+**403 Forbidden**:
+Scenario: User is not a recruiter or doesn’t own the job post
+{
+"success": false,
+"error": "FORBIDDEN",
+"message": "You do not have permission to delete this job post"
+}
+**404 Not Found**:
+Scenario: Job post with specified ID doesn’t exist
+{
+"success": false,
+"error": "JOB_POST_NOT_FOUND",
+"message": "Job post with ID 123 does not exist"
+}
+**500 Internal Server Error**:
+Scenario: Database error or server failure
+{
+"success": false,
+"error": "INTERNAL_SERVER_ERROR",
+"message": "An unexpected error occurred while deleting the job post"
+}
+
+## Job post tags Table
+
+### Create a job post tags
+
+**Method**: POST
+**URL**: /api/v1/job-posts/:id/tags
+**Content-Type**: application/json
+**Authentication**: Required (Bearer JWT)
+**Authorization**: Only the job post owner can add tags
+**Path Parameters**:
+Parameter Type Required Description
+id UUID Yes The unique identifier of the job post
+**Authentication & Authorization**:
+This endpoint requires a valid JWT token in the Authorization header:
+Authorization: Bearer <JWT_TOKEN>
+The token must contain a recruiter_id claim, which will be used to: 1. Verify the user is a recruiter 2. Confirm the recruiter owns the specified job post 3. Prevent unauthorized tag modifications to other recruiters’ job posts
+**Request Body Schema**:
+The client must send a JSON object with the following structure:
+{
+"tags": ["string"]
+}
+**Example Request**
+{
+"tags": ["React", "Remote", "Mid-Level", "Full-Stack", "TypeScript"]
+}
+**Database Operations**: 1. Verify Job Post Ownership
+SELECT recruiter_id FROM job_posts WHERE id = $1; 2. Tag Existence Check and Creation
+For each tag, execute:
+-- Check if tag exists
+SELECT id FROM job_tags WHERE LOWER(name) = LOWER($1);
 
         -- If not exists, create new tag
         INSERT INTO job_tags (name, created_at)
@@ -2531,329 +2512,183 @@ B. Recruiters Section
         INSERT INTO job_post_tags (job_post_id, tag_id)
         SELECT $1, $2
         WHERE NOT EXISTS (
-          SELECT 1 FROM job_post_tags 
+          SELECT 1 FROM job_post_tags
           WHERE job_post_id = $1 AND tag_id = $2
         );
-  **Success Response (201 Created)**
-    {
-      "success": true,
-      "message": "Tags successfully added to job post",
-      "data": {
-        "job_post_id": "550e8400-e29b-41d4-a716-446655440000",
-        "tags_added": [
-          {
-            "id": 1,
-            "name": "React"
-          },
-          {
-            "id": 2,
-            "name": "Remote"
-          },
-          {
-            "id": 15,
-            "name": "Mid-Level"
-          },
-          {
-            "id": 16,
-            "name": "Full-Stack"
-          },
-          {
-            "id": 17,
-            "name": "TypeScript"
-          }
-        ]
-      }
-    }
-  
-  **400 Bad Request**
-    {
-      "success": false,
-      "error": {
-        "code": "INVALID_REQUEST",
-        "message": "Invalid request data",
-        "details": [
-          "Tags array cannot be empty",
-          "Tag names must be between 1 and 50 characters",
-          "Maximum 20 tags allowed per request"
-        ]
-      }
-    }
-  **401 Unauthorized**
-    {
-      "success": false,
-      "error": {
-        "code": "UNAUTHORIZED",
-        "message": "Authentication required"
-      }
-    }
-  **403 Forbidden**
-    {
-      "success": false,
-      "error": {
-        "code": "FORBIDDEN",
-        "message": "You are not authorized to modify this job post"
-      }
-    }
-  **404 Not Found**
-    {
-      "success": false,
-      "error": {
-        "code": "NOT_FOUND",
-        "message": "Job post not found"
-      }
-    }
-  **500 Internal Server Error**
-    {
-      "success": false,
-      "error": {
-        "code": "INTERNAL_ERROR",
-        "message": "An unexpected error occurred while processing your request"
-      }
-    }
 
-  ### Get tags per job post
-  **Request Method**: GET
-  **Endpoint URL**: /api/v1/job-posts/:id/tags
-  **Path Parameters**:
-    Parameter	Type	  Required	Description	Example
-    id	      UUID	  Yes	      The unique identifier of the job post	a1b2c3d4-e5f6-7890-abcd-ef1234567890
-  **Success Response (200 OK)**:
-    When the request is successful, the endpoint returns a JSON array of tag objects associated with the specified job post.
-    Response Format:
-    [
-      {
-        "id": "550e8400-e29b-41d4-a716-446655440000",
-        "name": "Remote",
-        "created_at": "2024-01-15T10:30:00Z"
-      },
-      {
-        "id": "550e8400-e29b-41d4-a716-446655440001",
-        "name": "React",
-        "created_at": "2024-01-15T10:30:00Z"
-      },
-      {
-        "id": "550e8400-e29b-41d4-a716-446655440002",
-        "name": "Mid-Level",
-        "created_at": "2024-01-15T10:30:00Z"
-      }
-    ]
-    Response Fields:
-      - id (UUID): The unique identifier of the tag
-      - name (String): The human-readable name of the tag
-      - created_at (ISO 8601 DateTime): The timestamp when the tag was created
+**Success Response (201 Created)**
+{
+"success": true,
+"message": "Tags successfully added to job post",
+"data": {
+"job_post_id": "550e8400-e29b-41d4-a716-446655440000",
+"tags_added": [
+{
+"id": 1,
+"name": "React"
+},
+{
+"id": 2,
+"name": "Remote"
+},
+{
+"id": 15,
+"name": "Mid-Level"
+},
+{
+"id": 16,
+"name": "Full-Stack"
+},
+{
+"id": 17,
+"name": "TypeScript"
+}
+]
+}
+}
 
-  **400 Bad Request**:
-    Trigger: Invalid job post ID format or missing required parameters
-    Response Example:
-    {
-      "error": {
-        "code": "INVALID_REQUEST",
-        "message": "Invalid job post ID format",
-        "details": "The provided ID 'invalid-id' is not a valid UUID"
-      }
-    }
- **401 Unauthorized**:
-    Trigger: Missing or invalid JWT token
-    Response Example:
-    {
-      "error": {
-        "code": "UNAUTHORIZED",
-        "message": "Authentication required",
-        "details": "Valid JWT token must be provided in Authorization header"
-      }
-    }
-  **404 Not Found**
-    Trigger: Job post with the specified ID does not exist
-    Response Example:
-    {
-      "error": {
-        "code": "NOT_FOUND",
-        "message": "Job post not found",
-        "details": "No job post exists with ID '550e8400-e29b-41d4-a716-446655440000'"
-      }
-    }
-  **500 Internal Server Error**
-    Trigger: Unexpected server error during processing
-    Response Example:
-    {
-      "error": {
-        "code": "INTERNAL_ERROR",
-        "message": "An unexpected error occurred",
-        "details": "The system encountered an error while processing your request"
-      }
-    }
+**400 Bad Request**
+{
+"success": false,
+"error": {
+"code": "INVALID_REQUEST",
+"message": "Invalid request data",
+"details": [
+"Tags array cannot be empty",
+"Tag names must be between 1 and 50 characters",
+"Maximum 20 tags allowed per request"
+]
+}
+}
+**401 Unauthorized**
+{
+"success": false,
+"error": {
+"code": "UNAUTHORIZED",
+"message": "Authentication required"
+}
+}
+**403 Forbidden**
+{
+"success": false,
+"error": {
+"code": "FORBIDDEN",
+"message": "You are not authorized to modify this job post"
+}
+}
+**404 Not Found**
+{
+"success": false,
+"error": {
+"code": "NOT_FOUND",
+"message": "Job post not found"
+}
+}
+**500 Internal Server Error**
+{
+"success": false,
+"error": {
+"code": "INTERNAL_ERROR",
+"message": "An unexpected error occurred while processing your request"
+}
+}
 
-  **Database Query Details**:
-    Primary Query
-    The main query for retrieving tags:
-    SELECT jt.id, jt.name, jt.created_at
-    FROM job_tags jt
-    INNER JOIN job_post_tags jpt ON jt.id = jpt.tag_id
-    WHERE jpt.job_post_id = $1
-    ORDER BY jt.name ASC;
+### Get tags per job post
 
-  **Alternative Query Approaches**:
-    For scenarios requiring additional information, consider these variations:
-      With Tag Count:
-        SELECT jt.id, jt.name, jt.created_at, COUNT(jpt2.job_post_id) as usage_count
-        FROM job_tags jt
-        INNER JOIN job_post_tags jpt ON jt.id = jpt.tag_id
-        LEFT JOIN job_post_tags jpt2 ON jt.id = jpt2.tag_id
-        WHERE jpt.job_post_id = $1
-        GROUP BY jt.id, jt.name, jt.created_at
-        ORDER BY jt.name ASC;
-      With Job Post Verification:
-        SELECT jt.id, jt.name, jt.created_at
-        FROM job_posts jp
-        INNER JOIN job_post_tags jpt ON jp.id = jpt.job_post_id
-        INNER JOIN job_tags jt ON jpt.tag_id = jt.id
-        WHERE jp.id = $1
-        ORDER BY jt.name ASC;
-  
-  ### Delete tags from job post
-  
-  ## Job post questions Table
-  ### Create job post question
-  **Method**: POST
-  **Endpoint**: /api/v1/job-posts/:id/questions
-  **Description**: Creates one or more screening questions for a specific job posting identified by its unique ID. These questions are part of the application process that workers must answer to fulfill application requirements.
-  **Request Parameters**: •	id (required, path parameter): The unique identifier of the job post to which questions will be added. This parameter expects a UUID string format (e.g., a1b2c3d4-5678-9012-3456-789012345678).
-  **Authentication and Authorization**: 
-    •	Authentication: This endpoint requires valid JWT authentication credentials.
-    •	Authorization: The authenticated user must be the recruiter who owns the job post or have administrative privileges.
-  **Request Body Schema**:
-    The endpoint expects a JSON object containing an array of questions to be created:
-    {
-      "questions": [
-        {
-          "question_text": "Which skills do you have?",
-          "question_type_id": 3,
-          "options": ["Java", "Python", "Node.js", "SQL"],
-          "is_required": true,
-          "order_index": 1
-        },
-        {
-          "question_text": "Are you willing to relocate?",
-          "question_type_id": 4,
-          "is_required": true,
-          "order_index": 2
-        },
-        {
-          "question_text": "Rate your proficiency in SQL (1–5)",
-          "question_type_id": 2,
-          "options": {"min": 1, "max": 5},
-          "is_required": true,
-          "order_index": 3
-        },
-        {
-          "question_text": "Describe your experience with agile methodologies",
-          "question_type_id": 1,
-          "is_required": false,
-          "order_index": 4
-        }
-      ]
-    }
-  **Request Body Field Descriptions**:
-    Field	            Type	      Required	      Description	                                                Validation Rules
-    questions	        array	      Yes	            Array of question objects to create	                        Must contain at least 1 question, maximum 20
-    question_text	    string	    Yes	            The text content of the question	                          Length: 1-500 characters
-    question_type_id	integer	    Yes	            Foreign key reference to the question_types lookup table	  Must reference existing question_type_id (1-4)
-    options	          json	      No	            Configuration options for the question (varies by type)	    Must be valid JSON, structure depends on type
-    is_required	      boolean	    No	            Indicates whether the question is mandatory for applicants	Default: true
-    order_index	      integer	    No	            Display order sequence for the question	                    Must be ≥ 0, default: 0
-  **Question Type Reference**: 
-    The question_type_id field references the question_types lookup table with the following predefined values:
-    question_type_id	    Type Name	        Description	                         Options Format Example
-    1	                    TEXT	            Free-form text response	             Not applicable
-    2	                    RATING	          Numerical scale rating	             {"min": 1, "max": 5}
-    3	                    MULTIPLE_CHOICE	  Selection from predefined options	   ["Java", "Python", "Node.js", "SQL"]
-    4	                    BOOLEAN	          Yes/No or true/false answer	         Not applicable
-  **SQL INSERT Statement**: 
-    The endpoint executes the following SQL query to insert job post questions:
-    INSERT INTO job_post_questions (
-    job_post_id, 
-    question_text, 
-    question_type_id, 
-    options, 
-    is_required, 
-    order_index, 
-    created_at, 
-    updated_at
-    )
-    VALUES 
-        ($1, $2, $3, $4, $5, $6, NOW(), NOW()),
-        ($1, $7, $8, $9, $10, $11, NOW(), NOW()),
-        -- Additional question rows as needed
-    RETURNING 
-        id, 
-        question_text, 
-        question_type_id, 
-        options, 
-        is_required, 
-        order_index, 
-        created_at, 
-        updated_at;
-  **Success Response (201 Created)**:
-    {
-      "job_post_id": "a1b2c3d4-5678-9012-3456-789012345678",
-      "questions": [
-                    {
-                      "id": "q001-uuid",
-                      "question_text": "Which skills do you have?",
-                      "question_type_id": 3,
-                      "options": ["Java", "Python", "Node.js", "SQL"],
-                      "is_required": true,
-                      "order_index": 1,
-                      "created_at": "2025-10-06T03:40:00Z",
-                      "updated_at": "2025-10-06T03:40:00Z"
-                    },
-                    {
-                      "id": "q002-uuid",
-                      "question_text": "Are you willing to relocate?",
-                      "question_type_id": 4,
-                      "is_required": true,
-                      "order_index": 2,
-                      "created_at": "2025-10-06T03:40:00Z",
-                      "updated_at": "2025-10-06T03:40:00Z"
-                    },
-                    {
-                      "id": "q003-uuid",
-                      "question_text": "Rate your proficiency in SQL (1–5)",
-                      "question_type_id": 2,
-                      "options": {"min": 1, "max": 5},
-                      "is_required": true,
-                      "order_index": 3,
-                      "created_at": "2025-10-06T03:40:00Z",
-                      "updated_at": "2025-10-06T03:40:00Z"
-                    },
-                    {
-                      "id": "q004-uuid",
-                      "question_text": "Describe your experience with agile methodologies",
-                      "question_type_id": 1,
-                      "is_required": false,
-                      "order_index": 4,
-                      "created_at": "2025-10-06T03:40:00Z",
-                      "updated_at": "2025-10-06T03:40:00Z"
-                    }
-                  ]
-      }
-  
-  
+**Request Method**: GET
+**Endpoint URL**: /api/v1/job-posts/:id/tags
+**Path Parameters**:
+Parameter Type Required Description Example
+id UUID Yes The unique identifier of the job post a1b2c3d4-e5f6-7890-abcd-ef1234567890
+**Success Response (200 OK)**:
+When the request is successful, the endpoint returns a JSON array of tag objects associated with the specified job post.
+Response Format:
+[
+{
+"id": "550e8400-e29b-41d4-a716-446655440000",
+"name": "Remote",
+"created_at": "2024-01-15T10:30:00Z"
+},
+{
+"id": "550e8400-e29b-41d4-a716-446655440001",
+"name": "React",
+"created_at": "2024-01-15T10:30:00Z"
+},
+{
+"id": "550e8400-e29b-41d4-a716-446655440002",
+"name": "Mid-Level",
+"created_at": "2024-01-15T10:30:00Z"
+}
+]
+Response Fields: - id (UUID): The unique identifier of the tag - name (String): The human-readable name of the tag - created_at (ISO 8601 DateTime): The timestamp when the tag was created
 
+**400 Bad Request**:
+Trigger: Invalid job post ID format or missing required parameters
+Response Example:
+{
+"error": {
+"code": "INVALID_REQUEST",
+"message": "Invalid job post ID format",
+"details": "The provided ID 'invalid-id' is not a valid UUID"
+}
+}
+**401 Unauthorized**:
+Trigger: Missing or invalid JWT token
+Response Example:
+{
+"error": {
+"code": "UNAUTHORIZED",
+"message": "Authentication required",
+"details": "Valid JWT token must be provided in Authorization header"
+}
+}
+**404 Not Found**
+Trigger: Job post with the specified ID does not exist
+Response Example:
+{
+"error": {
+"code": "NOT_FOUND",
+"message": "Job post not found",
+"details": "No job post exists with ID '550e8400-e29b-41d4-a716-446655440000'"
+}
+}
+**500 Internal Server Error**
+Trigger: Unexpected server error during processing
+Response Example:
+{
+"error": {
+"code": "INTERNAL_ERROR",
+"message": "An unexpected error occurred",
+"details": "The system encountered an error while processing your request"
+}
+}
 
+**Database Query Details**:
+Primary Query
+The main query for retrieving tags:
+SELECT jt.id, jt.name, jt.created_at
+FROM job_tags jt
+INNER JOIN job_post_tags jpt ON jt.id = jpt.tag_id
+WHERE jpt.job_post_id = $1
+ORDER BY jt.name ASC;
 
-
-
-
-
-
-
-  
-
-
-
-
-
+**Alternative Query Approaches**:
+For scenarios requiring additional information, consider these variations:
+With Tag Count:
+SELECT jt.id, jt.name, jt.created_at, COUNT(jpt2.job_post_id) as usage_count
+FROM job_tags jt
+INNER JOIN job_post_tags jpt ON jt.id = jpt.tag_id
+LEFT JOIN job_post_tags jpt2 ON jt.id = jpt2.tag_id
+WHERE jpt.job_post_id = $1
+GROUP BY jt.id, jt.name, jt.created_at
+ORDER BY jt.name ASC;
+With Job Post Verification:
+SELECT jt.id, jt.name, jt.created_at
+FROM job_posts jp
+INNER JOIN job_post_tags jpt ON jp.id = jpt.job_post_id
+INNER JOIN job_tags jt ON jpt.tag_id = jt.id
+WHERE jp.id = $1
+ORDER BY jt.name ASC;
 
 1. Tabel job_posts
 2. Tabel job_post_tags
