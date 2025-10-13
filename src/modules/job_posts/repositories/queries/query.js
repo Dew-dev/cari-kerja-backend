@@ -51,11 +51,11 @@ class Query {
             values.push(parseInt(limit, 10));
             values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
 
-            const jobpostsResult = await this.db.executeQuery(jobpostsQuery, [values]);
+            const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
             if (!jobpostsResult || jobpostsResult.rows.length === 0) {
                 return wrapper.error("Job posts Not Found");
             }
-            const result = jobpostsResult.rows[0];
+            const result = jobpostsResult.rows;
             const pagination = {
                 page: parseInt(page, 10),
                 limit: parseInt(limit, 10),
@@ -153,11 +153,11 @@ class Query {
             values.push(parseInt(limit, 10));
             values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
             
-            const jobpostsResult = await this.db.executeQuery(jobpostsQuery, [values]);
+            const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
             if (!jobpostsResult || jobpostsResult.rows.length === 0) {
                 return wrapper.error("Job posts Not Found");
             }
-            const result = jobpostsResult.rows[0];
+            const result = jobpostsResult.rows;
             const pagination = {
                 page: parseInt(page, 10),
                 limit: parseInt(limit, 10),

@@ -3,7 +3,7 @@ const queryModel = require("../repositories/queries/query_model");
 const commandHandler = require("../repositories/commands/command_handler");
 const commandModel = require("../repositories/commands/command_model");
 const validator = require("../../../helpers/utils/validator");
-const { sendResponse } = require("../../../helpers/utils/response");
+const { sendResponse, paginationResponse } = require("../../../helpers/utils/response");
 
 const getJobpostsByRecruiterId = async(req, res) => {
     const {
@@ -25,7 +25,7 @@ const getJobpostsByRecruiterId = async(req, res) => {
         limit = 10,
         page = 1,
     } = req.query;
-    const payload = {recruiter_id, sort_by, sort_order, limit, page};
+    let payload = {recruiter_id, sort_by, sort_order, limit, page};
     const conditions = ['j.recruiter_id = $1']; // $1 is recruiterId
     const values = [recruiter_id];
     let idx = 2; // parameter index tracker
@@ -70,7 +70,7 @@ const getJobpostsByRecruiterId = async(req, res) => {
         return sendResponse(validatePayload, res);
     }
     const result = await queryHandler.getJobpostsByRecruiterId(validatePayload.data);
-    return sendResponse(result, res);
+    return paginationResponse(result, res);
 
 }
 
@@ -85,7 +85,7 @@ const getJobpostById = async(req, res) => {
 }
 
 const createJobPost = async (req, res) => {
-    const payload = {...req.body, recruiter_id: req.userMeta.id};
+    const payload = {...req.body, recruiter_id: req.userMeta.recruiter_id};
     const validatePayload = validator.isValidPayload(payload, commandModel.createJobPostParamType);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);
@@ -112,7 +112,7 @@ const getJobposts = async(req, res) => {
         page = 1,
         limit = 10
     } = req.query
-    const payload = {sort_by, sort_order, limit, page};
+    let payload = {sort_by, sort_order, limit, page};
     const conditions = [];
     const values = [];
     let idx = 1;
@@ -219,7 +219,7 @@ const getJobposts = async(req, res) => {
         return sendResponse(validatePayload, res);
     }
     const result = await queryHandler.getJobposts(validatePayload.data);
-    return sendResponse(result, res);
+    return paginationResponse(result, res);
 }
 
 module.exports = {
