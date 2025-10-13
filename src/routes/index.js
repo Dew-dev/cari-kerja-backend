@@ -9,6 +9,7 @@ const skills = require("./skills");
 const education = require("./educations");
 const language = require("./languages");
 const resume = require("./resumes");
+const portfolio = require("./portofolios");
 
 module.exports = (server) => {
   users(server);
@@ -23,4 +24,5 @@ module.exports = (server) => {
   education(server);
   language(server);
   resume(server);
+  portfolio(server);
 };
