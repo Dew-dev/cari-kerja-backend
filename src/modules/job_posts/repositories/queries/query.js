@@ -149,13 +149,27 @@ class Query {
               LIMIT $${idx}
               OFFSET $${idx + 1};
             `;
-            
-            const jobpostsResult = await this.db.executeQuery(jobpostsQuery, [values])
 
-        } catch (error) {
+            values.push(parseInt(limit, 10));
+            values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
             
+            const jobpostsResult = await this.db.executeQuery(jobpostsQuery, [values]);
+            if (!jobpostsResult || jobpostsResult.rows.length === 0) {
+                return wrapper.error("Job posts Not Found");
+            }
+            const result = jobpostsResult.rows[0];
+            const pagination = {
+                page: parseInt(page, 10),
+                limit: parseInt(limit, 10),
+                total: jobpostsResult.rows.length,
+            }
+            return wrapper.paginationData(result, pagination);
+        } catch (error) {
+            logger.error(ctx, errorQueryMessage, "FindAll", error);
+            return wrapper.error(errorQueryMessage);
         }
     }
+
 }
 
 module.exports = Query;
