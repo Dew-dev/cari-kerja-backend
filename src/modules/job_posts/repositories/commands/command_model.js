@@ -1,6 +1,7 @@
 const joi = require("joi");
 
 const createJobPostParamType = joi.object({
+    recruiter_id: joi.string().required(),
     title: joi.string().required(),
     description: joi.string().required(),
     employment_type_id: joi.number().required(),
@@ -11,7 +12,7 @@ const createJobPostParamType = joi.object({
     salary_max: joi.number().required(),
     currency_id: joi.number().required(),
     status_id: joi.number().required(),
-    deadline: joi.number().required(),
+    deadline: joi.string().required(),
 });
 
 module.exports = {

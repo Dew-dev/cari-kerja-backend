@@ -1,5 +1,5 @@
 const verifyToken = require("../middlewares/verifyToken");
-const portofoliosHandler = require("../modules/portofolios/handlers/api_handler");
+const portofoliosHandler = require("../modules/portofolios/handler/api_handler");
 
 module.exports = (server) => {
   /**

@@ -36,14 +36,14 @@ class Jobposts {
 
     async getJobposts(payload) {
         const jobposts = await this.query.findAll(payload);
-        
+
         if (jobposts.err) {
             logger.error(ctx, "getJobposts", "Can not find jobposts", jobposts.err);
             return wrapper.error(new NotFoundError("Can not find jobposts"));
         }
 
         logger.info(ctx, "getJobposts", "Get Jobposts", payload);
-        return wrapper.data(jobposts.data);
+        return wrapper.paginationData(jobposts.data, jobposts.meta);
     }
 
 }
