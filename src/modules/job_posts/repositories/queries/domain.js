@@ -33,6 +33,19 @@ class Jobposts {
         logger.info(ctx, "getJobpostById", "Job Post Query", payload);
         return wrapper.data(jobpost.data);
     }
+
+    async getJobposts(payload) {
+        const jobposts = await this.query.findAll(payload);
+        
+        if (jobposts.err) {
+            logger.error(ctx, "getJobposts", "Can not find jobposts", jobposts.err);
+            return wrapper.error(new NotFoundError("Can not find jobposts"));
+        }
+
+        logger.info(ctx, "getJobposts", "Get Jobposts", payload);
+        return wrapper.data(jobposts.data);
+    }
+
 }
 
 module.exports = Jobposts;

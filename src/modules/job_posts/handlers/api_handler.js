@@ -59,7 +59,7 @@ const getJobpostsByRecruiterId = async(req, res) => {
         salary_min: 'j.salary_min',
         salary_max: 'j.salary_max',
         created_at: 'j.created_at',
-      };
+    };
 
     const orderColumn = sortableColumns[sort_by] || sortableColumns.created_at;
     const orderDirection = sort_order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
@@ -94,8 +94,137 @@ const createJobPost = async (req, res) => {
     return sendResponse(result, res, 201);
 }
 
+const getJobposts = async(req, res) => {
+    const {
+        status,
+        employment_type,
+        experience_level,
+        salary_type,
+        location,
+        salary_min,
+        salary_max,
+        currency,
+        created_after,
+        created_before,
+        search, // Full-text search term
+        sort_by = 'created_at',
+        sort_order = 'desc',
+        page = 1,
+        limit = 10
+    } = req.query
+    const payload = {sort_by, sort_order, limit, page};
+    const conditions = [];
+    const values = [];
+    let idx = 1;
+
+    if (status !== undefined && status !== null && status !== '') {
+        conditions.push(` AND jps.name = $${idx}`);
+        values.push(status);
+        payload = {...payload, status};
+        idx += 1;
+    }
+  
+    if (employment_type !== undefined && status !== null && status !== '') {
+        conditions.push(` AND et.name = $${idx}`);
+        values.push(employment_type);
+        payload = {...payload, employment_type};
+        idx += 1;
+    }
+
+    if (experience_level !== undefined && experience_level !== null && experience_level !== '') {
+        conditions.push(` AND el.name = $${idx}`);
+        values.push(experience_level);
+        payload = {...payload, experience_level};
+        idx += 1;
+    }
+
+    if (salary_type !== undefined && salary_type !== null && salary_type !== '') {
+        conditions.push(` AND st.name = $${idx}`);
+        values.push(salary_type);
+        payload = {...payload, salary_type};
+        idx += 1;
+    }
+
+    if (location !== undefined && location !== null && location !== '') {
+        conditions.push(` AND j.location ILIKE $${idx}`);
+        values.push(location);
+        payload = {...payload, location};
+        idx += 1;
+    }
+
+    if (salary_min !== undefined && salary_min !== null && salary_min !== '') {
+        conditions.push(` AND j.salary_min >= $${idx}`);
+        values.push(salary_min);
+        payload = {...payload, salary_min};
+        idx += 1;
+    }
+
+    if (salary_max !== undefined && salary_max !== null && salary_max !== '') {
+        conditions.push(` AND j.salary_max <= $${idx}`);
+        values.push(salary_max);
+        payload = {...payload, salary_max};
+        idx += 1;
+    }
+
+    if (currency !== undefined && currency !== null && currency !== '') {
+        conditions.push(` AND c.name = $${idx}`);
+        values.push(currency);
+        payload = {...payload, currency};
+        idx += 1;
+    }
+
+    if (created_after !== undefined && created_after !== null && created_after !== '') {
+        conditions.push(` AND j.created_at >= $${idx}`);
+        values.push(created_after);
+        payload = {...payload, created_after};
+        idx += 1;
+    }
+
+    if (created_before !== undefined && created_before !== null && created_before !== '') {
+        conditions.push(` AND j.created_at <= $${idx}`);
+        values.push(created_before);
+        payload = {...payload, created_before};
+        idx += 1;
+    }
+
+    // 🔍 Full-text search on title & description
+    if (search !== undefined && search !== null && search !== '') {
+        conditions.push(`
+            AND (
+            to_tsvector('english', COALESCE(j.title, '') || ' ' || COALESCE(j.description, '')) 
+            @@ to_tsquery('english', $${idx})
+            )
+        `);
+        values.push(`${search}:*`);
+        payload = {...payload, search: `${search}:*`};
+        idx += 1;
+    }
+
+    payload = {...payload, conditions, values, idx};
+
+    const sortableColumns = {
+        title: 'j.title',
+        location: 'j.location',
+        salary_min: 'j.salary_min',
+        salary_max: 'j.salary_max',
+        created_at: 'j.created_at',
+    };
+
+    const orderColumn = sortableColumns[sort_by] || sortableColumns.created_at;
+    const orderDirection = sort_order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
+
+    payload = {...payload, orderColumn, orderDirection};
+    const validatePayload = validator.isValidPayload(payload, queryModel.getJobpostsParamType);
+    if (validatePayload.err) {
+        return sendResponse(validatePayload, res);
+    }
+    const result = await queryHandler.getJobposts(validatePayload.data);
+    return sendResponse(result, res);
+}
+
 module.exports = {
     getJobpostsByRecruiterId,
     getJobpostById,
-    createJobPost
+    createJobPost,
+    getJobposts
 }
