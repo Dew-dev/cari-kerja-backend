@@ -25,7 +25,7 @@ class Query {
                     recruiters.contact_name,
                     recruiters.contact_phone,
                     recruiters.address,
-                    industries.name,
+                    industries.name AS industry,
                     recruiters.description,
                     recruiters.created_at,
                     recruiters.updated_at FROM recruiters 
@@ -71,7 +71,7 @@ class Query {
 
             return wrapper.data(result);
         } catch (error) {
-            logger.error(ctx, errorQueryMessage, "findOne", error);
+            logger.error(ctx, errorQueryMessage, "findOneByRecruiterUserId", error);
             return wrapper.error(errorQueryMessage);
         }
     } 

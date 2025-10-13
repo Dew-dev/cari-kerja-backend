@@ -1801,110 +1801,131 @@ Error Responses:
 401 Unauthorized – Missing or invalid authentication
 403 Forbidden – User does not have permission to delete this profile
 
-## Job Post Table
+  ## Job Post Table
+  ### Get a job post
+  **Method**: GET
+  **Endpoint**: /api/v1/job-posts/:id
+  **Request Parameters**:
+    - id: (string, path) – Job post identifier (e.g., job-105)
+  **SQL Query (Schema-Compliant, with JOINs)**:
+    SELECT 
+        j.id,
+        j.recruiter_id,
+        r.company_name,
+        r.avatar_url,
+        j.title,
+        j.description,
+        j.location,
+        et.name AS employment_type,
+        el.name AS experience_level,
+        st.name AS salary_type,
+        j.salary_min,
+        j.salary_max,
+        c.name AS currency,
+        j.status_id,
+        jps.name AS status,
+        j.published_at,
+        j.deadline,
+        j.created_at,
+        j.updated_at
+    FROM job_posts j
+    JOIN recruiters r ON r.id = j.recruiter_id
+    JOIN employment_types et ON et.id = j.employment_type_id
+    JOIN experience_levels el ON el.id = j.experience_level_id
+    JOIN salary_types st ON st.id = j.salary_type_id
+    JOIN currencies c ON c.id = j.currency_id
+    JOIN job_post_statuses jps ON jps.id = j.status_id
+    WHERE j.id = 'job-105';
 
-### Get a job post
-
-**Method**: GET
-**Endpoint**: /api/v1/job-posts/:id
-**Request Parameters**: - id: (string, path) – Job post identifier (e.g., job-105)
-**SQL Query (Schema-Compliant, with JOINs)**:
-SELECT
-j.id,
-j.recruiter_id,
-r.company_name,
-r.avatar_url,
-j.title,
-j.description,
-j.location,
-et.name AS employment_type,
-j.salary_min,
-j.salary_max,
-c.name AS currency,
-j.status_id,
-jps.name AS status,
-j.published_at,
-j.deadline,
-j.created_at,
-j.updated_at
-FROM job_posts j
-JOIN recruiters r ON r.id = j.recruiter_id
-JOIN employment_types et ON et.id = j.employment_type_id
-JOIN currencies c ON c.id = j.currency_id
-JOIN job_post_statuses jps ON jps.id = j.status_id
-WHERE j.id = 'job-105';
-
-**Response (200 OK)**:
-{
-"data": {
-"id": "job-105",
-"recruiter_id": "rec-003",
-"company_name": "Updated Tech Corp",
-"avatar_url": "https://example.com/avatars/updatedtech.jpg",
-"title": "Security Analyst",
-"description": "Monitor and respond to security threats in real time.",
-"location": "Seattle, WA",
-"employment_type": "Full-time",
-"salary_min": 85000,
-"salary_max": 110000,
-"currency": "USD",
-"status": "Open",
-"published_at": "2025-01-12T09:00:00Z",
-"deadline": "2025-04-15T23:59:59Z",
-"created_at": "2025-01-12T09:00:00Z",
-"updated_at": "2025-01-12T09:00:00Z"
-}
-}
-**Error Responses**: - 400 Bad Request – Invalid job post ID format - 404 Not Found – Job post not found or deleted - 500 Internal Server Error – Server error
-
-### Get All Job posts
-
-**Method**:  GET 
-**Endpoint**:  /api/v1/job-posts 
-**Query Parameters**:
-Parameter Type Required Default Description
-page integer No 1 Page number for pagination
-limit integer No 10 Number of records per page (max: 100)
-status_id integer No null Filter by job post status ID
-employment_type_id integer No null Filter by employment type ID
-recruiter_id string No null Filter by recruiter ID
-location string No null Filter by location (partial match)
-currency_id integer No null Filter by currency ID
-salary_min integer No null Filter by minimum salary (greater than or equal)
-salary_max integer No null Filter by maximum salary (less than or equal)
-**SQL Query**:
-SELECT
-j.id,
-j.recruiter_id,
-r.company_name,
-r.avatar_url,
-j.title,
-j.description,
-j.location,
-et.name AS employment_type,
-j.salary_min,
-j.salary_max,
-c.name AS currency,
-j.status_id,
-jps.name AS status,
-j.created_at,
-j.updated_at
-FROM job_posts j
-JOIN recruiters r ON r.id = j.recruiter_id
-JOIN employment_types et ON et.id = j.employment_type_id
-JOIN currencies c ON c.id = j.currency_id
-JOIN job_post_statuses jps ON jps.id = j.status_id
-WHERE 1=1
--- Dynamically add filters based on query parameters
-AND (:status_id IS NULL OR j.status_id = :status_id)
-AND (:employment_type_id IS NULL OR j.employment_type_id = :employment_type_id)
-AND (:recruiter_id IS NULL OR j.recruiter_id = :recruiter_id)
-AND (:location IS NULL OR j.location ILIKE CONCAT('%', :location, '%'))
-AND (:currency_id IS NULL OR j.currency_id = :currency_id)
-AND (:salary_min IS NULL OR j.salary_min >= :salary_min)
-AND (:salary_max IS NULL OR j.salary_max <= :salary_max)
-ORDER BY j.created_at DESC
-LIMIT :limit OFFSET (:page - 1) \* :limit;
+  **Response (200 OK)**:
+    {
+      "data": {
+        "id": "job-105",
+        "recruiter_id": "rec-003",
+        "company_name": "Updated Tech Corp",
+        "avatar_url": "https://example.com/avatars/updatedtech.jpg",
+        "title": "Security Analyst",
+        "description": "Monitor and respond to security threats in real time.",
+        "location": "Seattle, WA",
+        "employment_type": "Full-time",
+        "salary_min": 85000,
+        "salary_max": 110000,
+        "currency": "USD",
+        "status": "Open",
+        "published_at": "2025-01-12T09:00:00Z",
+        "deadline": "2025-04-15T23:59:59Z",
+        "created_at": "2025-01-12T09:00:00Z",
+        "updated_at": "2025-01-12T09:00:00Z"
+      }
+    }
+  **Error Responses**:
+    - 400 Bad Request – Invalid job post ID format
+    - 404 Not Found – Job post not found or deleted
+    - 500 Internal Server Error – Server error
+  
+  ### Get All Job posts
+  **Method**:  GET 
+  **Endpoint**:  /api/v1/job-posts 
+  **Query Parameters**:
+    Parameter           Type      Required    Default   Description
+    page	              integer	  No	        1	        Page number for pagination
+    limit	              integer	  No	        10	      Number of records per page (max: 100)
+    status_id 	        integer	  No        	null    	Filter by job post status ID
+    employment_type_id	integer	  No	        null	    Filter by employment type ID
+    recruiter_id	      string	  No	        null	    Filter by recruiter ID
+    location	          string	  No	        null	    Filter by location (partial match)
+    currency_id	        integer	  No	        null	    Filter by currency ID
+    salary_min	        integer	  No	        null	    Filter by minimum salary (greater than or equal)
+    salary_max	        integer	  No	        null	    Filter by maximum salary (less than or equal)
+  **SQL Query**:
+    SELECT 
+        j.id,
+        j.recruiter_id,
+        r.company_name,
+        r.avatar_url,
+        j.title,
+        j.description,
+        j.location,
+        et.name AS employment_type,
+        el.name AS experience_level,
+        st.name AS salary_type,
+        j.salary_min,
+        j.salary_max,
+        c.name AS currency,
+        j.status_id,
+        jps.name AS status,
+        j.created_at,
+        j.updated_at
+    FROM job_posts j
+    JOIN recruiters r ON r.id = j.recruiter_id
+    JOIN employment_types et ON et.id = j.employment_type_id
+    JOIN experience_levels el ON el.id = j.experience_level_id
+    JOIN salary_types st ON st.id = j.salary_type_id
+    JOIN currencies c ON c.id = j.currency_id
+    JOIN job_post_statuses jps ON jps.id = j.status_id
+    WHERE 1=1
+      -- Dynamically add filters based on query parameters
+        AND (:status IS NULL OR jps.name = :status)
+        AND (:employment_type IS NULL OR et.name = :employment_type)
+        AND (:experience_level IS NULL OR el.name = :experience_level)
+        AND (:salary_type IS NULL OR st.name = :salary_type)
+        AND (:location IS NULL OR j.location ILIKE CONCAT('%', :location, '%'))
+        AND (:salary_min IS NULL OR j.salary_min >= :salary_min)
+        AND (:salary_max IS NULL OR j.salary_max <= :salary_max)
+        AND (:currency IS NULL OR c.name = :currency)
+        AND (:created_after IS NULL OR j.created_at >= :created_after)
+        AND (:created_before IS NULL OR j.created_at <= :created_before)
+      ORDER BY
+        CASE 
+          WHEN :sort_by = 'title' THEN j.title
+          WHEN :sort_by = 'location' THEN j.location
+          WHEN :sort_by = 'salary_min' THEN j.salary_min::text
+          WHEN :sort_by = 'salary_max' THEN j.salary_max::text
+          WHEN :sort_by = 'created_at' THEN j.created_at::text
+          ELSE j.created_at::text
+        END
+        CASE WHEN :sort_order = 'asc' THEN ASC ELSE DESC END
+      LIMIT :limit OFFSET (:page - 1) * :limit;
 
 **Success Response (200 OK)**:
 {
@@ -2008,116 +2029,122 @@ This endpoint requires authentication. The requester must have a valid API token
 **Query parameters for filtering (e.g., status, employment_type, location) and pagination (page, limit)**
 **Schema-compliant SQL query with accurate JOINs to**: - recruiters → company_name, avatar_url - employment_types → name - currencies → name - job_post_statuses → name
 
-**SQL Query**:
-The following SQL query demonstrates how the endpoint retrieves job posts for a specific recruiter from the database, including joins with related tables to resolve foreign key references:
-SELECT
-j.id,
-j.recruiter_id,
-r.company_name,
-r.avatar_url,
-j.title,
-j.description,
-j.location,
-et.name AS employment_type,
-j.salary_min,
-j.salary_max,
-c.name AS currency,
-j.job_post_status_id,
-jps.name AS status,
-j.created_at,
-j.updated_at
-FROM job_posts j
-JOIN recruiters r ON r.id = j.recruiter_id
-JOIN employment_types et ON et.id = j.employment_type_id
-JOIN currencies c ON c.id = j.currency_id
-JOIN job_post_statuses jps ON jps.id = j.job_post_status_id
-WHERE j.recruiter_id = 'rec-003'
--- Optional filters based on query parameters
-AND (:status IS NULL OR jps.name = :status)
-AND (:employment_type IS NULL OR et.name = :employment_type)
-AND (:location IS NULL OR j.location ILIKE CONCAT('%', :location, '%'))
-AND (:salary_min IS NULL OR j.salary_min >= :salary_min)
-AND (:salary_max IS NULL OR j.salary_max <= :salary_max)
-AND (:currency IS NULL OR c.name = :currency)
-AND (:created_after IS NULL OR j.created_at >= :created_after)
-AND (:created_before IS NULL OR j.created_at <= :created_before)
-ORDER BY
-CASE
-WHEN :sort_by = 'title' THEN j.title
-WHEN :sort_by = 'location' THEN j.location
-WHEN :sort_by = 'salary_min' THEN j.salary_min::text
-WHEN :sort_by = 'salary_max' THEN j.salary_max::text
-WHEN :sort_by = 'created_at' THEN j.created_at::text
-ELSE j.created_at::text
-END
-CASE WHEN :sort_order = 'asc' THEN ASC ELSE DESC END
-LIMIT :limit OFFSET (:page - 1) \* :limit;
+  **SQL Query**:
+    The following SQL query demonstrates how the endpoint retrieves job posts for a specific recruiter from the database, including joins with related tables to resolve foreign key references:
+      SELECT 
+          j.id,
+          j.recruiter_id,
+          r.company_name,
+          r.avatar_url,
+          j.title,
+          j.description,
+          j.location,
+          et.name AS employment_type,
+          el.name AS experience_level,
+          st.name AS salary_type,
+          j.salary_min,
+          j.salary_max,
+          c.name AS currency,
+          j.status_id,
+          jps.name AS status,
+          j.created_at,
+          j.updated_at
+      FROM job_posts j
+      JOIN recruiters r ON r.id = j.recruiter_id
+      JOIN employment_types et ON et.id = j.employment_type_id
+      JOIN experience_levels el ON el.id = j.experience_level_id
+      JOIN salary_types st ON st.id = j.salary_type_id
+      JOIN currencies c ON c.id = j.currency_id
+      JOIN job_post_statuses jps ON jps.id = j.status_id
+      WHERE j.recruiter_id = 'rec-003'
+        -- Optional filters based on query parameters
+        AND (:status IS NULL OR jps.name = :status)
+        AND (:employment_type IS NULL OR et.name = :employment_type)
+        AND (:experience_level IS NULL OR el.name = :experience_level)
+        AND (:salary_type IS NULL OR st.name = :salary_type)
+        AND (:location IS NULL OR j.location ILIKE CONCAT('%', :location, '%'))
+        AND (:salary_min IS NULL OR j.salary_min >= :salary_min)
+        AND (:salary_max IS NULL OR j.salary_max <= :salary_max)
+        AND (:currency IS NULL OR c.name = :currency)
+        AND (:created_after IS NULL OR j.created_at >= :created_after)
+        AND (:created_before IS NULL OR j.created_at <= :created_before)
+      ORDER BY
+        CASE 
+          WHEN :sort_by = 'title' THEN j.title
+          WHEN :sort_by = 'location' THEN j.location
+          WHEN :sort_by = 'salary_min' THEN j.salary_min::text
+          WHEN :sort_by = 'salary_max' THEN j.salary_max::text
+          WHEN :sort_by = 'created_at' THEN j.created_at::text
+          ELSE j.created_at::text
+        END
+        CASE WHEN :sort_order = 'asc' THEN ASC ELSE DESC END
+      LIMIT :limit OFFSET (:page - 1) * :limit;
+  
+  **Count Query for Pagination Metadata**:
+    To support pagination, a separate count query is used to determine the total number of job posts:
+      SELECT COUNT(*)
+      FROM job_posts j
+      JOIN recruiters r ON r.id = j.recruiter_id
+      JOIN employment_types et ON et.id = j.employment_type_id
+      JOIN currencies c ON c.id = j.currency_id
+      JOIN job_post_statuses jps ON jps.id = j.status_id
+      WHERE j.recruiter_id = 'rec-003'
+        -- Same filters as above
+        AND (:status IS NULL OR jps.name = :status)
+        AND (:employment_type IS NULL OR et.name = :employment_type)
+        AND (:location IS NULL OR j.location ILIKE CONCAT('%', :location, '%'))
+        AND (:salary_min IS NULL OR j.salary_min >= :salary_min)
+        AND (:salary_max IS NULL OR j.salary_max &lt;= :salary_max)
+        AND (:currency IS NULL OR c.name = :currency)
+        AND (:created_after IS NULL OR j.created_at >= :created_after)
+        AND (:created_before IS NULL OR j.created_at &lt;= :created_before);
 
-**Count Query for Pagination Metadata**:
-To support pagination, a separate count query is used to determine the total number of job posts:
-SELECT COUNT(\*)
-FROM job_posts j
-JOIN recruiters r ON r.id = j.recruiter_id
-JOIN employment_types et ON et.id = j.employment_type_id
-JOIN currencies c ON c.id = j.currency_id
-JOIN job_post_statuses jps ON jps.id = j.job_post_status_id
-WHERE j.recruiter_id = 'rec-003'
--- Same filters as above
-AND (:status IS NULL OR jps.name = :status)
-AND (:employment_type IS NULL OR et.name = :employment_type)
-AND (:location IS NULL OR j.location ILIKE CONCAT('%', :location, '%'))
-AND (:salary_min IS NULL OR j.salary_min >= :salary_min)
-AND (:salary_max IS NULL OR j.salary_max &lt;= :salary_max)
-AND (:currency IS NULL OR c.name = :currency)
-AND (:created_after IS NULL OR j.created_at >= :created_after)
-AND (:created_before IS NULL OR j.created_at &lt;= :created_before);
-
-**Success Response (200 OK)**:
-The response includes a paginated list of job posts with metadata about the pagination.
-{
-"data": [
-{
-"id": "job-105",
-"recruiter_id": "rec-003",
-"company_name": "Updated Tech Corp",
-"avatar_url": "https://example.com/avatars/updatedtech.jpg",
-"title": "Security Analyst",
-"description": "Monitor and respond to security threats in real time.",
-"location": "Seattle, WA",
-"employment_type": "Full-time",
-"salary_min": 85000,
-"salary_max": 110000,
-"currency": "USD",
-"job_post_status_id": 1,
-"status": "Open",
-"created_at": "2025-01-12T09:00:00Z",
-"updated_at": "2025-01-12T09:00:00Z"
-},
-{
-"id": "job-108",
-"recruiter_id": "rec-003",
-"company_name": "Updated Tech Corp",
-"avatar_url": "https://example.com/avatars/updatedtech.jpg",
-"title": "Frontend Developer",
-"description": "Create engaging user interfaces using React and TypeScript.",
-"location": "Remote",
-"employment_type": "Full-time",
-"salary_min": 95000,
-"salary_max": 130000,
-"currency": "USD",
-"job_post_status_id": 1,
-"status": "Open",
-"created_at": "2025-02-01T14:30:00Z",
-"updated_at": "2025-02-01T14:30:00Z"
-}
-],
-"pagination": {
-"page": 1,
-"limit": 20,
-"total_items": 2,
-"total_pages": 1
-}
-}
+  **Success Response (200 OK)**:
+    The response includes a paginated list of job posts with metadata about the pagination.
+    {
+      "data": [
+        {
+          "id": "job-105",
+          "recruiter_id": "rec-003",
+          "company_name": "Updated Tech Corp",
+          "avatar_url": "https://example.com/avatars/updatedtech.jpg",
+          "title": "Security Analyst",
+          "description": "Monitor and respond to security threats in real time.",
+          "location": "Seattle, WA",
+          "employment_type": "Full-time",
+          "salary_min": 85000,
+          "salary_max": 110000,
+          "currency": "USD",
+          "status_id": 1,
+          "status": "Open",
+          "created_at": "2025-01-12T09:00:00Z",
+          "updated_at": "2025-01-12T09:00:00Z"
+        },
+        {
+          "id": "job-108",
+          "recruiter_id": "rec-003",
+          "company_name": "Updated Tech Corp",
+          "avatar_url": "https://example.com/avatars/updatedtech.jpg",
+          "title": "Frontend Developer",
+          "description": "Create engaging user interfaces using React and TypeScript.",
+          "location": "Remote",
+          "employment_type": "Full-time",
+          "salary_min": 95000,
+          "salary_max": 130000,
+          "currency": "USD",
+          "status_id": 1,
+          "status": "Open",
+          "created_at": "2025-02-01T14:30:00Z",
+          "updated_at": "2025-02-01T14:30:00Z"
+        }
+      ],
+      "pagination": {
+        "page": 1,
+        "limit": 20,
+        "total_items": 2,
+        "total_pages": 1
+      }
+    }
 
 **400 Bad Request**:
 Returned when the request parameters are invalid or malformed.
@@ -2150,236 +2177,237 @@ Returned when the authenticated user does not have permission to access the requ
 }
 }
 
-**404 Not Found**:
-Returned when the specified recruiter does not exist.
-{
-"error": {
-"code": "not_found",
-"message": "Recruiter not found"
-}
-}
+  **404 Not Found**:
+    Returned when the specified recruiter does not exist.
+    {
+      "error": {
+        "code": "not_found",
+        "message": "Recruiter not found"
+      }
+    }
+  
+  **500 Internal Server Error**:
+    Returned when an unexpected error occurs on the server.
+    {
+      "error": {
+        "code": "server_error",
+        "message": "An internal server error occurred"
+      }
+    }
+  
+  ### Create a Job Post
+  **Method**: POST
+  **URL**: /api/v1/job-posts
+  **Authentication**: Required (Bearer Token) Authorization: Recruiter role required
+  **Request Body Example**:
+    {
+      "id": "1111-aaaa-....",
+      "recruiter_id": "2222-pppp-....",
+      "title": "Senior Software Engineer",
+      "description": "We are looking for an experienced software engineer with expertise in backend development and cloud technologies. The ideal candidate will have 5+ years of experience in building scalable web applications.",
+      "employment_type_id": 1,
+      "location": "San Francisco, CA",
+      "salary_min": 120000,
+      "salary_max": 180000,
+      "currency_id": 1,
+      "status_id": 2
+    }
+  **201 Created Response Example**:
+    {
+      "id": "1111-aaaa-....",
+      "recruiter_id": "2222-pppp-....",
+      "title": "Senior Software Engineer",
+      "description": "We are looking for an experienced software engineer with expertise in backend development and cloud technologies. The ideal candidate will have 5+ years of experience in building scalable web applications.",
+      "employment_type_id": 1,
+      "location": "San Francisco, CA",
+      "salary_min": 120000,
+      "salary_max": 180000,
+      "currency_id": 1,
+      "status_id": 2,
+      "published_at": "2025-03-10T15:30:00Z", 
+      "created_at": "2025-03-10T15:30:00Z",
+      "updated_at": "2025-03-10T15:30:00Z"
+    }
+  
+  **400 Bad Request**:
+    {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Request validation failed",
+        "details": [
+          {
+            "field": "title",
+            "message": "Title must be between 5 and 100 characters"
+          },
+          {
+            "field": "salary_max",
+            "message": "Maximum salary must be greater than or equal to minimum salary"
+          }
+        ]
+      }
+    }
+  **401 Unauthorized**:
+    {
+      "error": {
+        "code": "UNAUTHORIZED",
+        "message": "Authentication token is missing or invalid"
+      }
+    }
+  **403 Forbidden**:
+    {
+      "error": {
+        "code": "FORBIDDEN",
+        "message": "User does not have recruiter privileges"
+      }
+    }
+  **404 Not Found**:
+    {
+      "error": {
+        "code": "FOREIGN_KEY_VIOLATION",
+        "message": "Referenced employment type does not exist"
+      }
+    }
+  **500 Internal Server Error**:
+    {
+      "error": {
+        "code": "INTERNAL_SERVER_ERROR",
+        "message": "An unexpected error occurred while processing your request"
+      }
+    }
+  
+  **SQL Operation**:
+    The endpoint executes the following SQL INSERT statement:
+      INSERT INTO job_posts (
+        id,
+        recruiter_id,
+        title,
+        description,
+        employment_type_id,
+        salary_type_id,
+        location,
+        salary_min,
+        salary_max,
+        currency_id,
+        status_id,
+        published_at,
+        created_at,
+        updated_at
+      ) VALUES (
+        :id,
+        :recruiter_id,
+        :title,
+        :description,
+        :employment_type_id,
+        :location,
+        :salary_min,
+        :salary_max,
+        :currency_id,
+        COALESCE(:status_id, 1),
+        NOW(),
+        NOW(),
+        NOW()
+      ) RETURNING *;
 
-**500 Internal Server Error**:
-Returned when an unexpected error occurs on the server.
-{
-"error": {
-"code": "server_error",
-"message": "An internal server error occurred"
-}
-}
-
-### Create a Job Post
-
-**Method**: POST
-**URL**: /api/v1/job-posts
-**Authentication**: Required (Bearer Token) Authorization: Recruiter role required
-**Request Body Example**:
-{
-"id": "1111-aaaa-....",
-"recruiter_id": "2222-pppp-....",
-"title": "Senior Software Engineer",
-"description": "We are looking for an experienced software engineer with expertise in backend development and cloud technologies. The ideal candidate will have 5+ years of experience in building scalable web applications.",
-"employment_type_id": 1,
-"location": "San Francisco, CA",
-"salary_min": 120000,
-"salary_max": 180000,
-"currency_id": 1,
-"job_post_status_id": 2
-}
-**201 Created Response Example**:
-{
-"id": "1111-aaaa-....",
-"recruiter_id": "2222-pppp-....",
-"title": "Senior Software Engineer",
-"description": "We are looking for an experienced software engineer with expertise in backend development and cloud technologies. The ideal candidate will have 5+ years of experience in building scalable web applications.",
-"employment_type_id": 1,
-"location": "San Francisco, CA",
-"salary_min": 120000,
-"salary_max": 180000,
-"currency_id": 1,
-"job_post_status_id": 2,
-"published_at": "2025-03-10T15:30:00Z",
-"created_at": "2025-03-10T15:30:00Z",
-"updated_at": "2025-03-10T15:30:00Z"
-}
-
-**400 Bad Request**:
-{
-"error": {
-"code": "VALIDATION_ERROR",
-"message": "Request validation failed",
-"details": [
-{
-"field": "title",
-"message": "Title must be between 5 and 100 characters"
-},
-{
-"field": "salary_max",
-"message": "Maximum salary must be greater than or equal to minimum salary"
-}
-]
-}
-}
-**401 Unauthorized**:
-{
-"error": {
-"code": "UNAUTHORIZED",
-"message": "Authentication token is missing or invalid"
-}
-}
-**403 Forbidden**:
-{
-"error": {
-"code": "FORBIDDEN",
-"message": "User does not have recruiter privileges"
-}
-}
-**404 Not Found**:
-{
-"error": {
-"code": "FOREIGN_KEY_VIOLATION",
-"message": "Referenced employment type does not exist"
-}
-}
-**500 Internal Server Error**:
-{
-"error": {
-"code": "INTERNAL_SERVER_ERROR",
-"message": "An unexpected error occurred while processing your request"
-}
-}
-
-**SQL Operation**:
-The endpoint executes the following SQL INSERT statement:
-INSERT INTO job_posts (
-id,
-recruiter_id,
-title,
-description,
-employment_type_id,
-location,
-salary_min,
-salary_max,
-currency_id,
-job_post_status_id,
-published_at,
-created_at,
-updated_at
-) VALUES (
-:id,
-:recruiter_id,
-:title,
-:description,
-:employment_type_id,
-:location,
-:salary_min,
-:salary_max,
-:currency_id,
-COALESCE(:job_post_status_id, 1),
-NOW(),
-NOW(),
-NOW()
-) RETURNING \*;
-
-### Update a Job Post
-
-**Method**:  PUT 
-**Path**:  /api/v1/job-posts/:id 
-**Description**: Updates an existing job post identified by its ID. Only the creator (recruiter) of the job post can update it.
-**Authentication & Authorization**:
-This endpoint requires authentication and authorization: - Authentication: Valid JWT token must be provided in the  Authorization  header - Authorization: The authenticated user must be a recruiter and must be the owner of the job post (i.e.,  recruiter_id  in the JWT must match the  recruiter_id  of the job post)
-**Path Parameters**:
-Parameter Type Required Description
-id Integer Yes The unique identifier of the job post to update
-**Request Body**:
-The request body should contain the fields to be updated. All fields are optional - only provided fields will be updated.
-{
-"title": "Senior Frontend Developer",
-"description": "We are looking for an experienced frontend developer...",
-"employment_type_id": 1,
-"location": "San Francisco, CA",
-"salary_min": 80000,
-"salary_max": 120000,
-"currency_id": 1,
-"job_post_status_id": 2
-}
-**SQL UPDATE Statement**:
-UPDATE job_posts
-SET
-title = COALESCE($1, title),
-description = COALESCE($2, description),
-employment_type_id = COALESCE($3, employment_type_id),
-location = COALESCE($4, location),
-salary_min = COALESCE($5, salary_min),
-salary_max = COALESCE($6, salary_max),
-currency_id = COALESCE($7, currency_id),
-job_post_status_id = COALESCE($8, job_post_status_id),
-updated_at = NOW()
-WHERE id = $9 AND recruiter_id = $10
-RETURNING \*;
-
-**200 OK - Success Response**:
-{
-"data": {
-"id": "1111-dddd-....",
-"title": "Senior Frontend Developer",
-"description": "We are looking for an experienced frontend developer with strong React skills...",
-"employment_type_id": 1,
-"employment_type": "Full-time",
-"location": "San Francisco, CA",
-"salary_min": 80000,
-"salary_max": 120000,
-"currency_id": 1,
-"currency": "USD",
-"recruiter_id": "",
-"company_name": "TechCorp Inc.",
-"avatar_url": "https://example.com/avatars/techcorp.jpg",
-"job_post_status_id": 2,
-"status": "Active",
-"published_at": "2025-03-10T10:00:00Z",
-"created_at": "2025-03-10T10:00:00Z",
-"updated_at": "2025-03-10T14:30:00Z"
-}
-}
-
-**400 Bad Request**:
-{
-"error": {
-"code": "VALIDATION_ERROR",
-"message": "Invalid request data",
-"details": {
-"salary_max": ["salary_max must be greater than or equal to salary_min"]
-}
-}
-}
-**401 Unauthorized**:
-{
-"error": {
-"code": "UNAUTHORIZED",
-"message": "Missing or invalid authentication token"
-}
-}
-**403 Forbidden**:
-{
-"error": {
-"code": "FORBIDDEN",
-"message": "You do not have permission to update this job post"
-}
-}
-**404 Not Found**:
-{
-"error": {
-"code": "NOT_FOUND",
-"message": "Job post with ID 123 not found"
-}
-}
-**500 Internal Server Error**:
-{
-"error": {
-"code": "INTERNAL_SERVER_ERROR",
-"message": "An unexpected error occurred while updating the job post"
-}
-}
+  ### Update a Job Post
+  **Method**:  PUT 
+  **Path**:  /api/v1/job-posts/:id 
+  **Description**: Updates an existing job post identified by its ID. Only the creator (recruiter) of the job post can update it.
+  **Authentication & Authorization**:
+    This endpoint requires authentication and authorization:
+      - Authentication: Valid JWT token must be provided in the  Authorization  header
+      - Authorization: The authenticated user must be a recruiter and must be the owner of the job post (i.e.,  recruiter_id  in the JWT must match the  recruiter_id  of the job post)
+  **Path Parameters**:
+    Parameter 	Type    	Required	Description
+    id      	  Integer	   Yes	    The unique identifier of the job post to update
+  **Request Body**:
+    The request body should contain the fields to be updated. All fields are optional - only provided fields will be updated.
+    {
+      "title": "Senior Frontend Developer",
+      "description": "We are looking for an experienced frontend developer...",
+      "employment_type_id": 1,
+      "location": "San Francisco, CA",
+      "salary_min": 80000,
+      "salary_max": 120000,
+      "currency_id": 1,
+      "status_id": 2
+    }
+  **SQL UPDATE Statement**:
+    UPDATE job_posts
+    SET 
+      title = COALESCE($1, title),
+      description = COALESCE($2, description),
+      employment_type_id = COALESCE($3, employment_type_id),
+      location = COALESCE($4, location),
+      salary_min = COALESCE($5, salary_min),
+      salary_max = COALESCE($6, salary_max),
+      currency_id = COALESCE($7, currency_id),
+      status_id = COALESCE($8, status_id),
+      updated_at = NOW()
+    WHERE id = $9 AND recruiter_id = $10
+    RETURNING *;
+  
+  **200 OK - Success Response**:
+    {
+      "data": {
+        "id": "1111-dddd-....",
+        "title": "Senior Frontend Developer",
+        "description": "We are looking for an experienced frontend developer with strong React skills...",
+        "employment_type_id": 1,
+        "employment_type": "Full-time",
+        "location": "San Francisco, CA",
+        "salary_min": 80000,
+        "salary_max": 120000,
+        "currency_id": 1,
+        "currency": "USD",
+        "recruiter_id": "",
+        "company_name": "TechCorp Inc.",
+        "avatar_url": "https://example.com/avatars/techcorp.jpg",
+        "status_id": 2,
+        "status": "Active",
+        "published_at": "2025-03-10T10:00:00Z", 
+        "created_at": "2025-03-10T10:00:00Z",
+        "updated_at": "2025-03-10T14:30:00Z"
+      }
+    }
+  
+  **400 Bad Request**:
+    {
+      "error": {
+        "code": "VALIDATION_ERROR",
+        "message": "Invalid request data",
+        "details": {
+          "salary_max": ["salary_max must be greater than or equal to salary_min"]
+        }
+      }
+    }
+  **401 Unauthorized**:
+    {
+      "error": {
+        "code": "UNAUTHORIZED",
+        "message": "Missing or invalid authentication token"
+      }
+    }
+  **403 Forbidden**:
+    {
+      "error": {
+        "code": "FORBIDDEN",
+        "message": "You do not have permission to update this job post"
+      }
+    }
+  **404 Not Found**:
+    {
+      "error": {
+        "code": "NOT_FOUND",
+        "message": "Job post with ID 123 not found"
+      }
+    }
+  **500 Internal Server Error**:
+    {
+      "error": {
+        "code": "INTERNAL_SERVER_ERROR",
+        "message": "An unexpected error occurred while updating the job post"
+      }
+    }
 
 ### Delete a Job Post
 

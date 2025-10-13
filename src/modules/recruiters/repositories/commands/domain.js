@@ -13,13 +13,13 @@ class Recruiter {
 
     async updateOneRecruiter(payload) {
         const { id } = payload;
-        const recruiter = await this.query.findOne({ id }, { id:1 });
+        const recruiter = await this.query.findOne({ id }, { id: 1 });
+
         if (recruiter.err) {
             return wrapper.error(new NotFoundError("Recruiter Not Found!"));
         }
 
         const updatableFields = [
-            "user_id",
             "company_name",
             "avatar_url",
             "company_website",
@@ -29,8 +29,8 @@ class Recruiter {
             "industry_id",
             "description",
         ];
-        const updateData = {};
-        for (const field in updatableFields) {
+        let updateData = {};
+        for (const field of updatableFields) {
             if (payload[field] !== undefined && payload[field] !== null) {
                 updateData[field] = payload[field];
             }

@@ -391,7 +391,7 @@
     INSERT INTO proficiency_levels (name) 
     VALUES ('Beginner'), ('Intermediate'), ('Fluent'), ('Native');
 
-    CREATE TABLE IF NOT EXISTS languages (
+    CREATE TABLE IF NOT EXISTS languages ( -- Add lookup table
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         worker_id UUID NOT NULL,
         language_name VARCHAR(100) NOT NULL,

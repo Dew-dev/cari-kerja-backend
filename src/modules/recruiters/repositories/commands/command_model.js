@@ -15,13 +15,13 @@ const addRecruiterParamType = joi.object({
 const updateRecruiterParamType = joi.object({
     id: joi.string().required(),
     user_id: joi.string().required(),
-    company_name: joi.string().required(),
+    company_name: joi.string().optional(),
     avatar_url: joi.string().optional(),
     company_website: joi.string().optional(),
-    contact_name: joi.string().required(),
-    contact_phone: joi.string().required(),
+    contact_name: joi.string().optional(),
+    contact_phone: joi.string().optional(),
     address: joi.string().optional(),
-    industry_id: joi.string().optional(),
+    industry_id: joi.number().optional(),
     description: joi.string().optional(),
 });
 

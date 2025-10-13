@@ -1,6 +1,7 @@
 const { v4: uuidv4 } = require("uuid");
 const Command = require("./command");
 const WorkerCommand = require("../../../workers/repositories/commands/command");
+const RecruiterCommand = require("../../../recruiters/repositories/commands/command");
 const Query = require("../queries/query");
 const QueryWorker = require("../../../workers/repositories/queries/query");
 const QueryRecruiter = require("../../../recruiters/repositories/queries/query");
@@ -15,6 +16,7 @@ class User {
   constructor(db) {
     this.command = new Command(db);
     this.workerCommand = new WorkerCommand(db);
+    this.recruiterCommand = new RecruiterCommand(db);
     this.query = new Query(db);
     this.queryWorker = new QueryWorker(db);
     this.queryRecruiter = new QueryRecruiter(db);
@@ -59,6 +61,9 @@ class User {
     const { id, email, role_id, name } = payload;
     const user = await this.query.findOne({ email }, { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1 });
     let data;
+    let dataWorker;
+    let dataRecruiter;
+
     if (user.err) {
       data = {
         id: uuidv4(),
@@ -69,38 +74,44 @@ class User {
         provider_id: id,
         role_id: role_id || 1,
       };
-
       const result = await this.command.insertOne(data);
+      
+      if (data.role_id == 1) {
+        dataWorker = {
+          id: uuidv4(),
+          user_id: data.id,
+          name: name,
+        };
+        const resultWorker = await this.workerCommand.insertOne(dataWorker);
+        if (resultWorker.err) {
+          return wrapper.error(new InternalServerError("Sign up worker failed"));
+        }
+      } else {
+        dataRecruiter = {
+          id: uuidv4(),
+          user_id: data.id,
+          company_name: name,
+          contact_name: name,
+          contact_phone: "NULL",
+        }
+        const resultRecruiter = await this.recruiterCommand.insertOne(dataRecruiter);
+        if (resultRecruiter.err) {
+          return wrapper.error(new InternalServerError("Sign up recruiter failed"));
+        }
+      }
+
       if (result.err) {
         return wrapper.error(new InternalServerError("Sign up failed"));
       }
     } else {
       data = user.data;
-    }
-
-    const result2 = await this.queryWorker.findOne({ user_id: data.id }, { id: 1 });
-
-    if (role_id === 1 && result2.err) {
-      const dataWorker = {
-        id: uuidv4(),
-        user_id: data.id,
-        name: name,
-      };
-      data["worker_id"] = dataWorker.id;
-      const resultWorker = await this.workerCommand.insertOne(dataWorker);
-
-      if (resultWorker.err) {
-        return wrapper.error(new InternalServerError("Sign up worker failed"));
+      if (data.role_id === 1) {
+        const resultWorker = await this.queryWorker.findOne({ user_id: data.id }, { id: 1 });
+        data["worker_id"] = resultWorker.data.id;
+      } else {
+        const resultRecruiter = await this.queryRecruiter.findOne({ user_id: data.id }, { id: 1 });
+        data["recruiter_id"] = resultRecruiter.data.id;
       }
-    }
-
-    if (role_id === 2 && result2.err) {
-      const dataRecruiter = {
-        id: uuidv4(),
-        user_id: data.id,
-        name: name,
-      };
-      data["recruiter_id"] = dataRecruiter.id;
     }
 
     const token = await generateAccessToken(data);
@@ -159,7 +170,7 @@ class User {
   }
 
   async registerRecruiter(payload) {
-    const { username, password, email, name } = payload;
+    const { username, password, email, company_name, contact_name, contact_phone } = payload;
     const stdUsername = username.toLowerCase().trim();
     const hashPassword = await generateHash(password);
 
@@ -187,7 +198,9 @@ class User {
     const dataRecruiter = {
       id: uuidv4(),
       user_id: data.id,
-      name: name,
+      company_name,
+      contact_name,
+      contact_phone
     };
 
     const result = await this.command.insertOne(data);
@@ -196,6 +209,12 @@ class User {
       return wrapper.error(new InternalServerError("Register Failed"));
     }
     delete data.hashed_password;
+
+    const resultRecruiter = await this.recruiterCommand.insertOne(dataRecruiter);
+    if (resultRecruiter.err) {
+      logger.error(ctx, "register recruiter", "Register Recruiter Failed", resultRecruiter.err);
+      return wrapper.error(new InternalServerError("Register Recruiter Failed"));
+    }    
 
     return wrapper.data({ id: data.id });
   }

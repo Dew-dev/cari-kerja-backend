@@ -65,7 +65,7 @@ const registerWorker = async (req, res) => {
 
 const registerRecruiter = async (req, res) => {
   const payload = { ...req.body };
-  const validatePayload = validator.isValidPayload(payload, commandModel.registerParamType);
+  const validatePayload = validator.isValidPayload(payload, commandModel.registerRecruiterParamType);
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }

@@ -1,5 +1,6 @@
 const users = require("./users");
 const recruiters = require("./recruiters");
+const jobposts = require("./jobposts");
 const workers = require("./workers");
 const workExperience = require("./work_experiences");
 const certifications = require("./certifications");
@@ -11,6 +12,8 @@ const language = require("./languages");
 module.exports = (server) => {
   users(server);
   recruiters(server);
+  jobposts(server);
+  workers(server);
   workExperience(server);
   workers(server);
   certifications(server);

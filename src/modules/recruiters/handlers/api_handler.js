@@ -27,7 +27,8 @@ const updateOneRecruiter = async (req, res) => {
 };
 
 const updateOneRecruiterSelf = async (req, res) => {
-    const payload = req.userMeta;
+    const payload = {user_id: req.userMeta.id, id: req.userMeta.recruiter_id, ...req.body};
+    console.log(payload.id);
     const validatePayload = validator.isValidPayload(payload, commandModel.updateRecruiterParamType);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);
