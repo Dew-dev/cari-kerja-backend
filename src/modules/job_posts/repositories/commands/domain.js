@@ -22,7 +22,7 @@ class Jobpost {
             salary_min,
             salary_max,
             currency_id,
-            job_post_status_id,
+            status_id,
             deadline,
         } = payload;
 
@@ -38,7 +38,7 @@ class Jobpost {
             salary_min,
             salary_max,
             currency_id,
-            job_post_status_id,
+            status_id,
             deadline,
         };
 

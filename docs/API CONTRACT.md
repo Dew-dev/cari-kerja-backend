@@ -1902,6 +1902,7 @@ B. Recruiters Section
         j.location,
         et.name AS employment_type,
         el.name AS experience_level,
+        st.name AS salary_type,
         j.salary_min,
         j.salary_max,
         c.name AS currency,
@@ -1913,19 +1914,32 @@ B. Recruiters Section
     JOIN recruiters r ON r.id = j.recruiter_id
     JOIN employment_types et ON et.id = j.employment_type_id
     JOIN experience_levels el ON el.id = j.experience_level_id
+    JOIN salary_types st ON st.id = j.salary_type_id
     JOIN currencies c ON c.id = j.currency_id
     JOIN job_post_statuses jps ON jps.id = j.status_id
     WHERE 1=1
       -- Dynamically add filters based on query parameters
-      AND (:status_id IS NULL OR j.status_id = :status_id)
-      AND (:employment_type_id IS NULL OR j.employment_type_id = :employment_type_id)
-      AND (:recruiter_id IS NULL OR j.recruiter_id = :recruiter_id)
-      AND (:location IS NULL OR j.location ILIKE CONCAT('%', :location, '%'))
-      AND (:currency_id IS NULL OR j.currency_id = :currency_id)
-      AND (:salary_min IS NULL OR j.salary_min >= :salary_min)
-      AND (:salary_max IS NULL OR j.salary_max <= :salary_max)
-    ORDER BY j.created_at DESC
-    LIMIT :limit OFFSET (:page - 1) * :limit;
+        AND (:status IS NULL OR jps.name = :status)
+        AND (:employment_type IS NULL OR et.name = :employment_type)
+        AND (:experience_level IS NULL OR el.name = :experience_level)
+        AND (:salary_type IS NULL OR st.name = :salary_type)
+        AND (:location IS NULL OR j.location ILIKE CONCAT('%', :location, '%'))
+        AND (:salary_min IS NULL OR j.salary_min >= :salary_min)
+        AND (:salary_max IS NULL OR j.salary_max <= :salary_max)
+        AND (:currency IS NULL OR c.name = :currency)
+        AND (:created_after IS NULL OR j.created_at >= :created_after)
+        AND (:created_before IS NULL OR j.created_at <= :created_before)
+      ORDER BY
+        CASE 
+          WHEN :sort_by = 'title' THEN j.title
+          WHEN :sort_by = 'location' THEN j.location
+          WHEN :sort_by = 'salary_min' THEN j.salary_min::text
+          WHEN :sort_by = 'salary_max' THEN j.salary_max::text
+          WHEN :sort_by = 'created_at' THEN j.created_at::text
+          ELSE j.created_at::text
+        END
+        CASE WHEN :sort_order = 'asc' THEN ASC ELSE DESC END
+      LIMIT :limit OFFSET (:page - 1) * :limit;
 
   **Success Response (200 OK)**:
     {
@@ -2048,7 +2062,7 @@ B. Recruiters Section
           j.salary_min,
           j.salary_max,
           c.name AS currency,
-          j.job_post_status_id,
+          j.status_id,
           jps.name AS status,
           j.created_at,
           j.updated_at
@@ -2058,7 +2072,7 @@ B. Recruiters Section
       JOIN experience_levels el ON el.id = j.experience_level_id
       JOIN salary_types st ON st.id = j.salary_type_id
       JOIN currencies c ON c.id = j.currency_id
-      JOIN job_post_statuses jps ON jps.id = j.job_post_status_id
+      JOIN job_post_statuses jps ON jps.id = j.status_id
       WHERE j.recruiter_id = 'rec-003'
         -- Optional filters based on query parameters
         AND (:status IS NULL OR jps.name = :status)
@@ -2090,7 +2104,7 @@ B. Recruiters Section
       JOIN recruiters r ON r.id = j.recruiter_id
       JOIN employment_types et ON et.id = j.employment_type_id
       JOIN currencies c ON c.id = j.currency_id
-      JOIN job_post_statuses jps ON jps.id = j.job_post_status_id
+      JOIN job_post_statuses jps ON jps.id = j.status_id
       WHERE j.recruiter_id = 'rec-003'
         -- Same filters as above
         AND (:status IS NULL OR jps.name = :status)
@@ -2118,7 +2132,7 @@ B. Recruiters Section
           "salary_min": 85000,
           "salary_max": 110000,
           "currency": "USD",
-          "job_post_status_id": 1,
+          "status_id": 1,
           "status": "Open",
           "created_at": "2025-01-12T09:00:00Z",
           "updated_at": "2025-01-12T09:00:00Z"
@@ -2135,7 +2149,7 @@ B. Recruiters Section
           "salary_min": 95000,
           "salary_max": 130000,
           "currency": "USD",
-          "job_post_status_id": 1,
+          "status_id": 1,
           "status": "Open",
           "created_at": "2025-02-01T14:30:00Z",
           "updated_at": "2025-02-01T14:30:00Z"
@@ -2213,7 +2227,7 @@ B. Recruiters Section
       "salary_min": 120000,
       "salary_max": 180000,
       "currency_id": 1,
-      "job_post_status_id": 2
+      "status_id": 2
     }
   **201 Created Response Example**:
     {
@@ -2226,7 +2240,7 @@ B. Recruiters Section
       "salary_min": 120000,
       "salary_max": 180000,
       "currency_id": 1,
-      "job_post_status_id": 2,
+      "status_id": 2,
       "published_at": "2025-03-10T15:30:00Z", 
       "created_at": "2025-03-10T15:30:00Z",
       "updated_at": "2025-03-10T15:30:00Z"
@@ -2291,7 +2305,7 @@ B. Recruiters Section
         salary_min,
         salary_max,
         currency_id,
-        job_post_status_id,
+        status_id,
         published_at,
         created_at,
         updated_at
@@ -2305,7 +2319,7 @@ B. Recruiters Section
         :salary_min,
         :salary_max,
         :currency_id,
-        COALESCE(:job_post_status_id, 1),
+        COALESCE(:status_id, 1),
         NOW(),
         NOW(),
         NOW()
@@ -2332,7 +2346,7 @@ B. Recruiters Section
       "salary_min": 80000,
       "salary_max": 120000,
       "currency_id": 1,
-      "job_post_status_id": 2
+      "status_id": 2
     }
   **SQL UPDATE Statement**:
     UPDATE job_posts
@@ -2344,7 +2358,7 @@ B. Recruiters Section
       salary_min = COALESCE($5, salary_min),
       salary_max = COALESCE($6, salary_max),
       currency_id = COALESCE($7, currency_id),
-      job_post_status_id = COALESCE($8, job_post_status_id),
+      status_id = COALESCE($8, status_id),
       updated_at = NOW()
     WHERE id = $9 AND recruiter_id = $10
     RETURNING *;
@@ -2365,7 +2379,7 @@ B. Recruiters Section
         "recruiter_id": "",
         "company_name": "TechCorp Inc.",
         "avatar_url": "https://example.com/avatars/techcorp.jpg",
-        "job_post_status_id": 2,
+        "status_id": 2,
         "status": "Active",
         "published_at": "2025-03-10T10:00:00Z", 
         "created_at": "2025-03-10T10:00:00Z",

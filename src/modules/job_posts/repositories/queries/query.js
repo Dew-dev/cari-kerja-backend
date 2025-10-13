@@ -30,7 +30,7 @@ class Query {
                 j.salary_min,
                 j.salary_max,
                 c.name AS currency,
-                j.job_post_status_id,
+                j.status_id,
                 jps.name AS status,
                 j.created_at,
                 j.updated_at
@@ -40,7 +40,7 @@ class Query {
             JOIN experience_levels el ON el.id = j.experience_level_id
             JOIN salary_types st ON st.id = j.salary_type_id
             JOIN currencies c ON c.id = j.currency_id
-            JOIN job_post_statuses jps ON jps.id = j.job_post_status_id
+            JOIN job_post_statuses jps ON jps.id = j.status_id
             WHERE ${conditions.join(' AND ')}
             ORDER BY ${orderColumn} ${orderDirection}
             LIMIT $${idx}
@@ -112,6 +112,48 @@ class Query {
         } catch (error) {
             logger.error(ctx, errorQueryMessage, "findOneByJobpostsId", error);
             return wrapper.error(errorQueryMessage);
+        }
+    }
+
+    async findAll({conditions, orderColumn, orderDirection, idx, values, limit, page}) {
+        try {
+            // Build dynamic query using WHERE 1=1
+            const jobpostsQuery = `
+              SELECT 
+                j.id,
+                j.recruiter_id,
+                r.company_name,
+                r.avatar_url,
+                j.title,
+                j.description,
+                j.location,
+                et.name AS employment_type,
+                el.name AS experience_level,
+                st.name AS salary_type,
+                j.salary_min,
+                j.salary_max,
+                c.name AS currency,
+                j.status_id,
+                jps.name AS status,
+                j.created_at,
+                j.updated_at
+              FROM job_posts j
+              JOIN recruiters r ON r.id = j.recruiter_id
+              JOIN employment_types et ON et.id = j.employment_type_id
+              JOIN experience_levels el ON el.id = j.experience_level_id
+              JOIN salary_types st ON st.id = j.salary_type_id
+              JOIN currencies c ON c.id = j.currency_id
+              JOIN job_post_statuses jps ON jps.id = j.status_id
+              WHERE 1=1 ${conditions}
+              ORDER BY ${orderColumn} ${orderDirection}
+              LIMIT $${idx}
+              OFFSET $${idx + 1};
+            `;
+            
+            const jobpostsResult = await this.db.executeQuery(jobpostsQuery, [values])
+
+        } catch (error) {
+            
         }
     }
 }

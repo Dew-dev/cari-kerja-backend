@@ -10,7 +10,7 @@ const createJobPostParamType = joi.object({
     salary_min: joi.number().required(),
     salary_max: joi.number().required(),
     currency_id: joi.number().required(),
-    job_post_status_id: joi.number().required(),
+    status_id: joi.number().required(),
     deadline: joi.number().required(),
 });
 
