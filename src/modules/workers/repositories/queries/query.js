@@ -38,7 +38,7 @@ class Query {
       const workerResult = await this.db.executeQuery(workerQuery, [user_id]);
 
       if (!workerResult || workerResult.rows.length === 0) {
-        return wrapper.error("Worker not found");
+        return wrapper.error(errorEmptyMessage);
       }
 
       const worker = workerResult.rows[0];
@@ -84,7 +84,7 @@ class Query {
 
       return wrapper.data(result);
     } catch (error) {
-      logger.error(ctx, errorQueryMessage, "findOne", err);
+      logger.error(ctx, errorQueryMessage, "findOne", error);
       return wrapper.error(errorQueryMessage);
     }
   }

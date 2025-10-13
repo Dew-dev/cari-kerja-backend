@@ -14,7 +14,7 @@ class Worker {
 
     const worker = await this.query.findOneByUserId(user_id);
     if (worker.err) {
-      logger.error(ctx, "getWorker", "Can not find worker", user.err);
+      logger.error(ctx, "getWorker", "Can not find worker", worker.err);
       return wrapper.error(new NotFoundError("Can not find worker"));
     }
 
