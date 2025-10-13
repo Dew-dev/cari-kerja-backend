@@ -8,6 +8,7 @@ const workerSkills = require("./worker_skills");
 const skills = require("./skills");
 const education = require("./educations");
 const language = require("./languages");
+const resume = require("./resumes");
 
 module.exports = (server) => {
   users(server);
@@ -21,4 +22,5 @@ module.exports = (server) => {
   skills(server);
   education(server);
   language(server);
+  resume(server);
 };
