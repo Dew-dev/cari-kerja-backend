@@ -16,7 +16,7 @@ class Query {
 
   async findAll(worker_id, page = 1, limit = 10) {
     try {
-      const offset = (Number(page) - 1) * Number(limit);
+      const offset = (page - 1) * limit;
       const query = `
         SELECT 
           id,
@@ -32,7 +32,7 @@ class Query {
         ORDER BY updated_at DESC
         LIMIT $2 OFFSET $3;
       `;
-      const values = [worker_id, Number(limit), Number(offset)];
+      const values = [worker_id, limit, offset];
       const result = await this.db.executeQuery(query, values);
       if (!result || result.rows.length === 0) {
         return wrapper.error(errorEmptyMessage);

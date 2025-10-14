@@ -1,6 +1,6 @@
 const Query = require("../queries/query");
 const Command = require("./command");
-const { uuidv4 } = require("uuid");
+const { v4: uuidv4 } = require("uuid");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError, InternalServerError, BadRequestError } = require("../../../../helpers/errors");
@@ -30,7 +30,7 @@ class Skill {
     const { id } = payload;
 
     const skill = await this.query.findOne({ id }, { id: 1 });
-    if (certification.err) {
+    if (skill.err) {
       return wrapper.error(new NotFoundError("Skill not found"));
     }
 
