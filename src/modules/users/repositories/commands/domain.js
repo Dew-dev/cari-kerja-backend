@@ -258,10 +258,24 @@ class User {
       return wrapper.error(checkedToken.err);
     }
 
-    const userData = await this.query.findOneById(checkedToken.data.id);
+    const userData = await this.query.findOne({ id: checkedToken.data.id }, { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1 });
     if (userData.err) {
       logger.error(ctx, "findUser", "User not found", userData.err);
       return wrapper.error(new NotFoundError("User Not Found"));
+    }
+
+    if (userData.data.role_id === 1) {
+      const result = await this.queryWorker.findOne({ user_id: userData.data.id }, { id: 1 });
+      if (result.err) {
+        return wrapper.error(new NotFoundError("Worker not found"));
+      }
+      userData.data["worker_id"] = result.data.id;
+    } else {
+      const result = await this.queryRecruiter.findOne({ user_id: userData.data.id }, { id: 1 });
+      if (result.err) {
+        return wrapper.error(new NotFoundError("Recruiter Not Found!"));
+      }
+      userData.data["recruiter_id"] = result.data.id;
     }
 
     const accessToken = await generateAccessToken(userData.data);
