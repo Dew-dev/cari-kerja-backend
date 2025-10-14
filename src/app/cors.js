@@ -5,7 +5,7 @@ const corsOptions = {
   origin: String(config.get("/cors/origins")).split(","),
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: false,
+  credentials: true,
 };
 
 module.exports = cors(corsOptions);

@@ -1,4 +1,4 @@
-const collection = "portofolios"; // nama tabel di database
+const collection = "portfolios"; // nama tabel di database
 
 class Command {
   constructor(db) {
