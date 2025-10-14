@@ -21,15 +21,15 @@ class Query {
     try {
       const workerQuery = `
       SELECT w.id, w.user_id, w.name, w.avatar_url, w.telephone, w.date_of_birth,
-             g.name AS gender_name,
-             c.name AS country_name,
-             ms.name AS marriage_status_name,
-             r.name AS religion_name,
+             g.gender_name AS gender_name,
+             n.country_name AS country_name,
+             ms.status_name AS marriage_status_name,
+             r.religion_name AS religion_name,
              w.address, w.profile_summary, w.current_salary, w.expected_salary
-      FROM workers w
+      FROM ${collection} w
       LEFT JOIN genders g ON w.gender_id = g.id
-      LEFT JOIN countries c ON w.country_id = c.id
-      LEFT JOIN marriage_status ms ON w.marriage_status_id = ms.id
+      LEFT JOIN nationalities n ON w.nationality_id = n.id
+      LEFT JOIN marriage_statuses ms ON w.marriage_status_id = ms.id
       LEFT JOIN religions r ON w.religion_id = r.id
       WHERE w.user_id = $1
       LIMIT 1;
@@ -59,10 +59,9 @@ class Query {
         this.db.executeQuery("SELECT * FROM educations WHERE worker_id = $1", [id]),
         this.db.executeQuery(
           `
-        SELECT l.id, lang.language_name, pl.proficiency_level_name, l.is_primary
+        SELECT l.id, l.language_name, pl.name, l.is_primary
         FROM languages l
         JOIN proficiency_levels pl ON l.proficiency_level_id = pl.id
-        JOIN language_names lang ON l.language_id = lang.id
         WHERE l.worker_id = $1
       `,
           [id]

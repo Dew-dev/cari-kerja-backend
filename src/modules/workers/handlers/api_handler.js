@@ -7,7 +7,7 @@ const { sendResponse } = require("../../../helpers/utils/response");
 
 // query
 const getWorkerByUserId = async (req, res) => {
-  const payload = { ...req.params };
+  const payload = { user_id: req.userMeta.id };
   const validatePayload = validator.isValidPayload(payload, queryModel.getWorkerByUserIdParamType);
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);

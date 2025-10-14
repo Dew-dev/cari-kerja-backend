@@ -19,7 +19,6 @@ const addWorkerParamType = joi.object({
 const updateWorkerParamType = joi.object({
   id: joi.string().required(),
   user_id: joi.string().required(),
-  worker_id: joi.string().required(),
   name: joi.string().optional(),
   avatar_url: joi.string().optional(),
   telephone: joi.string().optional(),

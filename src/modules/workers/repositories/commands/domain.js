@@ -41,7 +41,7 @@ class Worker {
       }
     }
 
-    const updateResult = await this.query.updateOneNew({ id }, updateData);
+    const updateResult = await this.command.updateOneNew({ id }, updateData);
     if (updateResult.err) {
       return wrapper.error(new InternalServerError("Update worker failed"));
     }
