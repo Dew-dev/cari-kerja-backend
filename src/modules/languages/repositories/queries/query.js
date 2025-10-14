@@ -21,15 +21,15 @@ class Query {
     try {
       const query = `
         SELECT 
-          id,
-          language_name,
-          proficiency_level_id,
-          is_primary,
-          created_at,
-          updated_at
-        FROM languages
-        WHERE worker_id = $1
-        ORDER BY created_at DESC;
+          l.id,
+          l.language_name,
+          pl.name AS proficiency_level_name,
+          l.is_primary,
+          l.updated_at
+        FROM ${collection} l
+        LEFT JOIN proficiency_levels pl ON pl.id = l.proficiency_level_id
+        WHERE l.worker_id = $1
+        ORDER BY l.updated_at DESC;
       `;
 
       const result = await this.db.executeQuery(query, [worker_id]);
