@@ -1,7 +1,7 @@
 const Query = require("../queries/query");
 const Command = require("./command");
 const QueryWorker = require("../../../workers/repositories/queries/query");
-const { uuidv4 } = require("uuid");
+const { v4: uuidv4 } = require("uuid");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError, InternalServerError, BadRequestError } = require("../../../../helpers/errors");
