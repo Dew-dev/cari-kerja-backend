@@ -14,20 +14,15 @@ class WorkerSkills {
     // INSERT one worker skill
     async insertOne(payload) {
         const document = {
-            worker_id: payload.worker_id,
-            skill_id: payload.skill_id,
-            created_at: new Date(),
+          worker_id: payload.worker_id,
+          skill_id: payload.skill_id,
         };
 
         const result = await this.command.insertOne(document);
-        if (!result.data) {
-            return wrapper.error(new InternalServerError("Failed to insert worker skill"));
+        if (result.err) {
+          return wrapper.error(new InternalServerError("Failed to insert worker skill"));
         }
-        return wrapper.data(
-            { worker_id: result.data.worker_id, skill_id: result.data.skill_id },
-            "Success insert worker skill",
-            201
-        );
+        return wrapper.data({ skill_id: result.data.skill_id });
     }
 
     // DELETE one worker skill
@@ -40,11 +35,11 @@ class WorkerSkills {
         }
 
         const result = await this.command.deleteOne({ worker_id, skill_id });
-        if (!result.data) {
-            return wrapper.error(new InternalServerError("Failed to delete worker skill"));
+        if (result.err) {
+          return wrapper.error(new InternalServerError("Failed to delete worker skill"));
         }
 
-        return wrapper.data("Successfully deleted", "Success delete worker skill", 200);
+        return wrapper.data("Successfully deleted");
     }
 }
 

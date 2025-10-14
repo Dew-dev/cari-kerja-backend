@@ -28,7 +28,7 @@ const insertWorkerSkills = async (req, res) => {
 }
 
 const deleteWorkerSkills = async (req, res) => {
-    const payload = {...req.params, worker_id: req.userMeta.worker_id};
+    const payload = { skill_id: req.params.id, worker_id: req.userMeta.worker_id };
     const validatePayload = validator.isValidPayload(payload, commandModel.deleteWorkerSkillsParamType);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);
