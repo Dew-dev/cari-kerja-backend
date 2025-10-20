@@ -27,7 +27,7 @@ class Query {
             updated_at
           FROM ${collection}
           WHERE worker_id = $1
-          ORDER BY start_date DESC
+          ORDER BY updated_at DESC
           LIMIT $2 OFFSET $3;
         `;
       const values = [worker_id, limit, offset];

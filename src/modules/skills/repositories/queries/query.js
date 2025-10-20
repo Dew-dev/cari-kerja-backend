@@ -22,10 +22,10 @@ class Query {
       const query = `
       SELECT 
         id,
-        skills_name
+        skill_name
       FROM ${collection}
-      WHERE skills_name ILIKE $1
-      ORDER BY updated_at DESC
+      WHERE skill_name ILIKE $1
+      ORDER BY created_at DESC
       LIMIT $2 OFFSET $3;
     `;
 
@@ -35,6 +35,7 @@ class Query {
       if (!result || result.rows.length === 0) {
         return wrapper.error(errorEmptyMessage);
       }
+      return wrapper.data(result.rows);
     } catch (error) {
       logger.error(ctx, errorQueryMessage, "findAllSkills", error);
       return wrapper.error(errorQueryMessage);
@@ -47,7 +48,7 @@ class Query {
       const countQuery = `
       SELECT COUNT(*) AS total
       FROM skills
-      WHERE skills_name ILIKE $1;
+      WHERE skill_name ILIKE $1;
     `;
       const countResult = await this.db.executeQuery(countQuery, [searchQuery]);
       return wrapper.data(countResult.rows[0].count);

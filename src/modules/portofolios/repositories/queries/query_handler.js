@@ -6,10 +6,10 @@ const db = new DB(config.get("/postgresqlUrl"));
 const domain = new Domain(db);
 
 // GET ALL Portofolios by Worker ID
-const getAllPortofoliosByWorkerId = async (payload) => {
-  return domain.getAllPortofoliosByWorkerId(payload);
+const getAllPortfoliosByWorkerId = async (payload) => {
+  return domain.getAllPortfoliosByWorkerId(payload);
 };
 
 module.exports = {
-  getAllPortofoliosByWorkerId
+  getAllPortfoliosByWorkerId,
 };

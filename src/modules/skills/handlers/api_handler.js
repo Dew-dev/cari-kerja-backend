@@ -4,7 +4,6 @@ const commandHandler = require("../repositories/commands/command_handler");
 const commandModel = require("../repositories/commands/command_model");
 const validator = require("../../../helpers/utils/validator");
 const { sendResponse, paginationResponse } = require("../../../helpers/utils/response");
-const { async } = require("validate.js");
 
 // query
 const getSkill = async (req, res) => {
@@ -19,12 +18,14 @@ const getSkill = async (req, res) => {
 
 const getAllSkills = async (req, res) => {
   const payload = { ...req.query };
-  const validatePayload = validator.isValidPayload(payload, queryModel.getOneSkillType);
+  const validatePayload = validator.isValidPayload(payload, queryModel.getAllSkillType);
+  console.log(validatePayload);
+
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
   const result = await queryHandler.getAllSkills(validatePayload.data);
-  return sendResponse(result, res);
+  return paginationResponse(result, res);
 };
 
 //command

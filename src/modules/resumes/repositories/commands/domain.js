@@ -1,7 +1,7 @@
 const Query = require("../queries/query");
 const Command = require("./command");
 const QueryWorker = require("../../../workers/repositories/queries/query");
-const { uuidv4 } = require("uuid");
+const { v4: uuidv4 } = require("uuid");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError, InternalServerError, BadRequestError } = require("../../../../helpers/errors");
@@ -15,11 +15,17 @@ class Resume {
   }
 
   async addResume(payload) {
-    const { worker_id } = payload;
+    const { worker_id, is_default } = payload;
 
     const worker = await this.queryWorker.findOne({ id: worker_id }, { id: 1 });
     if (worker.err) {
       return wrapper.error(new NotFoundError("Worker not found"));
+    }
+
+    const resumeDefault = await this.query.findOne({ is_default: true, worker_id }, { id: 1 });
+
+    if (resumeDefault.data && is_default) {
+      return wrapper.error(new BadRequestError("Default resume already exist"));
     }
 
     const newPayload = {
@@ -36,14 +42,14 @@ class Resume {
   }
 
   async updateResume(payload) {
-    const { id } = payload;
+    const { id, is_default, worker_id } = payload;
 
     if (!id) {
-      return wrapper.error(new BadRequestError("id wajib diisi"));
+      return wrapper.error(new BadRequestError("Id not define"));
     }
 
     // Cek apakah resume dengan id tersebut ada
-    const resume = await this.query.findOne({ id }, { id: 1 });
+    const resume = await this.query.findOne({ id }, { id: 1, is_default: 1 });
     if (resume.err || !resume.data) {
       return wrapper.error(new NotFoundError("Resume not found"));
     }
@@ -60,6 +66,17 @@ class Resume {
 
     if (Object.keys(updateData).length === 0) {
       return wrapper.error(new BadRequestError("Tidak ada data untuk diupdate"));
+    }
+
+    if (is_default) {
+      const defaultResume = await this.query.findOne({ is_default: true, worker_id }, { id: 1 });
+
+      if (defaultResume.data) {
+        const updateOld = await this.command.updateOneNew({ id: defaultResume.data.id, worker_id }, { is_default: false });
+        if (updateOld.err) {
+          return wrapper.error(new InternalServerError("Update old resume error"));
+        }
+      }
     }
 
     // Lakukan update

@@ -11,6 +11,7 @@ const language = require("./languages");
 const resume = require("./resumes");
 const portfolio = require("./portofolios");
 const jobtags = require("./job_tags");
+const portfolio = require("./portfolios");
 
 module.exports = (server) => {
   users(server);

@@ -20,10 +20,13 @@ class Skill {
     return wrapper.data(skill.data);
   }
 
-  async getAllSkill(payload) {
+  async getAllSkills(payload) {
     const { page, limit, search } = payload;
+
     const skills = await this.query.findAllSkills(page, limit, search);
     const count = await this.query.countAllSkills(search);
+
+    console.log(skills);
 
     if (skills.err) {
       logger.error(ctx, "getAllSkills", "Can not find skills", skills.err);

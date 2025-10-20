@@ -48,7 +48,7 @@ const updateWorkExperience = async (req, res) => {
 }
 
 const deleteWorkExperience = async (req, res) => {
-    const payload = {...req.params, worker_id: req.userMeta.worker_id};
+    const payload = { ...req.params };
     const validatePayload = validator.isValidPayload(payload, commandModel.deleteWorkExperienceParamType);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);

@@ -38,7 +38,7 @@ class Certification {
     const { worker_id, page, limit } = payload;
 
     const certifications = await this.query.findAll(worker_id, page, limit);
-    const count = await this.query.countAll();
+    const count = await this.query.countAll(worker_id);
     if (certifications.err) {
       logger.error(ctx, "getCertifications", "Can not find certifications", certifications.err);
       return wrapper.error(new NotFoundError("Can not find certifications"));
@@ -53,7 +53,7 @@ class Certification {
       total_pages: totalPages,
     };
 
-    return wrapper.paginationData(experiences.data, meta);
+    return wrapper.paginationData(certifications.data, meta);
   }
 }
 

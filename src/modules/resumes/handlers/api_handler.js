@@ -22,7 +22,7 @@ const getAllResumes = async (req, res) => {
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
-  const result = await queryHandler.getAllCertifications(validatePayload.data);
+  const result = await queryHandler.getAllResumes(validatePayload.data);
   return paginationResponse(result, res);
 };
 

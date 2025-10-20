@@ -11,22 +11,22 @@ const domain = new PortofoliosDomain(db);
  */
 
 // INSERT Portofolio
-const insertPortofolios = async (payload) => {
+const insertPortfolios = async (payload) => {
   return domain.insertOne(payload);
 };
 
 // UPDATE Portofolio
-const updatePortofolios = async (payload) => {
+const updatePortfolios = async (payload) => {
   return domain.updateOne(payload);
 };
 
 // DELETE Portofolio
-const deletePortofolios = async (payload) => {
+const deletePortfolios = async (payload) => {
   return domain.deleteOne(payload);
 };
 
 module.exports = {
-  insertPortofolios,
-  updatePortofolios,
-  deletePortofolios
+  insertPortfolios,
+  updatePortfolios,
+  deletePortfolios,
 };

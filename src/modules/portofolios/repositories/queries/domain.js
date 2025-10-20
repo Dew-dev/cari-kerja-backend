@@ -10,7 +10,7 @@ class Portofolios {
   }
 
   // Get All Portofolios By Worker Id
-  async getAllPortofoliosByWorkerId(payload) {
+  async getAllPortfoliosByWorkerId(payload) {
     const { worker_id } = payload;
 
     const result = await this.query.getAllByWorkerId(worker_id);

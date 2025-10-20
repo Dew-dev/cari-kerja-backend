@@ -17,7 +17,7 @@ const getOneCertification = async (req, res) => {
 };
 
 const getAllCertifications = async (req, res) => {
-  const payload = { worker_id: req.userMeta.worker_id, ...req.query, ...req.params };
+  const payload = { worker_id: req.userMeta.worker_id, ...req.query };
   const validatePayload = validator.isValidPayload(payload, queryModel.getAllCertificationParamType);
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);

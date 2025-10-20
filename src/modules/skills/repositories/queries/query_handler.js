@@ -9,7 +9,7 @@ const getSkill = async (payload) => {
 };
 
 const getAllSkills = async (payload) => {
-  return domain.getAllSkill(payload);
+  return domain.getAllSkills(payload);
 };
 
 module.exports = {

@@ -26,7 +26,7 @@ const login = async (req, res) => {
   }
   const result = await commandHandler.login(validatePayload.data);
 
-  storeCookie(res, "refreshToken", result.data.refreshToken);
+  storeCookie(res, "refreshToken", result?.data?.refreshToken);
   return sendResponse(result, res);
 };
 
@@ -38,7 +38,7 @@ const loginWithGoogle = async (req, res) => {
   }
   const result = await commandHandler.loginWithGoogle(validatePayload.data);
 
-  storeCookie(res, "refreshToken", result.data.refreshToken);
+  storeCookie(res, "refreshToken", result?.data?.refreshToken);
   return sendResponse(result, res);
 };
 

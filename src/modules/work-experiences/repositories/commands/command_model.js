@@ -5,8 +5,8 @@ const addWorkExperienceParamType = joi.object({
   worker_id: joi.string().uuid().required(),
   company_name: joi.string().max(150).required(),
   job_title: joi.string().max(100).required(),
-  start_date: joi.date().required(),
-  end_date: joi.date().optional().allow(null),
+  start_date: joi.string().required(),
+  end_date: joi.string().optional().allow(null),
   is_current: joi.boolean().optional().default(false),
   description: joi.string().optional().allow(null),
 });
@@ -17,14 +17,13 @@ const updateWorkExperienceParamType = joi.object({
   worker_id: joi.string().uuid().required(),
   company_name: joi.string().max(150).required(),
   job_title: joi.string().max(100).required(),
-  start_date: joi.date().required(),
-  end_date: joi.date().optional().allow(null),
+  start_date: joi.string().required(),
+  end_date: joi.string().optional().allow(null),
   is_current: joi.boolean().optional().default(false),
   description: joi.string().optional().allow(null),
 });
 
 const deleteWorkExperienceParamType = joi.object({
-  worker_id: joi.string().uuid().required(),
   id: joi.string().uuid().required(),
 });
 
