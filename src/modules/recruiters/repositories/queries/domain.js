@@ -18,7 +18,7 @@ class Recruiter {
             return wrapper.error(new NotFoundError("Can not find recruiter"));
         }
 
-        logger.info(ctx, "getWorker", "Get detail recruiter", payload);
+        logger.info(ctx, "getRecruiter", "Get detail recruiter", payload);
         return wrapper.data(recruiter.data);
     }
 }

@@ -18,7 +18,7 @@ class Jobposts {
         }
 
         logger.info(ctx, "getJobpostsByRecruiterId", "Get Jobposts", payload);
-        return wrapper.data(jobposts.data);
+        return wrapper.paginationData(jobposts.data, jobposts.meta);
     }
 
     async getJobpostById(payload) {

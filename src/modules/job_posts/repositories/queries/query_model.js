@@ -30,6 +30,7 @@ const getJobpostsParamType = joi.object({
     currency: joi.string().optional(),
     created_after: joi.string().optional(),
     created_before: joi.string().optional(),
+    search: joi.string().optional(),
     sort_by: joi.string().optional(),
     sort_order: joi.string().optional(),
     limit: joi.number().optional(),
