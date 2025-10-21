@@ -9,7 +9,6 @@ const skills = require("./skills");
 const education = require("./educations");
 const language = require("./languages");
 const resume = require("./resumes");
-const portfolio = require("./portofolios");
 const jobtags = require("./job_tags");
 const portfolio = require("./portfolios");
 

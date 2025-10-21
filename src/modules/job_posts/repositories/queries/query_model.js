@@ -33,13 +33,8 @@ const getJobpostsParamType = joi.object({
     search: joi.string().optional(),
     sort_by: joi.string().optional(),
     sort_order: joi.string().optional(),
-    limit: joi.number().optional(),
     page: joi.number().optional(),
-    orderColumn: joi.string().optional(),
-    orderDirection: joi.string().optional(),
-    values: joi.array().required(),
-    conditions: joi.array().optional(),
-    idx: joi.number().required(),
+    limit: joi.number().optional(),
 });
 
 const getJobpostByIdParamType = joi.object({
