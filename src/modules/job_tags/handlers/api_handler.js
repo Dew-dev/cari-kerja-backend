@@ -26,6 +26,16 @@ const getTagsPerJobPost = async(req, res) => {
     return sendResponse(result, res);
 }
 
+const getOneJobPostTagByTagIdAndJobPostId = async(req, res) => {
+    const payload = {...req.params};
+    const validatePayload = validator.isValidPayload(payload, queryModel.getOneJobPostTagByTagIdAndJobPostIdParamType);
+    if (validatePayload.err) {
+        return sendResponse(validatePayload, res);
+    }
+    const result = await queryHandler.getOneJobPostTagByTagIdAndJobPostId(validatePayload.data);
+    return sendResponse(result, res);
+}
+
 const createJobPostTag = async(req, res) => {
     const {
         job_post_id,
@@ -46,9 +56,20 @@ const createJobPostTag = async(req, res) => {
     return sendResponse(result, res);
 }
 
+const deleteJobPostTag = async(req, res) => {
+    const payload = {...req.params, ...req.body, role_id: req.userMeta.role_id, recruiter_id: req.userMeta.recruiter_id};
+    const validatePayload = validator.isValidPayload(payload, commandModel.deleteJobPostTagParamType);
+    if (validatePayload.err) {
+        return sendResponse(validatePayload, res);
+    }
+    const result = await commandHandler.deleteJobPostTag(validatePayload.data);
+    return sendResponse(result, res);
+}
 
 module.exports = {
     getTagsPerJobPost,
     getOneTagByName,
+    getOneJobPostTagByTagIdAndJobPostId,
     createJobPostTag,
+    deleteJobPostTag,
 }

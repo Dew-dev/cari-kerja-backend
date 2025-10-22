@@ -16,7 +16,7 @@ class Command {
             INSERT INTO ${job_post_tags_collection} (job_post_id, tag_id)
             SELECT $1, $2
             WHERE NOT EXISTS (
-            SELECT 1 FROM job_post_tags
+            SELECT 1 FROM ${job_post_tags_collection}
             WHERE job_post_id = $1 AND tag_id = $2
             )
             RETURNING *;
@@ -37,6 +37,10 @@ class Command {
 
     async insertJobTag(document) {
         return this.db.insertOne(document, job_tags_collection);
+    }
+
+    async deleteJobPostTag(parameter) {
+        return this.db.deleteOne(parameter, job_post_tags_collection);
     }
 
 }

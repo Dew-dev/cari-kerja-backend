@@ -219,6 +219,43 @@ class User {
     return wrapper.data({ id: data.id });
   }
 
+  async updateOneUser(payload) {
+      const { id } = payload;
+      const user = await this.query.findOne({ id }, { id: 1 });
+
+      if (user.err) {
+          return wrapper.error(new NotFoundError("User Not Found!"));
+      }
+
+      const updatableFields = [
+          "username",
+          "email",
+          "password",
+          "login_provider",
+          "provider_id",
+      ];
+      let updateData = {};
+      for (const field of updatableFields) {
+          if (payload[field] !== undefined && payload[field] !== null) {
+            if (field == "password") {
+              updateData["hashed_password"] = await generateHash(payload[field]);
+            } else {
+              updateData[field] = payload[field];
+            }
+          }
+      }
+
+      console.log(updateData);
+
+      const updateResult = await this.command.updateOneNew({id}, updateData);
+      if (updateResult.err) {
+          logger.error(ctx, "Failed to update", "Domain users", updateResult.err);
+          return wrapper.error(new InternalServerError("Update User Failed"));
+      }
+      logger.info(ctx, "Update Succeed", "Domain Users", wrapper.data({id}));
+      return wrapper.data({id});
+  }
+
   async logout(payload) {
     const { token } = payload;
     const checkedToken = await verifyRefreshToken(token);

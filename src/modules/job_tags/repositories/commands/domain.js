@@ -55,6 +55,28 @@ class JobPostTags {
         return wrapper.data(data);
     }
 
+    async deleteJobPostTag(payload) {
+        const {tag_id, job_post_id, role_id, recruiter_id} = payload;
+
+        const getJobPostResult = await queryHandlerJobPosts.getJobpostById({id: job_post_id});
+        if (getJobPostResult.err || role_id !== 2 || getJobPostResult.data.recruiter_id !== recruiter_id) {
+            logger.error(ctx, "Delete Job Post Tag: Unauthorized", "Job Tags Command Domain", getJobPostResult.err);
+            return wrapper.error(new UnauthorizedError("Delete Job Post Tag Failed due to Unauthorized"));
+        }
+        const getJobPostTagResult = await queryHandler.getOneJobPostTagByTagIdAndJobPostId({tag_id, job_post_id});
+        if (getJobPostTagResult.err) {
+            logger.error(ctx, "Delete Job Post Tag: Can not find tag", "Job Tags Command Domain", getJobPostTagResult.err);
+            return wrapper.error(new NotFoundError("Delete Job Post Tag Failed due to tag Not Found"));
+        }
+        const deleteJobPostTagResult = await this.command.deleteJobPostTag({tag_id, job_post_id});
+        if (deleteJobPostTagResult.err) {
+            logger.error(ctx, "Delete Job Post Tag", "Job Tags Command", deleteJobPostTagResult.err);
+            return wrapper.error(new InternalServerError("Delete Job Post Tag Failed"));
+        }
+
+        return wrapper.data({tag_id, job_post_id});
+    }
+
 }
 
 module.exports = JobPostTags;

@@ -73,6 +73,16 @@ const registerRecruiter = async (req, res) => {
   return sendResponse(result, res, 201);
 };
 
+const updateOneUser = async (req, res) => {
+  const payload = {...req.params, ...req.body};
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateUserParamType);
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+  const result = await commandHandler.updateOneUser(validatePayload.data);
+  return sendResponse(result, res, 201);
+}
+
 const deleteUser = async (req, res) => {
   const payload = { id: req.params.id, user_online_id: req.userMeta.id };
   const validatePayload = validator.isValidPayload(payload, commandModel.deleteParamType);
@@ -100,6 +110,7 @@ module.exports = {
   logout,
   registerRecruiter,
   registerWorker,
+  updateOneUser,
   deleteUser,
   refreshToken,
 };

@@ -105,13 +105,14 @@ const deleteParamType = joi.object({
 
 const updateUserParamType = joi.object({
   id: joi.string().required(),
-  user_id: joi.string().required(),
   username: joi
     .string()
     .optional()
     .min(5)
     .max(50)
     .regex(/^[\w]+$/)
+    .lowercase()
+    .trim()
     .message("Username must be alphanumeric"),
   password: joi
     .string()
@@ -132,6 +133,8 @@ const updateUserParamType = joi.object({
     .optional()
     .regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
     .message("Email format must be true"),
+  login_provider: joi.string().optional(),
+  provider_id: joi.string().optional(),
 });
 
 const refreshTokenParamType = joi.object({
