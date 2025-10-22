@@ -105,9 +105,22 @@ const getJobposts = async(req, res) => {
     return paginationResponse(result, res);
 }
 
+const getJobpostsSelf = async(req, res) => {
+    const payload = {...req.query, recruiter_id: req.userMeta.recruiter_id};
+    console.log(payload);
+
+    const validatePayload = validator.isValidPayload(payload, queryModel.getJobpostsSelfParamType);
+    if (validatePayload.err) {
+        return sendResponse(validatePayload, res);
+    }
+    const result = await queryHandler.getJobpostsSelf(validatePayload.data);
+    return paginationResponse(result, res);
+}
+
 module.exports = {
     getJobpostsByRecruiterId,
     getJobpostById,
     createJobPost,
-    getJobposts
+    getJobposts,
+    getJobpostsSelf,
 }

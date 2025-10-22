@@ -10,9 +10,10 @@ const createJobPostTag = async (payload) => {
 };
 
 const deleteJobPostTag = async (payload) => {
-    
+    return domain.deleteJobPostTag(payload);
 }
 
 module.exports = {
     createJobPostTag,
+    deleteJobPostTag,
 }

@@ -7,6 +7,14 @@ const createJobPostTagParamType = joi.object({
     recruiter_id: joi.string().required(),
 });
 
+const deleteJobPostTagParamType = joi.object({
+    tag_id: joi.string().required(),
+    job_post_id: joi.string().required(),
+    role_id: joi.number().required(),
+    recruiter_id: joi.string().required(),
+});
+
 module.exports = {
     createJobPostTagParamType,
+    deleteJobPostTagParamType,
 }

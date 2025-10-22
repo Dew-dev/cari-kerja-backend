@@ -10,8 +10,12 @@ class Query {
         this.db = db;
     }
 
-    async findOneJobTags(parameter, projection) {
+    async findOneJobTag(parameter, projection) {
         return this.db.findOne(parameter, projection, job_tags_collection);
+    }
+
+    async findOneJobPostTag(parameter, projection) {
+        return this.db.findOne(parameter, projection, job_post_tags_collection);
     }
 
     async findtagsPerJobPost(job_post_id) {

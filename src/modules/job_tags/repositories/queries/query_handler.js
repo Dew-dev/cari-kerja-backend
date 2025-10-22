@@ -13,8 +13,13 @@ const getTagsPerJobPost = async (payload) => {
     return domain.getTagsPerJobPost(payload);
 }
 
+const getOneJobPostTagByTagIdAndJobPostId = async (payload) => {
+    return domain.getOneJobPostTagByTagIdAndJobPostId(payload);
+}
+
 
 module.exports = {
     getTagsPerJobPost,
-    getOneTagByName
+    getOneTagByName,
+    getOneJobPostTagByTagIdAndJobPostId,
 }

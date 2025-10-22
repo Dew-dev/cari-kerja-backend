@@ -20,6 +20,10 @@ const registerRecruiter = async (payload) => {
   return domain.registerRecruiter(payload);
 };
 
+const updateOneUser = async (payload) => {
+  return domain.updateOneUser(payload);
+}
+
 const logout = async (payload) => {
   return domain.logout(payload);
 };
@@ -37,6 +41,7 @@ module.exports = {
   loginWithGoogle,
   registerWorker,
   registerRecruiter,
+  updateOneUser,
   logout,
   deleteUser,
   refreshToken,

@@ -6,6 +6,7 @@ const { authGoogle, authGoogleCallback } = require("../helpers/auth/google_oauth
 module.exports = (server) => {
   server.post("/api/v1/users/register-worker", basicAuth.isAuthenticated, userHandler.registerWorker);
   server.post("/api/v1/users/register-recruiter", basicAuth.isAuthenticated, userHandler.registerRecruiter);
+  server.put("/api/v1/users/update-user/:id", basicAuth.isAuthenticated, userHandler.updateOneUser);
   server.post("/api/v1/users/login", basicAuth.isAuthenticated, userHandler.login);
   server.get("/api/v1/users/google", authGoogle);
   server.get("/api/v1/users/google/callback", authGoogleCallback, userHandler.loginWithGoogle);

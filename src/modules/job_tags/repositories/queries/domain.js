@@ -12,13 +12,25 @@ class JobPostTags {
     async getOneTagByName(payload) {
         const {name} = payload;
 
-        const jobtag = await this.query.findOneJobTags({name}, {id: 1, name: 1});
+        const jobtag = await this.query.findOneJobTag({name}, {id: 1, name: 1});
         if (jobtag.err) {
             logger.error(ctx, "getOneTagByName", "Can not find tag", jobtag.err);
             return wrapper.error(new NotFoundError("Can not find tag"));
         }
 
         logger.info(ctx, "getTag", "Get job tag", payload);
+        return wrapper.data(jobtag.data);
+    }
+
+    async getOneJobPostTagByTagIdAndJobPostId(payload) {
+        const {tag_id, job_post_id} = payload;
+        const jobtag = await this.query.findOneJobPostTag({tag_id, job_post_id}, {tag_id: 1, job_post_id: 1});
+        if (jobtag.err) {
+            logger.error(ctx, "getOneJobPostTagByTagIdAndJobPostId", "Can not find tag", jobtag.err);
+            return wrapper.error(new NotFoundError("Can not find tag"));
+        }
+
+        logger.info(ctx, "getOneJobPostTagByTagIdAndJobPostId", "Get Job Post Tag", payload);
         return wrapper.data(jobtag.data);
     }
 
