@@ -1,4 +1,5 @@
 const collection = "job_posts"
+const collections = "job_posts_questions"
 
 class Command {
     constructor(db) {
@@ -7,6 +8,10 @@ class Command {
 
     async insertOne(document) {
         return this.db.insertOne(document, collection);
+    }
+    
+    async insertMany(document, table){
+        return this.db.insertMany(document, table);
     }
 
     async deleteOne(parameter) {

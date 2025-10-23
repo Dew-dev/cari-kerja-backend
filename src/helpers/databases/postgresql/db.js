@@ -69,6 +69,53 @@ class DB {
     }
   }
 
+  async insertMany(documents, collectionName) {
+    try {
+      if (!Array.isArray(documents) || documents.length === 0) {
+        throw new Error("Documents must be a non-empty array");
+      }
+
+      // Ambil field keys dari dokumen pertama
+      const keys = Object.keys(documents[0]);
+
+      // Buat placeholder value seperti ($1,$2,...), ($n,...)
+      const valuePlaceholders = documents.map((_, rowIndex) => {
+        const baseIndex = rowIndex * keys.length;
+        const placeholders = keys
+          .map((_, colIndex) => `$${baseIndex + colIndex + 1}`)
+          .join(", ");
+        return `(${placeholders})`;
+      }).join(", ");
+
+      // Gabungkan semua nilai (flatten array)
+      const values = documents.flatMap((doc) => Object.values(doc));
+
+      // Buat field list untuk query
+      const projectionPlaceholders = keys.map((key) => `"${key}"`).join(", ");
+      console.log("Projection :  " + projectionPlaceholders);
+      console.log("Value :  " + valuePlaceholders);
+      // Query final
+      const query = `
+        INSERT INTO "${collectionName}" (${projectionPlaceholders})
+        VALUES ${valuePlaceholders}
+        RETURNING *;
+      `;
+
+      console.log("query :  " + query);
+      // Eksekusi query
+      const result = await this.executeQuery(query, values);
+
+      if (!result || result.rows.length === 0) {
+        return wrapper.error("Insert many failed");
+      }
+
+      return wrapper.data(result.rows);
+    } catch (err) {
+      logger.error(ctx, "Error insertMany", "insertMany", err);
+      return wrapper.error(err.message);
+    }
+  }
+
   async updateOne(parameter, updateQuery, collectionName) {
     try {
       const updateQueryKey = Object.keys(updateQuery);

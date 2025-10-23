@@ -6,4 +6,5 @@ module.exports = (server) => {
     server.get("/api/v1/recruiters/:recruiter_id/job-posts", verifyToken, jobpostHandler.getJobpostsByRecruiterId);
     server.get("/api/v1/job-posts", verifyToken, jobpostHandler.getJobposts);
     server.post("/api/v1/job-posts", verifyToken, jobpostHandler.createJobPost);
+    server.post("/api/v1/job-posts/:id/create-questions", verifyToken, jobpostHandler.createJobPostQuestions);
 }

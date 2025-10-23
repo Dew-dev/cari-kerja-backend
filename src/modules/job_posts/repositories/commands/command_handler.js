@@ -9,6 +9,11 @@ const createJobPost = async(payload) => {
     return domain.createJobPost(payload);
 };
 
+const createJobPostQuestions = async(payload, id) => {
+    return domain.createJobPostQuestions(payload,id);
+};
+
 module.exports = {
     createJobPost,
+    createJobPostQuestions
 };

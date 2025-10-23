@@ -94,6 +94,16 @@ const createJobPost = async (req, res) => {
     return sendResponse(result, res, 201);
 }
 
+const createJobPostQuestions = async (req, res) => {
+    const payload = req.body;
+    const {
+        id,
+    } = req.params;
+    // return payload;
+    const result = await commandHandler.createJobPostQuestions(payload,id);
+    return sendResponse(result, res, 201);
+}
+
 const getJobposts = async(req, res) => {
     const {
         status,
@@ -226,5 +236,7 @@ module.exports = {
     getJobpostsByRecruiterId,
     getJobpostById,
     createJobPost,
-    getJobposts
+    createJobPostQuestions,
+    getJobposts,
+
 }
