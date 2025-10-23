@@ -18,8 +18,13 @@ const getJobposts = async(payload) => {
     return domain.getJobposts(payload);
 }
 
+const getJobpostsSelf = async(payload) => {
+    return domain.getJobpostsSelf(payload);
+}
+
 module.exports = {
     getJobpostsByRecruiterId,
     getJobpostById,
-    getJobposts
+    getJobposts,
+    getJobpostsSelf,
 }
