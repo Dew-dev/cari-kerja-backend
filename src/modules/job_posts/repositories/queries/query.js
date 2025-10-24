@@ -1,21 +1,29 @@
- const collection = "job_posts";
+const collection = "job_posts";
 const errorQueryMessage = "Error querying PostgreSQL";
 const logger = require("../../../../helpers/utils/logger");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const ctx = "Job_Posts-Query";
 
 class Query {
-    constructor(db) {
-        this.db = db;
-    }
+  constructor(db) {
+    this.db = db;
+  }
 
-    async findOne(parameter, projection) {
-        return this.db.findOne(parameter, projection, collection);
-    }
+  async findOne(parameter, projection) {
+    return this.db.findOne(parameter, projection, collection);
+  }
 
-    async findAllByRecruiterId({conditions, orderColumn, orderDirection, idx, values, limit, page}) {
-        try {
-            const jobpostsQuery = `
+  async findAllByRecruiterId({
+    conditions,
+    orderColumn,
+    orderDirection,
+    idx,
+    values,
+    limit,
+    page,
+  }) {
+    try {
+      const jobpostsQuery = `
             SELECT 
                 j.id,
                 j.recruiter_id,
@@ -41,36 +49,36 @@ class Query {
             JOIN salary_types st ON st.id = j.salary_type_id
             JOIN currencies c ON c.id = j.currency_id
             JOIN job_post_statuses jps ON jps.id = j.status_id
-            WHERE ${conditions.join(' AND ')}
+            WHERE ${conditions.join(" AND ")}
             ORDER BY ${orderColumn} ${orderDirection}
             LIMIT $${idx}
             OFFSET $${idx + 1};
             `;
 
-            // Add pagination params to values
-            values.push(parseInt(limit, 10));
-            values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
+      // Add pagination params to values
+      values.push(parseInt(limit, 10));
+      values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
 
-            const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
-            if (!jobpostsResult || jobpostsResult.rows.length === 0) {
-                return wrapper.error("Job posts Not Found");
-            }
-            const result = jobpostsResult.rows;
-            const pagination = {
-                page: parseInt(page, 10),
-                limit: parseInt(limit, 10),
-                total: jobpostsResult.rows.length,
-            }
-            return wrapper.paginationData(result, pagination);
-        } catch(error) {
-            logger.error(ctx, errorQueryMessage, "findAllByRecruiterId", error);
-            return wrapper.error(errorQueryMessage);
-        }
+      const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
+      if (!jobpostsResult || jobpostsResult.rows.length === 0) {
+        return wrapper.error("Job posts Not Found");
+      }
+      const result = jobpostsResult.rows;
+      const pagination = {
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
+        total: jobpostsResult.rows.length,
+      };
+      return wrapper.paginationData(result, pagination);
+    } catch (error) {
+      logger.error(ctx, errorQueryMessage, "findAllByRecruiterId", error);
+      return wrapper.error(errorQueryMessage);
     }
+  }
 
-    async findOneByJobpostsId(id) {
-        try {
-            const jobpostQuery = `
+  async findOneByJobpostsId(id) {
+    try {
+      const jobpostQuery = `
             SELECT 
                 j.id,
                 j.recruiter_id,
@@ -101,24 +109,31 @@ class Query {
             WHERE j.id = $1;
             `;
 
-            const jobpostResult = await this.db.executeQuery(jobpostQuery, [id]);
-            if (!jobpostResult || jobpostResult.rows.length === 0) {
-                return wrapper.error("Job Post Not Found");
-            }
-            const result = jobpostResult.rows[0];
+      const jobpostResult = await this.db.executeQuery(jobpostQuery, [id]);
+      if (!jobpostResult || jobpostResult.rows.length === 0) {
+        return wrapper.error("Job Post Not Found");
+      }
+      const result = jobpostResult.rows[0];
 
-            return wrapper.data(result);
-            
-        } catch (error) {
-            logger.error(ctx, errorQueryMessage, "findOneByJobpostsId", error);
-            return wrapper.error(errorQueryMessage);
-        }
+      return wrapper.data(result);
+    } catch (error) {
+      logger.error(ctx, errorQueryMessage, "findOneByJobpostsId", error);
+      return wrapper.error(errorQueryMessage);
     }
+  }
 
-    async findAll({conditions, orderColumn, orderDirection, idx, values, limit, page}) {
-        try {
-            // Build dynamic query using WHERE 1=1
-            const jobpostsQuery = `
+  async findAll({
+    conditions,
+    orderColumn,
+    orderDirection,
+    idx,
+    values,
+    limit,
+    page,
+  }) {
+    try {
+      // Build dynamic query using WHERE 1=1
+      const jobpostsQuery = `
               SELECT 
                 j.id,
                 j.recruiter_id,
@@ -150,33 +165,38 @@ class Query {
               OFFSET $${idx + 1};
             `;
 
-            values.push(parseInt(limit, 10));
-            values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
-            
-            const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
-            if (!jobpostsResult || jobpostsResult.rows.length === 0) {
-                return wrapper.error("Job posts Not Found");
-            }
-            const result = jobpostsResult.rows;
-            const pagination = {
-                page: parseInt(page, 10),
-                limit: parseInt(limit, 10),
-                total: jobpostsResult.rows.length,
-            }
-            return wrapper.paginationData(result, pagination);
-        } catch (error) {
-            logger.error(ctx, errorQueryMessage, "FindAll", error);
-            return wrapper.error(errorQueryMessage);
-        }
+      values.push(parseInt(limit, 10));
+      values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
+
+      const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
+      if (!jobpostsResult || jobpostsResult.rows.length === 0) {
+        return wrapper.error("Job posts Not Found");
+      }
+      const result = jobpostsResult.rows;
+      const pagination = {
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
+        total: jobpostsResult.rows.length,
+      };
+      return wrapper.paginationData(result, pagination);
+    } catch (error) {
+      logger.error(ctx, errorQueryMessage, "FindAll", error);
+      return wrapper.error(errorQueryMessage);
     }
+  }
 
-
-    async findAllQuestionsByJobPostId({ job_post_id, orderColumn = 'order_index', orderDirection = 'ASC', limit = 10, page = 1 }) {
-        try {
-            const values = [job_post_id];
-            let idx = 2; // index mulai dari 2 karena $1 dipakai untuk job_post_id
-
-            const query = `
+  async findAllByJobPostId({
+    job_post_id,
+    conditions = "",
+    orderColumn,
+    orderDirection,
+    idx,
+    values,
+    limit,
+    page,
+  }) {
+    try {
+      const query = `
             SELECT 
                 q.id,
                 q.job_post_id,
@@ -190,33 +210,33 @@ class Query {
             FROM job_post_questions q
             JOIN question_types qt ON qt.id = q.question_type_id
             WHERE q.job_post_id = $1
+            ${conditions}
             ORDER BY ${orderColumn} ${orderDirection}
             LIMIT $${idx}
             OFFSET $${idx + 1};
             `;
 
-            values.push(parseInt(limit, 10));
-            values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
+      values.push(parseInt(limit, 10));
+      values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
 
-            const result = await this.db.executeQuery(query, values);
+      const result = await this.db.executeQuery(query, values);
 
-            if (!result || result.rows.length === 0) {
-                return wrapper.error("No questions found for this job_post_id");
-            }
+      if (!result || result.rows.length === 0) {
+        return wrapper.error("No questions found for this job_post_id");
+      }
 
-            const pagination = {
-                page: parseInt(page, 10),
-                limit: parseInt(limit, 10),
-                total: result.rows.length,
-            };
+      const pagination = {
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
+        total: result.rows.length,
+      };
 
-            return wrapper.paginationData(result.rows, pagination);
-        } catch (error) {
-            logger.error(ctx, errorQueryMessage, "findAllByJobPostId", error);
-            return wrapper.error(errorQueryMessage);
-        }
+      return wrapper.paginationData(result.rows, pagination);
+    } catch (error) {
+      logger.error(ctx, errorQueryMessage, "findAllByJobPostId", error);
+      return wrapper.error(errorQueryMessage);
     }
-    
+  }
 }
 
 module.exports = Query;
