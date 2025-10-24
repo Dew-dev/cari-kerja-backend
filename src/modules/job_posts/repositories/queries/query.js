@@ -1,4 +1,4 @@
-const collection = "job_posts";
+ const collection = "job_posts";
 const errorQueryMessage = "Error querying PostgreSQL";
 const logger = require("../../../../helpers/utils/logger");
 const wrapper = require("../../../../helpers/utils/wrapper");
@@ -170,6 +170,53 @@ class Query {
         }
     }
 
+
+    async findAllQuestionsByJobPostId({ job_post_id, orderColumn = 'order_index', orderDirection = 'ASC', limit = 10, page = 1 }) {
+        try {
+            const values = [job_post_id];
+            let idx = 2; // index mulai dari 2 karena $1 dipakai untuk job_post_id
+
+            const query = `
+            SELECT 
+                q.id,
+                q.job_post_id,
+                q.question_text,
+                qt.name AS question_type,
+                q.options,
+                q.is_required,
+                q.order_index,
+                q.created_at,
+                q.updated_at
+            FROM job_post_questions q
+            JOIN question_types qt ON qt.id = q.question_type_id
+            WHERE q.job_post_id = $1
+            ORDER BY ${orderColumn} ${orderDirection}
+            LIMIT $${idx}
+            OFFSET $${idx + 1};
+            `;
+
+            values.push(parseInt(limit, 10));
+            values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
+
+            const result = await this.db.executeQuery(query, values);
+
+            if (!result || result.rows.length === 0) {
+                return wrapper.error("No questions found for this job_post_id");
+            }
+
+            const pagination = {
+                page: parseInt(page, 10),
+                limit: parseInt(limit, 10),
+                total: result.rows.length,
+            };
+
+            return wrapper.paginationData(result.rows, pagination);
+        } catch (error) {
+            logger.error(ctx, errorQueryMessage, "findAllByJobPostId", error);
+            return wrapper.error(errorQueryMessage);
+        }
+    }
+    
 }
 
 module.exports = Query;

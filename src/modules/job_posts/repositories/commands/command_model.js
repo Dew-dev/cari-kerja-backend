@@ -26,7 +26,19 @@ const jobPostQuestionParamType = joi.object({
     updated_at: joi.date().default(() => new Date().toISOString()), // sama dengan now()
 });
 
+const jobPostQuestionUpdateParamType = joi.object({
+  id: joi.string().uuid().required(),
+  job_post_id: joi.string().uuid().optional(), // tidak wajib saat update
+  question_text: joi.string().required(),
+  question_type_id: joi.number().integer().required(),
+  options: joi.object().allow(null).default(null),
+  is_required: joi.boolean().default(true),
+  order_index: joi.number().integer().min(0).default(0),
+  updated_at: joi.date().default(() => new Date().toISOString()), // created_at tidak perlu di-update
+});
+
 module.exports = {
     createJobPostParamType,
-    jobPostQuestionParamType
+    jobPostQuestionParamType,
+    jobPostQuestionUpdateParamType
 }

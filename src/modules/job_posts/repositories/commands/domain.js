@@ -56,8 +56,8 @@ class Jobpost {
         return wrapper.data(data);
     }
 
-    async createJobPostQuestions(payloadArray,id, ctx) {
-        // try {
+    async createJobPostQuestions(payloadArray, id, ctx) {
+        try {
             if (!Array.isArray(payloadArray)) {
                 throw new Error("Payload harus berupa array of questions");
             }
@@ -95,11 +95,58 @@ class Jobpost {
             }
 
             return wrapper.data(validatedData);
-        // } catch (err) {
-        //     logger.error(ctx, "Bulk create job post questions", "Job Posts Commands", err);
-        //     return wrapper.error(new InternalServerError(err.message));
-        // }
+        } catch (err) {
+            logger.error(ctx, "Bulk create job post questions", "Job Posts Commands", err);
+            return wrapper.error(new InternalServerError(err.message));
+        }
     }
+
+
+    async updateJobPostQuestion(payload,id, ctx) {
+        try {
+            if (!payload || typeof payload !== "object") {
+                throw new Error("Payload harus berupa object");
+            }
+            payload = { ...payload, id: id };
+            const validateItem = validator.isValidPayload(
+                payload,
+                commandModel.jobPostQuestionUpdateParamType
+            );
+
+            if (validateItem.err) {
+                throw new Error(`Validation error: ${validateItem.err.message}`);
+            }
+
+            const value = validateItem.data;
+
+            if (!value.id) {
+                throw new Error("Field 'id' wajib ada untuk update");
+            }
+
+            const parameter = { id: id };
+            const updateQuery = {
+                question_text: value.question_text,
+                question_type_id: value.question_type_id,
+                options: value.options || null,
+                is_required: value.is_required,
+                order_index: value.order_index,
+                updated_at: value.updated_at,
+            };
+
+            const result = await this.command.updateOneNew(parameter, updateQuery, "job_post_questions");
+
+            if (result.err) {
+                logger.error(ctx, "Update job post question", "Job Posts Commands", result.err);
+                return wrapper.error(new InternalServerError(result.err));
+            }
+
+            return wrapper.data(result.data);
+        } catch (err) {
+            logger.error(ctx, "Update job post question", "Job Posts Commands", err);
+            return wrapper.error(new InternalServerError(err.message));
+        }
+    }
+
 }
 
 module.exports = Jobpost;

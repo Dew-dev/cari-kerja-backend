@@ -104,6 +104,16 @@ const createJobPostQuestions = async (req, res) => {
     return sendResponse(result, res, 201);
 }
 
+const updateJobPostQuestions = async (req, res) => {
+    const payload = req.body;
+    const {
+        question_id,
+    } = req.params;
+    // return payload;
+    const result = await commandHandler.updateJobPostQuestion(payload,question_id);
+    return sendResponse(result, res, 201);
+}
+
 const getJobposts = async(req, res) => {
     let payload = {...req.query};
     
@@ -132,6 +142,7 @@ module.exports = {
     getJobpostById,
     createJobPost,
     createJobPostQuestions,
+    updateJobPostQuestions,
     getJobposts,
     getJobpostsSelf,
 }

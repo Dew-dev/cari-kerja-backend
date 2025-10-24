@@ -14,6 +14,10 @@ class Command {
         return this.db.insertMany(document, table);
     }
 
+    async updateOneNew(parameter,document,table){
+        return this.db.updateOneNew(parameter,document,table);
+    }
+
     async deleteOne(parameter) {
         return this.db.deleteOne(parameter, collection);
     }
