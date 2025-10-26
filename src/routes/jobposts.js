@@ -34,4 +34,14 @@ module.exports = (server) => {
     verifyToken,
     jobpostHandler.getJobpostQuestions
   );
+  server.post(
+    "/api/v1/job-posts/:job_post_id/create-answers",
+    verifyToken,
+    jobpostHandler.createJobPostAnswers
+  );
+  server.post(
+    "/api/v1/job-posts/:job_post_id/apply",
+    verifyToken,
+    jobpostHandler.createJobApplication
+  );
 };

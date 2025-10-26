@@ -9,7 +9,7 @@ class Query {
     this.db = db;
   }
 
-  async findOne(parameter, projection) {
+  async findOne(parameter, projection, collection = collection) {
     return this.db.findOne(parameter, projection, collection);
   }
 

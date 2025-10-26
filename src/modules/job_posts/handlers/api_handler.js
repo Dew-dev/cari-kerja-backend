@@ -195,6 +195,40 @@ const getJobpostsSelf = async (req, res) => {
   return paginationResponse(result, res);
 };
 
+const createJobPostAnswers = async (req, res) => {
+  const payload = req.body;
+  const { job_post_id } = req.params;
+  // return payload;
+  const result = await commandHandler.createJobPostAnswers(
+    payload,
+    job_post_id
+  );
+  return sendResponse(result, res, 201);
+};
+
+const createJobApplication = async (req, res) => {
+  // gabungkan worker_id dari token/userMeta
+  const payload = {
+    worker_id: req.userMeta.worker_id,
+    job_post_id: req.params.job_post_id,
+    ...req.body,
+  };
+
+  // validasi payload sesuai Joi schema
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.createJobApplicationParamType
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  // eksekusi command
+  const result = await commandHandler.createJobApplication(
+    validatePayload.data
+  );
+  return sendResponse(result, res);
+};
 module.exports = {
   getJobpostsByRecruiterId,
   getJobpostById,
@@ -204,4 +238,6 @@ module.exports = {
   getJobposts,
   getJobpostsSelf,
   getJobpostQuestions,
+  createJobPostAnswers,
+  createJobApplication,
 };

@@ -21,14 +21,28 @@ class DB {
     }
   }
 
-  async findOne(parameter, projection, collectionName, isDeleted = false, timescope = false) {
+  async findOne(
+    parameter,
+    projection,
+    collectionName,
+    isDeleted = false,
+    timescope = false
+  ) {
     try {
       const projectionKeys = Object.keys(projection);
       const parameterKey = Object.keys(parameter);
-      const projectionPlaceholders = projectionKeys.map((key) => `"${collectionName}"."${key}"`).join(", ");
-      const parameterPlaceholders = parameterKey.map((key, index) => `"${collectionName}"."${key}" = $${index + 1}`).join(" AND ");
-      const deleted = isDeleted ? `AND "${collectionName}"."deleted_at" IS NULL` : "";
-      const time = timescope ? `AND "${collectionName}"."${timescope.column}" BETWEEN '${timescope.start}' AND '${timescope.end}'` : "";
+      const projectionPlaceholders = projectionKeys
+        .map((key) => `"${collectionName}"."${key}"`)
+        .join(", ");
+      const parameterPlaceholders = parameterKey
+        .map((key, index) => `"${collectionName}"."${key}" = $${index + 1}`)
+        .join(" AND ");
+      const deleted = isDeleted
+        ? `AND "${collectionName}"."deleted_at" IS NULL`
+        : "";
+      const time = timescope
+        ? `AND "${collectionName}"."${timescope.column}" BETWEEN '${timescope.start}' AND '${timescope.end}'`
+        : "";
       const query = `
         SELECT ${projectionPlaceholders}
         FROM "${collectionName}"
@@ -79,13 +93,15 @@ class DB {
       const keys = Object.keys(documents[0]);
 
       // Buat placeholder value seperti ($1,$2,...), ($n,...)
-      const valuePlaceholders = documents.map((_, rowIndex) => {
-        const baseIndex = rowIndex * keys.length;
-        const placeholders = keys
-          .map((_, colIndex) => `$${baseIndex + colIndex + 1}`)
-          .join(", ");
-        return `(${placeholders})`;
-      }).join(", ");
+      const valuePlaceholders = documents
+        .map((_, rowIndex) => {
+          const baseIndex = rowIndex * keys.length;
+          const placeholders = keys
+            .map((_, colIndex) => `$${baseIndex + colIndex + 1}`)
+            .join(", ");
+          return `(${placeholders})`;
+        })
+        .join(", ");
 
       // Gabungkan semua nilai (flatten array)
       const values = documents.flatMap((doc) => Object.values(doc));
@@ -120,8 +136,12 @@ class DB {
     try {
       const updateQueryKey = Object.keys(updateQuery);
       const parameterKey = Object.keys(parameter);
-      const updateQueryKeyPlaceholders = updateQueryKey.map((key) => `"${key}" = '${updateQuery[key]}'`).join(", ");
-      const parameterPlaceholders = parameterKey.map((key, index) => `"${key}" = $${index + 1}`).join(" AND ");
+      const updateQueryKeyPlaceholders = updateQueryKey
+        .map((key) => `"${key}" = '${updateQuery[key]}'`)
+        .join(", ");
+      const parameterPlaceholders = parameterKey
+        .map((key, index) => `"${key}" = $${index + 1}`)
+        .join(" AND ");
       const query = `
         UPDATE "${collectionName}"
         SET ${updateQueryKeyPlaceholders}
@@ -144,9 +164,13 @@ class DB {
     try {
       const updateQueryKey = Object.keys(updateQuery);
       const parameterKey = Object.keys(parameter);
-      const updateQueryKeyPlaceholders = updateQueryKey.map((key, index) => `"${key}" = $${index + 1}`).join(", ");
+      const updateQueryKeyPlaceholders = updateQueryKey
+        .map((key, index) => `"${key}" = $${index + 1}`)
+        .join(", ");
       const lastIndex = updateQueryKey.length;
-      const parameterPlaceholders = parameterKey.map((key, index) => `"${key}" = $${lastIndex + index + 1}`).join(" AND ");
+      const parameterPlaceholders = parameterKey
+        .map((key, index) => `"${key}" = $${lastIndex + index + 1}`)
+        .join(" AND ");
       const query = `
         UPDATE "${collectionName}"
         SET ${updateQueryKeyPlaceholders}
@@ -170,8 +194,12 @@ class DB {
   async countData(parameter, collectionName, isDeleted = false) {
     try {
       const parameterKey = Object.keys(parameter);
-      const parameterPlaceholders = parameterKey.map((key, index) => `"${collectionName}"."${key}" = $${index + 1}`).join(" AND ");
-      const deleted = isDeleted ? `AND "${collectionName}"."deleted_at" IS NULL` : "";
+      const parameterPlaceholders = parameterKey
+        .map((key, index) => `"${collectionName}"."${key}" = $${index + 1}`)
+        .join(" AND ");
+      const deleted = isDeleted
+        ? `AND "${collectionName}"."deleted_at" IS NULL`
+        : "";
       const query = `
         SELECT COUNT(*)
         FROM "${collectionName}"
@@ -189,18 +217,35 @@ class DB {
     }
   }
 
-  async findMany(parameter, projection, sort, page, limit, collectionName, isDeleted = false, timescope = false) {
+  async findMany(
+    parameter,
+    projection,
+    sort,
+    page,
+    limit,
+    collectionName,
+    isDeleted = false,
+    timescope = false
+  ) {
     try {
       const projectionKeys = Object.keys(projection);
       const parameterKey = Object.keys(parameter);
-      const projectionPlaceholders = projectionKeys.map((key) => `"${collectionName}"."${key}"`).join(", ");
+      const projectionPlaceholders = projectionKeys
+        .map((key) => `"${collectionName}"."${key}"`)
+        .join(", ");
       const sortingPlaceholders = Object.keys(sort)
         .map((key) => `"${collectionName}"."${key}"`)
         .join(", ");
-      const parameterPlaceholders = parameterKey.map((key, index) => `"${collectionName}"."${key}" = $${index + 1}`).join(" AND ");
+      const parameterPlaceholders = parameterKey
+        .map((key, index) => `"${collectionName}"."${key}" = $${index + 1}`)
+        .join(" AND ");
       const offset = limit * (page - 1);
-      const deleted = isDeleted ? `AND "${collectionName}"."deleted_at" IS NULL` : "";
-      const time = timescope ? `AND "${collectionName}"."${timescope.column}" BETWEEN '${timescope.start}' AND '${timescope.end}'` : "";
+      const deleted = isDeleted
+        ? `AND "${collectionName}"."deleted_at" IS NULL`
+        : "";
+      const time = timescope
+        ? `AND "${collectionName}"."${timescope.column}" BETWEEN '${timescope.start}' AND '${timescope.end}'`
+        : "";
       const query = `
         SELECT ${projectionPlaceholders}
         FROM "${collectionName}"
@@ -220,17 +265,32 @@ class DB {
     }
   }
 
-  async findAll(projection, sort, page, limit, collectionName, isDeleted = false, timescope = false) {
+  async findAll(
+    projection,
+    sort,
+    page,
+    limit,
+    collectionName,
+    isDeleted = false,
+    timescope = false
+  ) {
     try {
       const projectionKeys = Object.keys(projection);
-      const projectionPlaceholders = projectionKeys.map((key) => `"${collectionName}"."${key}"`).join(", ");
+      const projectionPlaceholders = projectionKeys
+        .map((key) => `"${collectionName}"."${key}"`)
+        .join(", ");
       const sortingPlaceholders = Object.keys(sort)
         .map((key) => `"${collectionName}"."${key}"`)
         .join(", ");
       const offset = limit * (page - 1);
-      const deleted = isDeleted ? `"${collectionName}"."deleted_at" IS NULL` : "";
-      const time = timescope ? `"${collectionName}"."${timescope.column}" BETWEEN '${timescope.start}' AND '${timescope.end}'` : "";
-      const isTimescopeOrDeleted = timescope || isDeleted ? `WHERE ${deleted} ${time}` : "";
+      const deleted = isDeleted
+        ? `"${collectionName}"."deleted_at" IS NULL`
+        : "";
+      const time = timescope
+        ? `"${collectionName}"."${timescope.column}" BETWEEN '${timescope.start}' AND '${timescope.end}'`
+        : "";
+      const isTimescopeOrDeleted =
+        timescope || isDeleted ? `WHERE ${deleted} ${time}` : "";
       const query = `
         SELECT ${projectionPlaceholders}
         FROM "${collectionName}"
@@ -252,7 +312,9 @@ class DB {
   async deleteOne(parameter, collectionName) {
     try {
       const parameterKey = Object.keys(parameter);
-      const parameterPlaceholders = parameterKey.map((key, index) => `"${collectionName}"."${key}" = $${index + 1}`).join(" AND ");
+      const parameterPlaceholders = parameterKey
+        .map((key, index) => `"${collectionName}"."${key}" = $${index + 1}`)
+        .join(" AND ");
       const query = `
         DELETE FROM "${collectionName}"
         WHERE ${parameterPlaceholders}

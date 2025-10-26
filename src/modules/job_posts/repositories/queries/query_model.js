@@ -76,10 +76,36 @@ const getJobpostQuestionsParamType = joi.object({
   limit: joi.number().integer().min(1).max(100).default(10),
 });
 
+const getJobPostAnswersParamType = joi.object({
+  id: joi.string().uuid().optional(),
+  job_application_id: joi.string().uuid().optional(),
+  question_id: joi.string().uuid().optional(),
+  submitted_at_start: joi.date().optional(),
+  submitted_at_end: joi.date().optional(),
+  search: joi.string().optional(),
+  limit: joi.number().integer().min(1).default(10),
+  offset: joi.number().integer().min(0).default(0),
+  order_by: joi
+    .string()
+    .valid("submitted_at", "job_application_id", "question_id")
+    .default("submitted_at"),
+  sort: joi.string().valid("asc", "desc").default("desc"),
+});
+
+const getJobApplicationsParamType = joi.object({
+  job_post_id: joi.string().uuid().optional(),
+  worker_id: joi.string().uuid().optional(),
+  application_status_id: joi.number().optional(),
+  limit: joi.number().default(10),
+  offset: joi.number().default(0),
+});
+
 module.exports = {
   getJobpostsByRecruiterIdParamType,
   getJobpostByIdParamType,
   getJobpostsParamType,
   getJobpostsSelfParamType,
   getJobpostQuestionsParamType,
+  getJobPostAnswersParamType,
+  getJobApplicationsParamType,
 };
