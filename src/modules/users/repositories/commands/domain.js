@@ -7,9 +7,21 @@ const QueryWorker = require("../../../workers/repositories/queries/query");
 const QueryRecruiter = require("../../../recruiters/repositories/queries/query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError, ConflictError, InternalServerError, BadRequestError } = require("../../../../helpers/errors");
-const { compareHash, generateHash } = require("../../../../helpers/utils/hash_helper");
-const { generateAccessToken, generateRefreshToken, verifyRefreshToken } = require("../../../../helpers/auth/jwt_helper");
+const {
+  NotFoundError,
+  ConflictError,
+  InternalServerError,
+  BadRequestError,
+} = require("../../../../helpers/errors");
+const {
+  compareHash,
+  generateHash,
+} = require("../../../../helpers/utils/hash_helper");
+const {
+  generateAccessToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} = require("../../../../helpers/auth/jwt_helper");
 const ctx = "User-Command-Domain";
 
 class User {
@@ -23,43 +35,74 @@ class User {
   }
 
   async login(payload) {
-    const { username, password } = payload;
-    const user = await this.query.findOne({ username }, { id: 1, hashed_password: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1 });
+    // const { username, password } = payload;
+    const { email, password } = payload;
+
+    const user = await this.query.findOne(
+      { email },
+      {
+        id: 1,
+        hashed_password: 1,
+        email: 1,
+        username: 1,
+        login_provider: 1,
+        provider_id: 1,
+        role_id: 1,
+      }
+    );
 
     if (user.err) {
       logger.log(`${ctx}:generateCredential`, user.err, "User not found");
       return wrapper.error(new NotFoundError("Wrong username or password"));
     }
 
-    const passwordMatch = await compareHash(password, user.data.hashed_password);
+    const passwordMatch = await compareHash(
+      password,
+      user.data.hashed_password
+    );
     if (!passwordMatch) {
       return wrapper.error(new BadRequestError("Wrong username or password"));
     }
     delete user.data.hashed_password;
 
     if (user.data.role_id === 1) {
-      const result = await this.queryWorker.findOne({ user_id: user.data.id }, { id: 1 });
+      const result = await this.queryWorker.findOne(
+        { user_id: user.data.id },
+        { id: 1 }
+      );
       if (result.err) {
         return wrapper.error(new NotFoundError("Worker not found"));
       }
       user.data["worker_id"] = result.data.id;
     } else {
-      const result = await this.queryRecruiter.findOne({ user_id: user.data.id }, { id: 1 });
+      const result = await this.queryRecruiter.findOne(
+        { user_id: user.data.id },
+        { id: 1 }
+      );
       if (result.err) {
         return wrapper.error(new NotFoundError("Recruiter Not Found!"));
       }
       user.data["recruiter_id"] = result.data.id;
     }
+    const userResponse = {
+      id: user.data.id,
+      name: user.data.username,
+      email: user.data.email,
+      role: user.data.role_id === 1 ? "user" : "recruiter",
+    };
 
     const token = await generateAccessToken(user.data);
     const refreshToken = await generateRefreshToken({ id: user.data.id });
 
-    return wrapper.data({ token, refreshToken });
+    return wrapper.data({ token, refreshToken, user: userResponse });
   }
 
   async loginWithGoogle(payload) {
     const { id, email, role_id, name } = payload;
-    const user = await this.query.findOne({ email }, { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1 });
+    const user = await this.query.findOne(
+      { email },
+      { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1 }
+    );
     let data;
     let dataWorker;
     let dataRecruiter;
@@ -75,7 +118,7 @@ class User {
         role_id: role_id || 1,
       };
       const result = await this.command.insertOne(data);
-      
+
       if (data.role_id == 1) {
         dataWorker = {
           id: uuidv4(),
@@ -84,7 +127,9 @@ class User {
         };
         const resultWorker = await this.workerCommand.insertOne(dataWorker);
         if (resultWorker.err) {
-          return wrapper.error(new InternalServerError("Sign up worker failed"));
+          return wrapper.error(
+            new InternalServerError("Sign up worker failed")
+          );
         }
       } else {
         dataRecruiter = {
@@ -93,10 +138,14 @@ class User {
           company_name: name,
           contact_name: name,
           contact_phone: "NULL",
-        }
-        const resultRecruiter = await this.recruiterCommand.insertOne(dataRecruiter);
+        };
+        const resultRecruiter = await this.recruiterCommand.insertOne(
+          dataRecruiter
+        );
         if (resultRecruiter.err) {
-          return wrapper.error(new InternalServerError("Sign up recruiter failed"));
+          return wrapper.error(
+            new InternalServerError("Sign up recruiter failed")
+          );
         }
       }
 
@@ -106,10 +155,16 @@ class User {
     } else {
       data = user.data;
       if (data.role_id === 1) {
-        const resultWorker = await this.queryWorker.findOne({ user_id: data.id }, { id: 1 });
+        const resultWorker = await this.queryWorker.findOne(
+          { user_id: data.id },
+          { id: 1 }
+        );
         data["worker_id"] = resultWorker.data.id;
       } else {
-        const resultRecruiter = await this.queryRecruiter.findOne({ user_id: data.id }, { id: 1 });
+        const resultRecruiter = await this.queryRecruiter.findOne(
+          { user_id: data.id },
+          { id: 1 }
+        );
         data["recruiter_id"] = resultRecruiter.data.id;
       }
     }
@@ -162,7 +217,12 @@ class User {
 
     const resultWorker = await this.workerCommand.insertOne(dataWorker);
     if (resultWorker.err) {
-      logger.error(ctx, "register worker", "Register Worker Failed", resultWorker.err);
+      logger.error(
+        ctx,
+        "register worker",
+        "Register Worker Failed",
+        resultWorker.err
+      );
       return wrapper.error(new InternalServerError("Register Worker Failed"));
     }
 
@@ -170,7 +230,14 @@ class User {
   }
 
   async registerRecruiter(payload) {
-    const { username, password, email, company_name, contact_name, contact_phone } = payload;
+    const {
+      username,
+      password,
+      email,
+      company_name,
+      contact_name,
+      contact_phone,
+    } = payload;
     const stdUsername = username.toLowerCase().trim();
     const hashPassword = await generateHash(password);
 
@@ -200,7 +267,7 @@ class User {
       user_id: data.id,
       company_name,
       contact_name,
-      contact_phone
+      contact_phone,
     };
 
     const result = await this.command.insertOne(data);
@@ -210,50 +277,59 @@ class User {
     }
     delete data.hashed_password;
 
-    const resultRecruiter = await this.recruiterCommand.insertOne(dataRecruiter);
+    const resultRecruiter = await this.recruiterCommand.insertOne(
+      dataRecruiter
+    );
     if (resultRecruiter.err) {
-      logger.error(ctx, "register recruiter", "Register Recruiter Failed", resultRecruiter.err);
-      return wrapper.error(new InternalServerError("Register Recruiter Failed"));
-    }    
+      logger.error(
+        ctx,
+        "register recruiter",
+        "Register Recruiter Failed",
+        resultRecruiter.err
+      );
+      return wrapper.error(
+        new InternalServerError("Register Recruiter Failed")
+      );
+    }
 
     return wrapper.data({ id: data.id });
   }
 
   async updateOneUser(payload) {
-      const { id } = payload;
-      const user = await this.query.findOne({ id }, { id: 1 });
+    const { id } = payload;
+    const user = await this.query.findOne({ id }, { id: 1 });
 
-      if (user.err) {
-          return wrapper.error(new NotFoundError("User Not Found!"));
+    if (user.err) {
+      return wrapper.error(new NotFoundError("User Not Found!"));
+    }
+
+    const updatableFields = [
+      "username",
+      "email",
+      "password",
+      "login_provider",
+      "provider_id",
+    ];
+    let updateData = {};
+    for (const field of updatableFields) {
+      if (payload[field] !== undefined && payload[field] !== null) {
+        if (field == "password") {
+          updateData["hashed_password"] = await generateHash(payload[field]);
+        } else {
+          updateData[field] = payload[field];
+        }
       }
+    }
 
-      const updatableFields = [
-          "username",
-          "email",
-          "password",
-          "login_provider",
-          "provider_id",
-      ];
-      let updateData = {};
-      for (const field of updatableFields) {
-          if (payload[field] !== undefined && payload[field] !== null) {
-            if (field == "password") {
-              updateData["hashed_password"] = await generateHash(payload[field]);
-            } else {
-              updateData[field] = payload[field];
-            }
-          }
-      }
+    console.log(updateData);
 
-      console.log(updateData);
-
-      const updateResult = await this.command.updateOneNew({id}, updateData);
-      if (updateResult.err) {
-          logger.error(ctx, "Failed to update", "Domain users", updateResult.err);
-          return wrapper.error(new InternalServerError("Update User Failed"));
-      }
-      logger.info(ctx, "Update Succeed", "Domain Users", wrapper.data({id}));
-      return wrapper.data({id});
+    const updateResult = await this.command.updateOneNew({ id }, updateData);
+    if (updateResult.err) {
+      logger.error(ctx, "Failed to update", "Domain users", updateResult.err);
+      return wrapper.error(new InternalServerError("Update User Failed"));
+    }
+    logger.info(ctx, "Update Succeed", "Domain Users", wrapper.data({ id }));
+    return wrapper.data({ id });
   }
 
   async logout(payload) {
@@ -276,7 +352,9 @@ class User {
     }
 
     if (user.data.id === user_online_id) {
-      return wrapper.error(new ConflictError("Not allowed to delete your own account"));
+      return wrapper.error(
+        new ConflictError("Not allowed to delete your own account")
+      );
     }
 
     const result = await this.command.deleteOne({ id });
@@ -295,20 +373,29 @@ class User {
       return wrapper.error(checkedToken.err);
     }
 
-    const userData = await this.query.findOne({ id: checkedToken.data.id }, { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1 });
+    const userData = await this.query.findOne(
+      { id: checkedToken.data.id },
+      { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1 }
+    );
     if (userData.err) {
       logger.error(ctx, "findUser", "User not found", userData.err);
       return wrapper.error(new NotFoundError("User Not Found"));
     }
 
     if (userData.data.role_id === 1) {
-      const result = await this.queryWorker.findOne({ user_id: userData.data.id }, { id: 1 });
+      const result = await this.queryWorker.findOne(
+        { user_id: userData.data.id },
+        { id: 1 }
+      );
       if (result.err) {
         return wrapper.error(new NotFoundError("Worker not found"));
       }
       userData.data["worker_id"] = result.data.id;
     } else {
-      const result = await this.queryRecruiter.findOne({ user_id: userData.data.id }, { id: 1 });
+      const result = await this.queryRecruiter.findOne(
+        { user_id: userData.data.id },
+        { id: 1 }
+      );
       if (result.err) {
         return wrapper.error(new NotFoundError("Recruiter Not Found!"));
       }
