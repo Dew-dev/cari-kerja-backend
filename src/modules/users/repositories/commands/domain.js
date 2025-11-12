@@ -86,7 +86,8 @@ class User {
     }
     const userResponse = {
       id: user.data.id,
-      name: user.data.username,
+      name: user.data.name,
+      username: user.data.username,
       email: user.data.email,
       role: user.data.role_id === 1 ? "user" : "recruiter",
     };
