@@ -22,6 +22,7 @@ const {
   generateRefreshToken,
   verifyRefreshToken,
 } = require("../../../../helpers/auth/jwt_helper");
+const { result } = require("validate.js");
 const ctx = "User-Command-Domain";
 
 class User {
@@ -39,7 +40,7 @@ class User {
     const { email, password } = payload;
 
     const user = await this.query.findOne(
-      { email },
+      { email, username: email },
       {
         id: 1,
         hashed_password: 1,
@@ -48,12 +49,15 @@ class User {
         login_provider: 1,
         provider_id: 1,
         role_id: 1,
-      }
+      },
+      "OR"
     );
 
     if (user.err) {
-      logger.log(`${ctx}:generateCredential`, user.err, "User not found");
-      return wrapper.error(new NotFoundError("Wrong username or password"));
+      if (user.err) {
+        logger.log(`${ctx}:generateCredential`, user.err, "User not found");
+        return wrapper.error(new NotFoundError("Wrong username or password"));
+      }
     }
 
     const passwordMatch = await compareHash(
@@ -68,26 +72,28 @@ class User {
     if (user.data.role_id === 1) {
       const result = await this.queryWorker.findOne(
         { user_id: user.data.id },
-        { id: 1 }
+        { id: 1, name: 1 }
       );
       if (result.err) {
         return wrapper.error(new NotFoundError("Worker not found"));
       }
       user.data["worker_id"] = result.data.id;
+      user.data["name"] = result.data.name;
     } else {
       const result = await this.queryRecruiter.findOne(
         { user_id: user.data.id },
-        { id: 1 }
+        { id: 1, contact_name: 1 }
       );
       if (result.err) {
         return wrapper.error(new NotFoundError("Recruiter Not Found!"));
       }
       user.data["recruiter_id"] = result.data.id;
+      user.data["name"] = result.data.contact_name;
     }
+
     const userResponse = {
       id: user.data.id,
-      name: user.data.name,
-      username: user.data.username,
+      name: user.data["name"], // sekarang ada
       email: user.data.email,
       role: user.data.role_id === 1 ? "user" : "recruiter",
     };

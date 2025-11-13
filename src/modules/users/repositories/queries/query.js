@@ -10,8 +10,8 @@ class Query {
     this.db = db;
   }
 
-  async findOne(parameter, projection) {
-    return this.db.findOne(parameter, projection, collection);
+  async findOne(parameter, projection, conditions = "AND") {
+    return this.db.findOne(parameter, projection, collection, conditions);
   }
 
   async findOneById(id) {

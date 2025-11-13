@@ -26,26 +26,36 @@ const joi = require("joi");
 
 const loginParamType = joi.object({
   email: joi
-    .string()
-    .email({ tlds: { allow: false } }) // validasi format email tanpa batas TLD
+    .alternatives()
+    .try(
+      joi
+        .string()
+        .email({ tlds: { allow: false } }) // ✅ valid email tanpa batas TLD
+        .min(3)
+        .max(100),
+      joi
+        .string()
+        .alphanum() // ✅ username hanya huruf/angka
+        .min(3)
+        .max(30)
+    )
     .required()
-    .min(5)
-    .max(100)
     .messages({
-      "string.empty": "Email must not be empty",
+      "alternatives.match": "Must be a valid email or username",
+      "string.empty": "Email or username must not be empty",
       "string.email": "Invalid email format",
-      "string.min": "Email must be at least {#limit} characters long",
-      "string.max": "Email must be at most {#limit} characters long",
+      "string.min": "Must be at least {#limit} characters long",
+      "string.max": "Must be at most {#limit} characters long",
     }),
 
   password: joi
     .string()
     .required()
-    .min(8)
-    .pattern(/[A-Z]/, "uppercase")
-    .pattern(/[a-z]/, "lowercase")
-    .pattern(/[0-9]/, "number")
-    .pattern(/[!@#$%^&*()_\-+=[\]{};:'",.<>\/?\\|`~]/, "symbol")
+    // .min(8)
+    // .pattern(/[A-Z]/, "uppercase")
+    // .pattern(/[a-z]/, "lowercase")
+    // .pattern(/[0-9]/, "number")
+    // .pattern(/[!@#$%^&*()_\-+=[\]{};:'",.<>\/?\\|`~]/, "symbol")
     .messages({
       "string.empty": "Password must not be empty",
       "string.min": "Password Minimum: {#limit} character",

@@ -25,6 +25,7 @@ class DB {
     parameter,
     projection,
     collectionName,
+    whereConditions,
     isDeleted = false,
     timescope = false
   ) {
@@ -36,7 +37,7 @@ class DB {
         .join(", ");
       const parameterPlaceholders = parameterKey
         .map((key, index) => `"${collectionName}"."${key}" = $${index + 1}`)
-        .join(" AND ");
+        .join(` ${whereConditions} `);
       const deleted = isDeleted
         ? `AND "${collectionName}"."deleted_at" IS NULL`
         : "";
