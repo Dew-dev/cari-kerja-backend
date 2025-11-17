@@ -266,6 +266,125 @@ class DB {
     }
   }
 
+  async findManyLike(
+    parameter,
+    projection,
+    sort,
+    page,
+    limit,
+    collectionName,
+    whereConditions = "AND",
+    isDeleted = false,
+    timescope = false
+  ) {
+    try {
+      let values = [];
+      let idx = 1;
+
+      // SELECT
+      const projectionKeys = Object.keys(projection);
+      const projectionPlaceholders =
+        projectionKeys.length > 0
+          ? projectionKeys
+              .map((key) => `"${collectionName}"."${key}"`)
+              .join(", ")
+          : `"${collectionName}".*`;
+
+      // WHERE PARAM
+      const parameterKeys = Object.keys(parameter);
+      let whereParts = [];
+
+      for (const key of parameterKeys) {
+        const value = parameter[key];
+
+        // if (typeof value === "string" && value.includes("%")) {
+        whereParts.push(`"${collectionName}"."${key}" ILIKE $${idx}`);
+        // } else {
+        //   whereParts.push(`"${collectionName}"."${key}" = $${idx}`);
+        // }
+
+        values.push("%" + value + "%");
+        idx++;
+      }
+
+      let whereClause =
+        whereParts.length > 0
+          ? `WHERE ${whereParts.join(` ${whereConditions} `)}`
+          : `WHERE 1=1`;
+
+      if (isDeleted) {
+        whereClause += ` AND "${collectionName}"."deleted_at" IS NULL`;
+      }
+
+      if (timescope) {
+        whereClause += ` AND "${collectionName}"."${
+          timescope.column
+        }" BETWEEN $${idx} AND $${idx + 1}`;
+        values.push(timescope.start, timescope.end);
+        idx += 2;
+      }
+
+      // SORT
+      const sortKeys = Object.keys(sort);
+      const sortingClause =
+        sortKeys.length > 0
+          ? `ORDER BY ${sortKeys
+              .map(
+                (key) =>
+                  `"${collectionName}"."${key}" ${sort[key].toUpperCase()}`
+              )
+              .join(", ")}`
+          : "";
+
+      const offset = limit * (page - 1);
+
+      const query = `
+      SELECT ${projectionPlaceholders}
+      FROM "${collectionName}"
+      ${whereClause}
+      ${sortingClause}
+      LIMIT ${limit} OFFSET ${offset};
+    `;
+
+      // --------------------------------------------------------------
+      // 🔥 DEBUG LOG
+      console.log("========= QUERY DEBUG START =========");
+      console.log("SQL QUERY:");
+      console.log(query);
+      console.log("VALUES:");
+      console.log(values);
+      console.log("=====================================");
+      // --------------------------------------------------------------
+
+      const result = await this.executeQuery(query, values);
+
+      // --------------------------------------------------------------
+      // 🔥 DEBUG RESULT
+      console.log("========= QUERY RESULT =========");
+      console.log("Row Count:", result?.rows?.length || 0);
+      console.log("Rows:", result?.rows || []);
+      console.log("================================");
+      // --------------------------------------------------------------
+
+      if (!result || result.rows.length === 0) {
+        return wrapper.error(errorEmptyMessage);
+      }
+
+      return wrapper.data(result.rows);
+    } catch (err) {
+      // --------------------------------------------------------------
+      // 🔥 DEBUG ERROR
+      console.error("========= QUERY ERROR =========");
+      console.error("Error Message:", err.message);
+      console.error("Stack:", err.stack);
+      console.error("================================");
+      // --------------------------------------------------------------
+
+      logger.error(ctx, errorQueryMessage, "findMany", err);
+      return wrapper.error(errorQueryMessage);
+    }
+  }
+
   async findAll(
     projection,
     sort,

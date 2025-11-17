@@ -6,20 +6,24 @@ const db = new DB(config.get("/postgresqlUrl"));
 const domain = new Domain(db);
 
 const getOneTagByName = async (payload) => {
-    return domain.getOneTagByName(payload);
-}
+  return domain.getOneTagByName(payload);
+};
+
+const getTagByName = async (payload) => {
+  return domain.getTagByName(payload);
+};
 
 const getTagsPerJobPost = async (payload) => {
-    return domain.getTagsPerJobPost(payload);
-}
+  return domain.getTagsPerJobPost(payload);
+};
 
 const getOneJobPostTagByTagIdAndJobPostId = async (payload) => {
-    return domain.getOneJobPostTagByTagIdAndJobPostId(payload);
-}
-
+  return domain.getOneJobPostTagByTagIdAndJobPostId(payload);
+};
 
 module.exports = {
-    getTagsPerJobPost,
-    getOneTagByName,
-    getOneJobPostTagByTagIdAndJobPostId,
-}
+  getTagsPerJobPost,
+  getOneTagByName,
+  getOneJobPostTagByTagIdAndJobPostId,
+  getTagByName,
+};

@@ -5,6 +5,7 @@ const storeCookie = (res, cookieName, token) => {
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000,
     secure: config.get("/env") === "production",
+    sameSite: "none",
   });
 };
 
