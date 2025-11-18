@@ -1,4 +1,5 @@
 const collection = "job_posts";
+const currencies_collection = "currencies";
 const errorQueryMessage = "Error querying PostgreSQL";
 const logger = require("../../../../helpers/utils/logger");
 const wrapper = require("../../../../helpers/utils/wrapper");
@@ -236,6 +237,22 @@ class Query {
       logger.error(ctx, errorQueryMessage, "findAllByJobPostId", error);
       return wrapper.error(errorQueryMessage);
     }
+  }
+
+  async findAllCurrencies(projection, limit = 10) {
+    return this.db.findAll(projection, { name: "ASC" }, 1, limit, "currencies");
+  }
+
+  async findCurrency(parameter, projection) {
+    return this.db.findManyLike(
+      { code: parameter.code, name: parameter.code },
+      projection,
+      { name: "ASC", priorityValue: "Uzbekistani Soʻm" },
+      1,
+      10,
+      currencies_collection,
+      "OR"
+    );
   }
 }
 

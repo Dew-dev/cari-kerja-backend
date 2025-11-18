@@ -281,6 +281,7 @@ class DB {
       let values = [];
       let idx = 1;
 
+      // --------------------------------------------------------------
       // SELECT
       const projectionKeys = Object.keys(projection);
       const projectionPlaceholders =
@@ -290,19 +291,15 @@ class DB {
               .join(", ")
           : `"${collectionName}".*`;
 
-      // WHERE PARAM
+      // --------------------------------------------------------------
+      // WHERE
       const parameterKeys = Object.keys(parameter);
       let whereParts = [];
 
       for (const key of parameterKeys) {
         const value = parameter[key];
 
-        // if (typeof value === "string" && value.includes("%")) {
         whereParts.push(`"${collectionName}"."${key}" ILIKE $${idx}`);
-        // } else {
-        //   whereParts.push(`"${collectionName}"."${key}" = $${idx}`);
-        // }
-
         values.push("%" + value + "%");
         idx++;
       }
@@ -324,18 +321,36 @@ class DB {
         idx += 2;
       }
 
-      // SORT
-      const sortKeys = Object.keys(sort);
-      const sortingClause =
-        sortKeys.length > 0
-          ? `ORDER BY ${sortKeys
-              .map(
-                (key) =>
-                  `"${collectionName}"."${key}" ${sort[key].toUpperCase()}`
-              )
-              .join(", ")}`
-          : "";
+      // --------------------------------------------------------------
+      // SORT (UPDATED WITH PRIORITY SUPPORT)
+      let sortingClause = "";
 
+      if (Object.keys(sort).length > 0) {
+        const sortKey = Object.keys(sort).find((k) => k !== "priorityValue");
+        const sortDirection = sort[sortKey].toUpperCase();
+
+        // ⭐ Default priority: Uzbekistan
+        const priorityValue = sort.priorityValue || "Uzbekistani Soʻm";
+
+        // Jika sorting berdasarkan "name" → pakai custom priority sorting
+        if (sortKey === "name") {
+          sortingClause = `
+          ORDER BY 
+            CASE 
+              WHEN "${collectionName}"."${sortKey}" = '${priorityValue}' THEN 0 
+              ELSE 1 
+            END,
+            "${collectionName}"."${sortKey}" ${sortDirection}
+        `;
+        } else {
+          // Normal sorting
+          sortingClause = `
+          ORDER BY "${collectionName}"."${sortKey}" ${sortDirection}
+        `;
+        }
+      }
+
+      // --------------------------------------------------------------
       const offset = limit * (page - 1);
 
       const query = `
@@ -347,24 +362,20 @@ class DB {
     `;
 
       // --------------------------------------------------------------
-      // 🔥 DEBUG LOG
+      // DEBUG LOGGING
       console.log("========= QUERY DEBUG START =========");
       console.log("SQL QUERY:");
       console.log(query);
       console.log("VALUES:");
       console.log(values);
       console.log("=====================================");
-      // --------------------------------------------------------------
 
       const result = await this.executeQuery(query, values);
 
-      // --------------------------------------------------------------
-      // 🔥 DEBUG RESULT
       console.log("========= QUERY RESULT =========");
       console.log("Row Count:", result?.rows?.length || 0);
       console.log("Rows:", result?.rows || []);
       console.log("================================");
-      // --------------------------------------------------------------
 
       if (!result || result.rows.length === 0) {
         return wrapper.error(errorEmptyMessage);
@@ -372,13 +383,10 @@ class DB {
 
       return wrapper.data(result.rows);
     } catch (err) {
-      // --------------------------------------------------------------
-      // 🔥 DEBUG ERROR
       console.error("========= QUERY ERROR =========");
       console.error("Error Message:", err.message);
       console.error("Stack:", err.stack);
       console.error("================================");
-      // --------------------------------------------------------------
 
       logger.error(ctx, errorQueryMessage, "findMany", err);
       return wrapper.error(errorQueryMessage);
@@ -418,6 +426,13 @@ class DB {
         ORDER BY ${sortingPlaceholders} 
         LIMIT ${limit} OFFSET ${offset};
       `;
+
+      console.log("========= QUERY DEBUG START =========");
+      console.log("SQL QUERY:");
+      console.log(query);
+      console.log("VALUES:");
+      console.log(values);
+      console.log("=====================================");
       const result = await this.executeQuery(query);
       if (!result || result.rows.length === 0) {
         return wrapper.error(errorEmptyMessage);

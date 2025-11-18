@@ -457,6 +457,37 @@ class Jobposts {
       return wrapper.error(new InternalServerError(err.message));
     }
   }
+  async getCurrencyByCode(payload, ctx) {
+    const { code } = payload;
+    console.log("code", code);
+
+    // if (!code) {
+    // }
+
+    const currency = await this.query.findCurrency(
+      { code },
+      { id: 1, code: 1, name: 1, symbol: 1 }
+    );
+    console.log("currency", currency);
+
+    if (currency.err) {
+      const list = await this.query.findCurrency(
+        { code: "" },
+        { id: 1, code: 1, name: 1, symbol: 1 }
+      );
+
+      if (list.err) {
+        logger.error(ctx, "getCurrency", "Cannot load currencies", list.err);
+        return wrapper.error(new NotFoundError("Unable to load currencies"));
+      }
+
+      logger.info(ctx, "getCurrency", "Get currencies list");
+      return wrapper.data(list.data);
+    }
+
+    logger.info(ctx, "getCurrencyByCode", "Get currency", payload);
+    return wrapper.data(currency.data);
+  }
 }
 
 module.exports = Jobposts;

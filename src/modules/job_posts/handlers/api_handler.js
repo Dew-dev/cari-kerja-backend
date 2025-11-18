@@ -229,6 +229,23 @@ const createJobApplication = async (req, res) => {
   );
   return sendResponse(result, res);
 };
+
+const getCurrencyByCode = async (req, res) => {
+  const payload = req.params;
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getOneCurrencyParamType // joi schema untuk currency
+  );
+
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await queryHandler.getCurrencyByCode(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 module.exports = {
   getJobpostsByRecruiterId,
   getJobpostById,
@@ -240,4 +257,5 @@ module.exports = {
   getJobpostQuestions,
   createJobPostAnswers,
   createJobApplication,
+  getCurrencyByCode,
 };

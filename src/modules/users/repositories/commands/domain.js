@@ -23,6 +23,7 @@ const {
   verifyRefreshToken,
 } = require("../../../../helpers/auth/jwt_helper");
 const { result } = require("validate.js");
+const { use } = require("passport");
 const ctx = "User-Command-Domain";
 
 class User {
@@ -164,13 +165,13 @@ class User {
       if (data.role_id === 1) {
         const resultWorker = await this.queryWorker.findOne(
           { user_id: data.id },
-          { id: 1 }
+          { id: 1, name: 1 }
         );
         data["worker_id"] = resultWorker.data.id;
       } else {
         const resultRecruiter = await this.queryRecruiter.findOne(
           { user_id: data.id },
-          { id: 1 }
+          { id: 1, contact_name: 1 }
         );
         data["recruiter_id"] = resultRecruiter.data.id;
       }
@@ -392,21 +393,25 @@ class User {
     if (userData.data.role_id === 1) {
       const result = await this.queryWorker.findOne(
         { user_id: userData.data.id },
-        { id: 1 }
+        { id: 1, name: 1 }
       );
       if (result.err) {
         return wrapper.error(new NotFoundError("Worker not found"));
       }
       userData.data["worker_id"] = result.data.id;
+      userData.data["name"] = result.data.name;
+      userData.data["role"] = "user";
     } else {
       const result = await this.queryRecruiter.findOne(
         { user_id: userData.data.id },
-        { id: 1 }
+        { id: 1, contact_name: 1 }
       );
       if (result.err) {
         return wrapper.error(new NotFoundError("Recruiter Not Found!"));
       }
       userData.data["recruiter_id"] = result.data.id;
+      userData.data["name"] = result.data.contact_name;
+      userData.data["role"] = "recruiter";
     }
 
     const accessToken = await generateAccessToken(userData.data);

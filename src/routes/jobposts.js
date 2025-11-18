@@ -44,4 +44,5 @@ module.exports = (server) => {
     verifyToken,
     jobpostHandler.createJobApplication
   );
+  server.get("/api/v1/currencies/:code", jobpostHandler.getCurrencyByCode);
 };

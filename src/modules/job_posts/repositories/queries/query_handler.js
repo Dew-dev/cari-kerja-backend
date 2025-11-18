@@ -22,10 +22,14 @@ const getJobpostsSelf = async (payload) => {
 const getJobpostQuestions = async (payload, ctx) => {
   return domain.getJobpostQuestions(payload, ctx);
 };
+const getCurrencyByCode = async (payload) => {
+  return domain.getCurrencyByCode(payload);
+};
 module.exports = {
   getJobpostsByRecruiterId,
   getJobpostById,
   getJobposts,
   getJobpostsSelf,
   getJobpostQuestions,
+  getCurrencyByCode,
 };
