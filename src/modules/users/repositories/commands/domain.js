@@ -412,6 +412,7 @@ class User {
     const accessToken = await generateAccessToken(userData.data);
     return wrapper.data({
       token: accessToken,
+      user: userData.data,
     });
   }
 
