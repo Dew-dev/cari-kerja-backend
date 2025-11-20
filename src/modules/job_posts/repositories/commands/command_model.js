@@ -7,12 +7,22 @@ const createJobPostParamType = joi.object({
   employment_type_id: joi.number().required(),
   experience_level_id: joi.number().required(),
   salary_type_id: joi.number().required(),
+  job_post_status_id: joi.number().required(),
   location: joi.string().required(),
   salary_min: joi.number().required(),
   salary_max: joi.number().required(),
   currency_id: joi.number().required(),
   status_id: joi.number().default(3),
   deadline: joi.string().required(),
+  tags: joi
+    .array()
+    .items(
+      joi.object({
+        id: joi.string().required(),
+        name: joi.string().required(),
+      })
+    )
+    .optional(),
 });
 
 const jobPostQuestionParamType = joi.object({
