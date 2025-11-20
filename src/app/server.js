@@ -17,6 +17,7 @@ class AppServer {
 
   _middlewares() {
     this.server.use(cors);
+    // this.server.options("*", cors);
     this.server.use(express.json());
     this.server.use(cookieParser());
   }

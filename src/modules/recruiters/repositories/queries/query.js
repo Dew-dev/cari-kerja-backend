@@ -6,17 +6,17 @@ const wrapper = require("../../../../helpers/utils/wrapper");
 const ctx = "Recruiter-Query";
 
 class Query {
-    constructor(db) {
-        this.db = db;
-    }
+  constructor(db) {
+    this.db = db;
+  }
 
-    async findOne(parameter, projection) {
-        return this.db.findOne(parameter, projection, collection);
-    }
+  async findOne(parameter, projection) {
+    return this.db.findOne(parameter, projection, collection);
+  }
 
-    async findOneByRecruiterUserId(user_id) {
-        try {
-            const recruiterQuery = `
+  async findOneByRecruiterUserId(user_id) {
+    try {
+      const recruiterQuery = `
             SELECT  recruiters.id,
                     recruiters.user_id,
                     recruiters.company_name,
@@ -30,10 +30,9 @@ class Query {
                     recruiters.created_at,
                     recruiters.updated_at FROM recruiters 
                     JOIN industries ON industries.id = recruiters.industry_id
-                    WHERE recruiters.user_id=$1;
+                    WHERE recruiters.id=$1;
             `;
-
-            const jobpostsQuery = `
+      const jobpostsQuery = `
             SELECT  job_posts.id, 
                     job_posts.recruiter_id, 
                     job_posts.title, 
@@ -54,27 +53,29 @@ class Query {
                     WHERE job_posts.recruiter_id = $1;
             `;
 
-            const recruiterResult = await this.db.executeQuery(recruiterQuery, [user_id]);
-            if(!recruiterResult || recruiterResult.rows.length === 0) {
-                return wrapper.error("Recruiter Not Found");
-            }
-            const recruiter = recruiterResult.rows[0];
-            const id = recruiter.id;
-            
-            
-            const jobpostsResult = await this.db.executeQuery(jobpostsQuery, [id]);
+      const recruiterResult = await this.db.executeQuery(recruiterQuery, [
+        user_id,
+      ]);
+      console.log("recruiter res \n", recruiterResult);
+      if (!recruiterResult || recruiterResult.rows.length === 0) {
+        return wrapper.error("Recruiter Not Found");
+      }
+      const recruiter = recruiterResult.rows[0];
+      const id = recruiter.id;
 
-            const result = {
-                ...recruiter,
-                job_posts: jobpostsResult.rows,
-            };
+      const jobpostsResult = await this.db.executeQuery(jobpostsQuery, [id]);
 
-            return wrapper.data(result);
-        } catch (error) {
-            logger.error(ctx, errorQueryMessage, "findOneByRecruiterUserId", error);
-            return wrapper.error(errorQueryMessage);
-        }
-    } 
+      const result = {
+        ...recruiter,
+        job_posts: jobpostsResult.rows,
+      };
+
+      return wrapper.data(result);
+    } catch (error) {
+      logger.error(ctx, errorQueryMessage, "findOneByRecruiterUserId", error);
+      return wrapper.error(errorQueryMessage);
+    }
+  }
 }
 
 module.exports = Query;

@@ -8,6 +8,7 @@ const config = {
   frontendUrl: process.env.FE_URL,
   cors: {
     origins: process.env.CORS_ORIGINS,
+    
   },
   postgresqlUrl: process.env.POSTGRESQL_URL || "postgresql://postgres:postgres@localhost:5432/sample",
   jwt: {

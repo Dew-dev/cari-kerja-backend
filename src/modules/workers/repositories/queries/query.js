@@ -44,9 +44,23 @@ class Query {
       const worker = workerResult.rows[0];
       const id = worker.id;
 
-      const [workExperiences, certifications, skills, educations, languages, resumes, portfolios] = await Promise.all([
-        this.db.executeQuery("SELECT * FROM work_experiences WHERE worker_id = $1", [id]),
-        this.db.executeQuery("SELECT * FROM certifications WHERE worker_id = $1", [id]),
+      const [
+        workExperiences,
+        certifications,
+        skills,
+        educations,
+        languages,
+        resumes,
+        portfolios,
+      ] = await Promise.all([
+        this.db.executeQuery(
+          "SELECT * FROM work_experiences WHERE worker_id = $1",
+          [id]
+        ),
+        this.db.executeQuery(
+          "SELECT * FROM certifications WHERE worker_id = $1",
+          [id]
+        ),
         this.db.executeQuery(
           `
         SELECT ws.skill_id, s.skill_name 
@@ -56,7 +70,9 @@ class Query {
       `,
           [id]
         ),
-        this.db.executeQuery("SELECT * FROM educations WHERE worker_id = $1", [id]),
+        this.db.executeQuery("SELECT * FROM educations WHERE worker_id = $1", [
+          id,
+        ]),
         this.db.executeQuery(
           `
         SELECT l.id, l.language_name, pl.name, l.is_primary
@@ -66,8 +82,12 @@ class Query {
       `,
           [id]
         ),
-        this.db.executeQuery("SELECT * FROM resumes WHERE worker_id = $1", [id]),
-        this.db.executeQuery("SELECT * FROM portfolios WHERE worker_id = $1", [id]),
+        this.db.executeQuery("SELECT * FROM resumes WHERE worker_id = $1", [
+          id,
+        ]),
+        this.db.executeQuery("SELECT * FROM portfolios WHERE worker_id = $1", [
+          id,
+        ]),
       ]);
 
       const result = {

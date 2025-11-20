@@ -4,7 +4,7 @@ const logger = require("../../utils/logger");
 const connectionPool = new Map();
 
 const init = async (pgConfig) => {
-  const poolKey = JSON.stringify(pgConfig);
+  const poolKey = pgConfig;
   if (!connectionPool.has(poolKey)) {
     let pool;
     if (config.get("/dbAivenSSL")) {
@@ -38,15 +38,26 @@ const init = async (pgConfig) => {
     });
     await result
       .then((res) => {
-        logger.info("postgresql connection", "connected", "database initiation");
+        logger.info(
+          "postgresql connection",
+          "connected",
+          "database initiation"
+        );
         connectionPool.set(poolKey, res);
       })
-      .catch((err) => logger.error("postgresql connection", "connection error", "database initiation", err.stack));
+      .catch((err) =>
+        logger.error(
+          "postgresql connection",
+          "connection error",
+          "database initiation",
+          err.stack
+        )
+      );
   }
 };
 
 const getConnection = async (pgConfig) => {
-  const poolKey = JSON.stringify(pgConfig);
+  const poolKey = pgConfig;
   if (!connectionPool.has(poolKey)) {
     await init(pgConfig);
   }
