@@ -5,7 +5,8 @@ const corsOptions = {
   origin: (origin, callback) => {
     console.log("Origin masuk:", origin); // <-- CEK INI
     const allowed = String(config.get("/cors/origins")).split(",");
-    if (!origin || allowed.includes(origin)) {
+    console.log("Allowed origins:", allowed); // <-- CEK INI
+    if (origin && allowed.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
