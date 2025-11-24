@@ -20,14 +20,15 @@ class Query {
   async findOneByUserId(user_id) {
     try {
       const workerQuery = `
-      SELECT w.id, w.user_id, w.name, w.avatar_url, w.telephone, w.date_of_birth,
+      SELECT w.id, w.user_id, w.name, w.avatar_url, w.telephone, TO_CHAR(w.date_of_birth, 'YYYY-MM-DD') AS date_of_birth,w.gender_id,w.nationality_id, w.religion_id, w.marriage_status_id,
              g.gender_name AS gender_name,
              n.country_name AS country_name,
              ms.status_name AS marriage_status_name,
              r.religion_name AS religion_name,
-             w.address, w.profile_summary, w.current_salary, w.expected_salary
+             w.address, w.profile_summary, w.current_salary, w.expected_salary,u.email
       FROM ${collection} w
       LEFT JOIN genders g ON w.gender_id = g.id
+      LEFT JOIN users u ON w.user_id = u.id
       LEFT JOIN nationalities n ON w.nationality_id = n.id
       LEFT JOIN marriage_statuses ms ON w.marriage_status_id = ms.id
       LEFT JOIN religions r ON w.religion_id = r.id
