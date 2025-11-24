@@ -6,63 +6,63 @@ const validator = require("../../../helpers/utils/validator");
 const { sendResponse, paginationResponse } = require("../../../helpers/utils/response");
 
 // query
-const getSkill = async (req, res) => {
+const getIndustry = async (req, res) => {
   const payload = { ...req.params };
-  const validatePayload = validator.isValidPayload(payload, queryModel.getOneSkillType);
+  const validatePayload = validator.isValidPayload(payload, queryModel.getOneIndustryType);
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
-  const result = await queryHandler.getSkill(validatePayload.data);
+  const result = await queryHandler.getIndustry(validatePayload.data);
   return sendResponse(result, res);
 };
 
-const getAllSkills = async (req, res) => {
+const getAllIndustries = async (req, res) => {
   const payload = { ...req.query };
-  const validatePayload = validator.isValidPayload(payload, queryModel.getAllSkillType);
+  const validatePayload = validator.isValidPayload(payload, queryModel.getAllIndustriesType);
   console.log(validatePayload);
 
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
-  const result = await queryHandler.getAllSkills(validatePayload.data);
+  const result = await queryHandler.getAllIndustries(validatePayload.data);
   return paginationResponse(result, res);
 };
 
 //command
-const addSkill = async (req, res) => {
+const addIndustry = async (req, res) => {
   const payload = { ...req.body };
-  const validatePayload = validator.isValidPayload(payload, commandModel.addSkillType);
+  const validatePayload = validator.isValidPayload(payload, commandModel.addIndustryType);
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
-  const result = await commandHandler.addSkill(validatePayload.data);
+  const result = await commandHandler.addIndustry(validatePayload.data);
   return sendResponse(result, res);
 };
 
-const updateSkill = async (req, res) => {
+const updateIndustry = async (req, res) => {
   const payload = { ...req.params, ...req.body };
-  const validatePayload = validator.isValidPayload(payload, commandModel.updateSkillType);
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateIndustryType);
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
-  const result = await commandHandler.updateSkill(validatePayload.data);
+  const result = await commandHandler.updateIndustry(validatePayload.data);
   return sendResponse(result, res);
 };
 
-const deleteSkill = async (req, res) => {
+const deleteIndustry = async (req, res) => {
   const payload = { ...req.params };
-  const validatePayload = validator.isValidPayload(payload, commandModel.deleteSkillType);
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteIndustryType);
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
-  const result = await commandHandler.deleteSkill(validatePayload.data);
+  const result = await commandHandler.deleteIndustry(validatePayload.data);
   return sendResponse(result, res);
 };
 
 module.exports = {
-  getSkill,
-  getAllSkills,
-  addSkill,
-  updateSkill,
-  deleteSkill,
+  getIndustry,
+  getAllIndustries,
+  addIndustry,
+  updateIndustry,
+  deleteIndustry,
 };
