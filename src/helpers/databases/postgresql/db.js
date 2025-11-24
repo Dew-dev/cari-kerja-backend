@@ -178,6 +178,7 @@ class DB {
         WHERE ${parameterPlaceholders}
         RETURNING *;
       `;
+      console.log("Update Query :  " + query);
       const updateQueryValues = updateQueryKey.map((key) => updateQuery[key]);
       const parameterValues = parameterKey.map((key) => parameter[key]);
       const values = [...updateQueryValues, ...parameterValues];

@@ -30,7 +30,7 @@ class Query {
                     recruiters.created_at,
                     recruiters.updated_at FROM recruiters 
                     JOIN industries ON industries.id = recruiters.industry_id
-                    WHERE recruiters.id=$1;
+                    WHERE recruiters.user_id=$1;
             `;
       const jobpostsQuery = `
             SELECT  job_posts.id, 

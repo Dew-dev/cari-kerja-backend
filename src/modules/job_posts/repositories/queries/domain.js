@@ -458,7 +458,7 @@ class Jobposts {
     }
   }
   async getCurrencyByCode(payload, ctx) {
-    const { code } = payload;
+    const { code } = payload ?? "";
     console.log("code", code);
 
     // if (!code) {

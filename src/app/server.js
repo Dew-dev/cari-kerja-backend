@@ -1,4 +1,5 @@
 const cors = require("./cors");
+const path = require("path");
 const express = require("express");
 const routes = require("../routes");
 const config = require("../config/global_config");
@@ -12,11 +13,18 @@ class AppServer {
     this.port = config.get("/port");
     this._middlewares();
     this._routes();
+    this.server.use(express.urlencoded({ extended: true }));
+    // this.server.use("/uploads", express.static("uploads"));
+    this.server.use(
+      "/uploads",
+      express.static(path.join(__dirname, "../uploads"))
+    );
     pgConnectionPool.init(pgConfig);
   }
 
   _middlewares() {
     this.server.use(cors);
+    console.log("CORS middleware applied", cors);
     // this.server.options("*", cors);
     this.server.use(express.json());
     this.server.use(cookieParser());
@@ -37,6 +45,7 @@ class AppServer {
 
   listen() {
     this.server.listen(this.port, () => {
+      console.log("\n", __dirname);
       console.log(`🚀 Server running at http://localhost:${this.port}\n\n`);
     });
   }

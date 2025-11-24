@@ -20,8 +20,6 @@ const getOneTagByName = async (req, res) => {
 };
 
 const getTagByName = async (req, res) => {
-  console.log("REQ COOKIE:", req.headers.cookie);
-  console.log("REQ AUTH:", req.headers.authorization);
   const payload = req.params;
   const validatePayload = validator.isValidPayload(
     payload,
