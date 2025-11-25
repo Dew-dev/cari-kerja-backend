@@ -1,6 +1,6 @@
 const verifyToken = require("../middlewares/verifyToken");
 const recruiterHandler = require("../modules/recruiters/handlers/api_handler");
-const uploadAvatar = require("../middlewares/uploadAvatar");
+const { uploadAvatarRecruiter } = require("../middlewares/uploader");
 
 module.exports = (server) => {
   server.get(
@@ -16,7 +16,7 @@ module.exports = (server) => {
   server.put(
     "/api/v1/users/recruiters",
     verifyToken,
-    uploadAvatar.single("avatar"),
+    uploadAvatarRecruiter.single("avatar"),
     recruiterHandler.updateOneRecruiterSelf
   );
 };
