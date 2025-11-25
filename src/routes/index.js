@@ -12,6 +12,7 @@ const resume = require("./resumes");
 const jobtags = require("./job_tags");
 const portfolio = require("./portfolios");
 const industries = require("./industries");
+const nationalities = require("./nationalities");
 
 module.exports = (server) => {
   users(server);
@@ -29,4 +30,5 @@ module.exports = (server) => {
   portfolio(server);
   jobtags(server);
   industries(server);
+  nationalities(server);
 };
