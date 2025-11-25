@@ -22,7 +22,7 @@ class Query {
       const query = `
       SELECT 
         id,
-        skill_name
+        skill_name as name
       FROM ${collection}
       WHERE skill_name ILIKE $1
       ORDER BY created_at DESC
@@ -32,9 +32,9 @@ class Query {
       const values = [searchQuery, limit, offset];
       const result = await this.db.executeQuery(query, values);
 
-      if (!result || result.rows.length === 0) {
-        return wrapper.error(errorEmptyMessage);
-      }
+      // if (!result || result.rows.length === 0) {
+      //   return wrapper.error(errorEmptyMessage);
+      // }
       return wrapper.data(result.rows);
     } catch (error) {
       logger.error(ctx, errorQueryMessage, "findAllSkills", error);

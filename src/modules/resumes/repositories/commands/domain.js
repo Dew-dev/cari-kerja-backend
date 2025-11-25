@@ -4,7 +4,11 @@ const QueryWorker = require("../../../workers/repositories/queries/query");
 const { v4: uuidv4 } = require("uuid");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError, InternalServerError, BadRequestError } = require("../../../../helpers/errors");
+const {
+  NotFoundError,
+  InternalServerError,
+  BadRequestError,
+} = require("../../../../helpers/errors");
 const ctx = "Resume-Command-Domain";
 
 class Resume {
@@ -22,10 +26,27 @@ class Resume {
       return wrapper.error(new NotFoundError("Worker not found"));
     }
 
-    const resumeDefault = await this.query.findOne({ is_default: true, worker_id }, { id: 1 });
+    const resumeDefault = await this.query.findOne(
+      { is_default: true, worker_id },
+      { id: 1 }
+    );
 
-    if (resumeDefault.data && is_default) {
-      return wrapper.error(new BadRequestError("Default resume already exist"));
+    if (is_default) {
+      const defaultResume = await this.query.findOne(
+        { is_default: true, worker_id },
+        { id: 1 }
+      );
+      if (defaultResume.data) {
+        const updateOld = await this.command.updateOneNew(
+          { id: defaultResume.data.id, worker_id },
+          { is_default: false }
+        );
+        if (updateOld.err) {
+          return wrapper.error(
+            new InternalServerError("Update old resume error")
+          );
+        }
+      }
     }
 
     const newPayload = {
@@ -38,7 +59,7 @@ class Resume {
       return wrapper.error(new InternalServerError("Failed insert resume"));
     }
 
-    return wrapper.data({ id: result.data.id });
+    return wrapper.data(result.data);
   }
 
   async updateResume(payload) {
@@ -65,16 +86,25 @@ class Resume {
     }
 
     if (Object.keys(updateData).length === 0) {
-      return wrapper.error(new BadRequestError("Tidak ada data untuk diupdate"));
+      return wrapper.error(
+        new BadRequestError("Tidak ada data untuk diupdate")
+      );
     }
 
     if (is_default) {
-      const defaultResume = await this.query.findOne({ is_default: true, worker_id }, { id: 1 });
-
+      const defaultResume = await this.query.findOne(
+        { is_default: true, worker_id },
+        { id: 1 }
+      );
       if (defaultResume.data) {
-        const updateOld = await this.command.updateOneNew({ id: defaultResume.data.id, worker_id }, { is_default: false });
+        const updateOld = await this.command.updateOneNew(
+          { id: defaultResume.data.id, worker_id },
+          { is_default: false }
+        );
         if (updateOld.err) {
-          return wrapper.error(new InternalServerError("Update old resume error"));
+          return wrapper.error(
+            new InternalServerError("Update old resume error")
+          );
         }
       }
     }

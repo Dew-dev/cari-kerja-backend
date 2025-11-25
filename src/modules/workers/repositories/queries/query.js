@@ -64,7 +64,7 @@ class Query {
         ),
         this.db.executeQuery(
           `
-        SELECT ws.skill_id, s.skill_name 
+        SELECT ws.skill_id as id, s.skill_name as name
         FROM worker_skills ws
         JOIN skills s ON ws.skill_id = s.id
         WHERE ws.worker_id = $1

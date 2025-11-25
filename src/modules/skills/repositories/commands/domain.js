@@ -3,7 +3,11 @@ const Command = require("./command");
 const { v4: uuidv4 } = require("uuid");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError, InternalServerError, BadRequestError } = require("../../../../helpers/errors");
+const {
+  NotFoundError,
+  InternalServerError,
+  BadRequestError,
+} = require("../../../../helpers/errors");
 const ctx = "Certification-Command-Domain";
 
 class Skill {
@@ -23,7 +27,7 @@ class Skill {
       return wrapper.error(new InternalServerError("Failed insert skill"));
     }
 
-    return wrapper.data({ id: result.data.id });
+    return wrapper.data(result.data);
   }
 
   async updateSkill(payload) {
@@ -34,7 +38,10 @@ class Skill {
       return wrapper.error(new NotFoundError("Skill not found"));
     }
 
-    const result = await this.command.updateOneNew({ id }, { skills_name: payload.skills_name });
+    const result = await this.command.updateOneNew(
+      { id },
+      { skills_name: payload.skills_name }
+    );
     if (result.err) {
       return wrapper.error(new InternalServerError("Update skill failed"));
     }
