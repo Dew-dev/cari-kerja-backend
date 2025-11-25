@@ -3,12 +3,18 @@ const queryModel = require("../repositories/queries/query_model");
 const commandHandler = require("../repositories/commands/command_handler");
 const commandModel = require("../repositories/commands/command_model");
 const validator = require("../../../helpers/utils/validator");
-const { sendResponse, paginationResponse } = require("../../../helpers/utils/response");
+const {
+  sendResponse,
+  paginationResponse,
+} = require("../../../helpers/utils/response");
 
 // query
 const getIndustry = async (req, res) => {
   const payload = { ...req.params };
-  const validatePayload = validator.isValidPayload(payload, queryModel.getOneIndustryType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getOneIndustryType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -18,7 +24,11 @@ const getIndustry = async (req, res) => {
 
 const getAllIndustries = async (req, res) => {
   const payload = { ...req.query };
-  const validatePayload = validator.isValidPayload(payload, queryModel.getAllIndustriesType);
+  console.log("sebenernya masuk");
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getAllIndustriesType
+  );
   console.log(validatePayload);
 
   if (validatePayload.err) {
@@ -31,7 +41,10 @@ const getAllIndustries = async (req, res) => {
 //command
 const addIndustry = async (req, res) => {
   const payload = { ...req.body };
-  const validatePayload = validator.isValidPayload(payload, commandModel.addIndustryType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.addIndustryType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -41,7 +54,10 @@ const addIndustry = async (req, res) => {
 
 const updateIndustry = async (req, res) => {
   const payload = { ...req.params, ...req.body };
-  const validatePayload = validator.isValidPayload(payload, commandModel.updateIndustryType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.updateIndustryType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -51,7 +67,10 @@ const updateIndustry = async (req, res) => {
 
 const deleteIndustry = async (req, res) => {
   const payload = { ...req.params };
-  const validatePayload = validator.isValidPayload(payload, commandModel.deleteIndustryType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.deleteIndustryType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }

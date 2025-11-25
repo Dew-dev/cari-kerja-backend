@@ -1,6 +1,7 @@
 const pgConnection = require("./connection");
 const wrapper = require("../../utils/wrapper");
 const logger = require("../../utils/logger");
+const { Query } = require("pg");
 const errorQueryMessage = "Error querying PostgreSQL";
 const errorEmptyMessage = "Data Not Found Please Try Another Input";
 const ctx = "Database.PostgreSQL";
@@ -25,7 +26,7 @@ class DB {
     parameter,
     projection,
     collectionName,
-    whereConditions,
+    whereConditions = "AND",
     isDeleted = false,
     timescope = false
   ) {
@@ -51,6 +52,7 @@ class DB {
         LIMIT 1;
       `;
       const values = parameterKey.map((key) => parameter[key]);
+      console.log("Query FindOne : " + query);
       const result = await this.executeQuery(query, values);
       if (!result || result.rows.length === 0) {
         return wrapper.error(errorEmptyMessage);
@@ -178,6 +180,7 @@ class DB {
         WHERE ${parameterPlaceholders}
         RETURNING *;
       `;
+      console.log("Update Query :  " + query);
       const updateQueryValues = updateQueryKey.map((key) => updateQuery[key]);
       const parameterValues = parameterKey.map((key) => parameter[key]);
       const values = [...updateQueryValues, ...parameterValues];

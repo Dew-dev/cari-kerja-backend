@@ -8,7 +8,10 @@ const { sendResponse } = require("../../../helpers/utils/response");
 // query
 const getWorkerByUserId = async (req, res) => {
   const payload = { user_id: req.userMeta.id };
-  const validatePayload = validator.isValidPayload(payload, queryModel.getWorkerByUserIdParamType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getWorkerByUserIdParamType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -19,7 +22,13 @@ const getWorkerByUserId = async (req, res) => {
 // command
 const updateOneWorker = async (req, res) => {
   const payload = { ...req.body, ...req.params };
-  const validatePayload = validator.isValidPayload(payload, commandModel.updateWorkerParamType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.updateWorkerParamType
+  );
+  if (req.file) {
+    payload.avatar_url = `/uploads/avatars/${req.file.filename}`;
+  }
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -28,8 +37,19 @@ const updateOneWorker = async (req, res) => {
 };
 
 const updateSelfWorker = async (req, res) => {
-  const payload = { ...req.body, id: req.userMeta.worker_id, user_id: req.userMeta.id };
-  const validatePayload = validator.isValidPayload(payload, commandModel.updateWorkerParamType);
+  const payload = {
+    ...req.body,
+    id: req.userMeta.worker_id,
+    user_id: req.userMeta.id,
+  };
+  if (req.file) {
+    payload.avatar_url = `/uploads/avatars/${req.file.filename}`;
+  }
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.updateWorkerParamType
+  );
+
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }

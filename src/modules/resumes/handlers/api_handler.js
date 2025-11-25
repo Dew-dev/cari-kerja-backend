@@ -3,12 +3,18 @@ const queryModel = require("../repositories/queries/query_model");
 const commandHandler = require("../repositories/commands/command_handler");
 const commandModel = require("../repositories/commands/command_model");
 const validator = require("../../../helpers/utils/validator");
-const { sendResponse, paginationResponse } = require("../../../helpers/utils/response");
+const {
+  sendResponse,
+  paginationResponse,
+} = require("../../../helpers/utils/response");
 
 // query
 const getResume = async (req, res) => {
   const payload = { ...req.params, worker_id: req.userMeta.worker_id };
-  const validatePayload = validator.isValidPayload(payload, queryModel.getResumeType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getResumeType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -17,8 +23,15 @@ const getResume = async (req, res) => {
 };
 
 const getAllResumes = async (req, res) => {
-  const payload = { worker_id: req.userMeta.worker_id, ...req.query, ...req.params };
-  const validatePayload = validator.isValidPayload(payload, queryModel.getAllResumesType);
+  const payload = {
+    worker_id: req.userMeta.worker_id,
+    ...req.query,
+    ...req.params,
+  };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getAllResumesType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -29,7 +42,13 @@ const getAllResumes = async (req, res) => {
 // command
 const addResume = async (req, res) => {
   const payload = { worker_id: req.userMeta.worker_id, ...req.body };
-  const validatePayload = validator.isValidPayload(payload, commandModel.addResumeType);
+  if (req.file) {
+    payload.resume_url = `/uploads/resumes/${req.file.filename}`;
+  }
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.addResumeType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -38,8 +57,15 @@ const addResume = async (req, res) => {
 };
 
 const updateResume = async (req, res) => {
-  const payload = { id: req.params.id, worker_id: req.userMeta.worker_id, ...req.body };
-  const validatePayload = validator.isValidPayload(payload, commandModel.updateResumeType);
+  const payload = {
+    id: req.params.id,
+    worker_id: req.userMeta.worker_id,
+    ...req.body,
+  };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.updateResumeType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -49,7 +75,10 @@ const updateResume = async (req, res) => {
 
 const deleteResume = async (req, res) => {
   const payload = { id: req.params.id };
-  const validatePayload = validator.isValidPayload(payload, commandModel.deleteResumeType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.deleteResumeType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
