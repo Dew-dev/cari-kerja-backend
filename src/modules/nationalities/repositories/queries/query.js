@@ -14,7 +14,7 @@ class Query {
     return this.db.findOne(parameter, projection, collection);
   }
 
-  async findAllNationalities(page = 1, limit = 10, search) {
+  async findAllNationalities(page = 1, limit = 20, search) {
     try {
       const offset = (page - 1) * limit;
       const searchQuery = search ? `%${search}%` : "%%";
@@ -26,17 +26,18 @@ class Query {
         iso_alpha2,
         iso_alpha3
       FROM ${collection}
-      WHERE name ILIKE $1
-      ORDER BY created_at DESC
+      WHERE country_name ILIKE $1 
+      OR iso_alpha2 ILIKE $1
+      OR iso_alpha3 ILIKE $1
       LIMIT $2 OFFSET $3;
     `;
 
       const values = [searchQuery, limit, offset];
       const result = await this.db.executeQuery(query, values);
 
-      if (!result || result.rows.length === 0) {
-        return wrapper.error(errorEmptyMessage);
-      }
+      // if (!result || result.rows.length === 0) {
+      //   return wrapper.error(errorEmptyMessage);
+      // }
       return wrapper.data(result.rows);
     } catch (error) {
       logger.error(ctx, errorQueryMessage, "findAllNationalities", error);

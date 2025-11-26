@@ -55,7 +55,7 @@ class Query {
         portfolios,
       ] = await Promise.all([
         this.db.executeQuery(
-          "SELECT * FROM work_experiences WHERE worker_id = $1",
+          "SELECT * FROM work_experiences WHERE worker_id = $1 ORDER BY start_date DESC",
           [id]
         ),
         this.db.executeQuery(

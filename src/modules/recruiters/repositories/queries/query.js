@@ -26,6 +26,7 @@ class Query {
                     recruiters.contact_phone,
                     recruiters.address,
                     industries.name AS industry,
+                    recruiters.industry_id,
                     recruiters.description,
                     recruiters.created_at,
                     recruiters.updated_at FROM recruiters 

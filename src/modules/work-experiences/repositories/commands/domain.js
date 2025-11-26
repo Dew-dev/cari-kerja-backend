@@ -3,7 +3,11 @@ const Query = require("../queries/query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const { v4: uuidv4 } = require("uuid");
-const { NotFoundError, InternalServerError, BadRequestError } = require("../../../../helpers/errors");
+const {
+  NotFoundError,
+  InternalServerError,
+  BadRequestError,
+} = require("../../../../helpers/errors");
 const ctx = "WorkerExperience-Domain";
 
 class WorkExperience {
@@ -26,9 +30,11 @@ class WorkExperience {
     };
     const result = await this.command.insertOne(document);
     if (result.err) {
-      return wrapper.error(new InternalServerError("Failed to insert work experience"));
+      return wrapper.error(
+        new InternalServerError("Failed to insert work experience")
+      );
     }
-    return wrapper.data({ id: result.data.id });
+    return wrapper.data(result.data);
   }
 
   // UPDATE one work experience
@@ -50,7 +56,9 @@ class WorkExperience {
 
     const result = await this.command.updateOneNew({ id, worker_id }, document);
     if (result.err) {
-      return wrapper.error(new InternalServerError("Failed to update worker experience"));
+      return wrapper.error(
+        new InternalServerError("Failed to update worker experience")
+      );
     }
 
     return wrapper.data({ id });
@@ -67,7 +75,9 @@ class WorkExperience {
     const result = await this.command.deleteOne({ id });
     if (result.err) {
       logger.error(ctx, "Failed delete exp", "Domain", result.err);
-      return wrapper.error(new InternalServerError("Failed to delete worker experience"));
+      return wrapper.error(
+        new InternalServerError("Failed to delete worker experience")
+      );
     }
 
     return wrapper.data("Successfully deleted");
