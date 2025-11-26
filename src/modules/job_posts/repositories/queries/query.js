@@ -178,6 +178,7 @@ class Query {
         page: parseInt(page, 10),
         limit: parseInt(limit, 10),
         total: jobpostsResult.rows.length,
+        totalPage: jobpostsResult.rows.length / parseInt(limit, 10),
       };
       return wrapper.paginationData(result, pagination);
     } catch (error) {
