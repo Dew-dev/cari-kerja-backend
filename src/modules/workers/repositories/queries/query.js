@@ -71,9 +71,10 @@ class Query {
       `,
           [id]
         ),
-        this.db.executeQuery("SELECT * FROM educations WHERE worker_id = $1", [
-          id,
-        ]),
+        this.db.executeQuery(
+          "SELECT * FROM educations WHERE worker_id = $1 ORDER BY start_date DESC",
+          [id]
+        ),
         this.db.executeQuery(
           `
         SELECT l.id, l.language_name, pl.name, l.is_primary

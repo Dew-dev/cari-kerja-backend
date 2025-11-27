@@ -23,11 +23,17 @@ class Certification {
         credential_id: 1,
         is_active: 1,
         updated_at: 1,
+        link: 1,
       }
     );
 
     if (certification.err) {
-      logger.error(ctx, "getCertification", "Can not find certification", certification.err);
+      logger.error(
+        ctx,
+        "getCertification",
+        "Can not find certification",
+        certification.err
+      );
       return wrapper.error(new NotFoundError("Can not find certification"));
     }
 
@@ -40,7 +46,12 @@ class Certification {
     const certifications = await this.query.findAll(worker_id, page, limit);
     const count = await this.query.countAll(worker_id);
     if (certifications.err) {
-      logger.error(ctx, "getCertifications", "Can not find certifications", certifications.err);
+      logger.error(
+        ctx,
+        "getCertifications",
+        "Can not find certifications",
+        certifications.err
+      );
       return wrapper.error(new NotFoundError("Can not find certifications"));
     }
 

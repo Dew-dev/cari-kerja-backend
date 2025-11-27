@@ -4,7 +4,11 @@ const QueryWorker = require("../../../workers/repositories/queries/query");
 const { v4: uuidv4 } = require("uuid");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError, InternalServerError, BadRequestError } = require("../../../../helpers/errors");
+const {
+  NotFoundError,
+  InternalServerError,
+  BadRequestError,
+} = require("../../../../helpers/errors");
 const ctx = "Certification-Command-Domain";
 
 class Certification {
@@ -29,10 +33,12 @@ class Certification {
 
     const result = await this.command.insertOne(newPayload);
     if (result.err) {
-      return wrapper.error(new InternalServerError("Failed insert certification"));
+      return wrapper.error(
+        new InternalServerError("Failed insert certification")
+      );
     }
 
-    return wrapper.data({ id: result.data.id });
+    return wrapper.data(result.data);
   }
 
   async updateCertification(payload) {
@@ -42,12 +48,33 @@ class Certification {
       return wrapper.error(new BadRequestError("id dan worker_id wajib diisi"));
     }
 
-    const certification = await this.query.findOne({ id, worker_id }, { id: 1 });
+    const certification = await this.query.findOne(
+      { id, worker_id },
+      {
+        id: 1,
+        worker_id: 1,
+        name: 1,
+        issuer: 1,
+        issue_date: 1,
+        expiry_date: 1,
+        credential_id: 1,
+        is_active: 1,
+        updated_at: 1,
+        link: 1,
+      }
+    );
     if (certification.err || !certification.data) {
       return wrapper.error(new NotFoundError("Certification not found"));
     }
 
-    const updatableFields = ["name", "issuer", "issue_date", "expiry_date", "credential_id", "is_active"];
+    const updatableFields = [
+      "name",
+      "issuer",
+      "issue_date",
+      "expiry_date",
+      "credential_id",
+      "is_active",
+    ];
 
     const updateData = {};
     for (const field of updatableFields) {
@@ -57,15 +84,22 @@ class Certification {
     }
 
     if (Object.keys(updateData).length === 0) {
-      return wrapper.error(new BadRequestError("Tidak ada data untuk diupdate"));
+      return wrapper.error(
+        new BadRequestError("Tidak ada data untuk diupdate")
+      );
     }
 
-    const updateResult = await this.command.updateOneNew({ id, worker_id }, updateData);
+    const updateResult = await this.command.updateOneNew(
+      { id, worker_id },
+      updateData
+    );
     if (updateResult.err) {
-      return wrapper.error(new InternalServerError("Update certification failed"));
+      return wrapper.error(
+        new InternalServerError("Update certification failed")
+      );
     }
 
-    return wrapper.data({ id, worker_id });
+    return wrapper.data(updateData);
   }
 
   async deleteCertification(payload) {
@@ -78,7 +112,9 @@ class Certification {
 
     const result = await this.command.deleteOne({ id });
     if (result.err) {
-      return wrapper.error(new InternalServerError("Delete certification failed"));
+      return wrapper.error(
+        new InternalServerError("Delete certification failed")
+      );
     }
 
     return wrapper.data("Success deleted certification");
