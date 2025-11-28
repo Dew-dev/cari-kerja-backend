@@ -231,6 +231,57 @@ class Jobpost {
     }
   }
 
+  //update job post Status
+
+  async updateJobPostStatus(payload, id, ctx) {
+    try {
+      if (!payload || typeof payload !== "object") {
+        throw new Error("Payload harus berupa object");
+      }
+      payload = { ...payload, id: id };
+      console.log("payload status: ", payload);
+      const validateItem = validator.isValidPayload(
+        payload,
+        commandModel.jobPostStatusUpdateParamType
+      );
+
+      if (validateItem.err) {
+        throw new Error(`Validation error: ${validateItem.err.message}`);
+      }
+
+      const value = validateItem.data;
+
+      if (!value.id) {
+        throw new Error("Field 'id' wajib ada untuk update");
+      }
+
+      const parameter = { id: id };
+      const updateQuery = {
+        status_id: value.status_id,
+      };
+
+      const result = await this.command.updateOneNew(
+        parameter,
+        updateQuery,
+        "job_posts"
+      );
+
+      if (result.err) {
+        logger.error(
+          ctx,
+          "Update job post status",
+          "Job Posts Commands",
+          result.err
+        );
+        return wrapper.error(new InternalServerError(result.err));
+      }
+
+      return wrapper.data(result.data);
+    } catch (err) {
+      logger.error(ctx, "Update job post status", "Job Posts Commands", err);
+      return wrapper.error(new InternalServerError(err.message));
+    }
+  }
   //worker mulai dari sini
 
   async createJobApplication(payload) {

@@ -47,6 +47,11 @@ const jobPostQuestionUpdateParamType = joi.object({
   updated_at: joi.date().default(() => new Date().toISOString()), // created_at tidak perlu di-update
 });
 
+const jobPostStatusUpdateParamType = joi.object({
+  id: joi.string().uuid().required(),
+  status_id: joi.number().required(),
+});
+
 const createJobPostAnswerParamType = joi.object({
   job_application_id: joi.string().uuid().required(),
   question_id: joi.string().uuid().required(),
@@ -97,4 +102,5 @@ module.exports = {
   updateJobPostAnswerParamType,
   createJobApplicationParamType,
   updateJobApplicationParamType,
+  jobPostStatusUpdateParamType,
 };

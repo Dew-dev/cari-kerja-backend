@@ -42,7 +42,8 @@ class Query {
                 j.status_id,
                 jps.name AS status,
                 j.created_at,
-                j.updated_at
+                j.updated_at,
+                COUNT(ja.id) AS applications
             FROM job_posts j
             JOIN recruiters r ON r.id = j.recruiter_id
             JOIN employment_types et ON et.id = j.employment_type_id
@@ -50,7 +51,16 @@ class Query {
             JOIN salary_types st ON st.id = j.salary_type_id
             JOIN currencies c ON c.id = j.currency_id
             JOIN job_post_statuses jps ON jps.id = j.status_id
+            LEFT JOIN job_applications ja ON ja.job_post_id = j.id
             WHERE ${conditions.join(" AND ")}
+            GROUP BY 
+    j.id,
+    r.id,
+    et.id,
+    el.id,
+    st.id,
+    c.id,
+    jps.id
             ORDER BY ${orderColumn} ${orderDirection}
             LIMIT $${idx}
             OFFSET $${idx + 1};
@@ -99,7 +109,8 @@ class Query {
                 j.published_at,
                 j.deadline,
                 j.created_at,
-                j.updated_at
+                j.updated_at,
+                COUNT(ja.id) AS applications
             FROM job_posts j
             JOIN recruiters r ON r.id = j.recruiter_id
             JOIN employment_types et ON et.id = j.employment_type_id
@@ -107,6 +118,7 @@ class Query {
             JOIN salary_types st ON st.id = j.salary_type_id
             JOIN currencies c ON c.id = j.currency_id
             JOIN job_post_statuses jps ON jps.id = j.status_id
+            LEFT JOIN job_applications ja ON ja.job_post_id = j.id
             WHERE j.id = $1;
             `;
 
@@ -152,7 +164,8 @@ class Query {
                 j.status_id,
                 jps.name AS status,
                 j.created_at,
-                j.updated_at
+                j.updated_at,
+                COUNT(ja.id) AS applications 
               FROM job_posts j
               JOIN recruiters r ON r.id = j.recruiter_id
               JOIN employment_types et ON et.id = j.employment_type_id
@@ -160,7 +173,17 @@ class Query {
               JOIN salary_types st ON st.id = j.salary_type_id
               JOIN currencies c ON c.id = j.currency_id
               JOIN job_post_statuses jps ON jps.id = j.status_id
+              LEFT JOIN job_applications ja ON ja.job_post_id = j.id
+            
               WHERE 1=1 ${conditions}
+              GROUP BY 
+            j.id,
+            r.id,
+            et.id,
+            el.id,
+            st.id,
+            c.id,
+            jps.id
               ORDER BY ${orderColumn} ${orderDirection}
               LIMIT $${idx}
               OFFSET $${idx + 1};
@@ -168,7 +191,7 @@ class Query {
 
       values.push(parseInt(limit, 10));
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
-
+      console.log(jobpostsQuery);
       const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
       if (!jobpostsResult || jobpostsResult.rows.length === 0) {
         return wrapper.error("Job posts Not Found");
