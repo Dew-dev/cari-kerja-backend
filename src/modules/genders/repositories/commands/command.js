@@ -1,10 +1,10 @@
-const collection = "languages"; // nama tabel di database
-
+const collection = "genders"; // nama table
 class Command {
   constructor(db) {
     this.db = db;
   }
 
+  // document: data kolom apa saja yang mau dimasukin
   async insertOne(document) {
     return this.db.insertOne(document, collection);
   }

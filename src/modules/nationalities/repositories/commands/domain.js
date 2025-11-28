@@ -32,7 +32,7 @@ class Nationality {
       return wrapper.error(new NotFoundError("Nationality not found"));
     }
 
-    const result = await this.command.updateOneNew({ id }, { name: payload.country_name });
+    const result = await this.command.updateOneNew({ id }, { country_name: payload.country_name });
     if (result.err) {
       return wrapper.error(new InternalServerError("Update Nationality failed"));
     }
