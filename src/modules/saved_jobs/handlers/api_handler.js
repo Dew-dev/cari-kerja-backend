@@ -2,7 +2,6 @@ const queryHandler = require("../repositories/queries/query_handler");
 const queryModel = require("../repositories/queries/query_model");
 const logger = require("../../../helpers/utils/logger");
 const wrapper = require("../../../helpers/utils/wrapper");
-const { InternalServerError } = require("../../../helpers/errors");
 const commandHandler = require("../repositories/commands/command_handler");
 const commandModel = require("../repositories/commands/command_model");
 const validator = require("../../../helpers/utils/validator");
