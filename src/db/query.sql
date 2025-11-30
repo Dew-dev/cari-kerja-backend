@@ -744,6 +744,20 @@
             UNIQUE (job_application_id, question_id)
     );
 
+    CREATE TABLE IF NOT EXISTS saved_jobs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    job_post_id UUID NOT NULL,
+    worker_id UUID NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_saved_jobs_worker_job UNIQUE (worker_id, job_post_id),
+    CONSTRAINT fk_saved_jobs_jobpost FOREIGN KEY (job_post_id) REFERENCES job_posts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_saved_jobs_worker FOREIGN KEY (worker_id) REFERENCES workers(id) ON DELETE RESTRICT
+    );
+
+    -- Indexes to speed common lookups
+    CREATE INDEX IF NOT EXISTS idx_saved_jobs_worker_created_at ON saved_jobs (worker_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_saved_jobs_job_post ON saved_jobs (job_post_id);
+
     -- GIN index for JSONB queries
     CREATE INDEX idx_job_post_answers_answer
     ON job_post_answers USING GIN (answer);
