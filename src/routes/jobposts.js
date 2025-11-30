@@ -10,8 +10,12 @@ module.exports = (server) => {
   server.get("/api/v1/job-posts/:id", jobpostHandler.getJobpostById);
   server.get(
     "/api/v1/recruiters/:recruiter_id/job-posts",
-    verifyToken,
     jobpostHandler.getJobpostsByRecruiterId
+  );
+  server.post(
+    "/api/v1/job-posts/status/:id",
+    verifyToken,
+    jobpostHandler.updateJobPostStatus
   );
   server.get("/api/v1/job-posts", jobpostHandler.getJobposts); //No token needed
   server.post("/api/v1/job-posts", verifyToken, jobpostHandler.createJobPost);

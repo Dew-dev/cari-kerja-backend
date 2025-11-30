@@ -246,6 +246,15 @@ const getCurrencyByCode = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const updateJobPostStatus = async (req, res) => {
+  const payload = req.body;
+  const { id } = req.params;
+
+  // return payload;
+  const result = await commandHandler.updateJobPostStatus(payload, id);
+  return sendResponse(result, res, 201);
+};
+
 module.exports = {
   getJobpostsByRecruiterId,
   getJobpostById,
@@ -258,4 +267,5 @@ module.exports = {
   createJobPostAnswers,
   createJobApplication,
   getCurrencyByCode,
+  updateJobPostStatus,
 };

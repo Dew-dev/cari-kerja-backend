@@ -26,7 +26,8 @@ class Query {
           expiry_date,
           credential_id,
           is_active,
-          updated_at
+          updated_at,
+          link
         FROM ${collection}
         WHERE worker_id = $1
         ORDER BY updated_at DESC
