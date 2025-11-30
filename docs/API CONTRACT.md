@@ -2690,6 +2690,9 @@ INNER JOIN job_tags jt ON jpt.tag_id = jt.id
 WHERE jp.id = $1
 ORDER BY jt.name ASC;
 
+## Saved Jobs
+###
+
 1. Tabel job_posts
 2. Tabel job_post_tags
    2.1 Tabel job_tags

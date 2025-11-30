@@ -43,7 +43,7 @@ class Query {
                 jps.name AS status,
                 j.created_at,
                 j.updated_at
-            FROM job_posts j
+            FROM ${collection} j
             JOIN recruiters r ON r.id = j.recruiter_id
             JOIN employment_types et ON et.id = j.employment_type_id
             JOIN experience_levels el ON el.id = j.experience_level_id
@@ -100,7 +100,7 @@ class Query {
                 j.deadline,
                 j.created_at,
                 j.updated_at
-            FROM job_posts j
+            FROM ${collection} j
             JOIN recruiters r ON r.id = j.recruiter_id
             JOIN employment_types et ON et.id = j.employment_type_id
             JOIN experience_levels el ON el.id = j.experience_level_id
@@ -153,7 +153,7 @@ class Query {
                 jps.name AS status,
                 j.created_at,
                 j.updated_at
-              FROM job_posts j
+              FROM ${collection} j
               JOIN recruiters r ON r.id = j.recruiter_id
               JOIN employment_types et ON et.id = j.employment_type_id
               JOIN experience_levels el ON el.id = j.experience_level_id

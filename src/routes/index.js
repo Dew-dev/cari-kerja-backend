@@ -14,6 +14,8 @@ const portfolio = require("./portfolios");
 const industries = require("./industries");
 const nationalities = require("./nationalities");
 const genders = require("./genders");
+const experienceLevels = require("./experience_levels");
+const savedJobs = require("./saved_jobs");
 
 module.exports = (server) => {
   users(server);
@@ -32,4 +34,7 @@ module.exports = (server) => {
   jobtags(server);
   industries(server);
   nationalities(server);
+  genders(server);
+  experienceLevels(server);
+  savedJobs(server);
 };

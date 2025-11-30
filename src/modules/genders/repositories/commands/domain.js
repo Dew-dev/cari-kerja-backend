@@ -43,8 +43,8 @@ class Genders {
   async deleteGender(payload) {
     const { id } = payload;
 
-    const industry = await this.query.findOne({ id }, { id: 1 });
-    if (industry.err) {
+    const gender = await this.query.findOne({ id }, { id: 1 });
+    if (gender.err) {
       return wrapper.error(new NotFoundError("Gender not found"));
     }
 
