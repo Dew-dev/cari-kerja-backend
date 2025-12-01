@@ -329,7 +329,7 @@ class User {
       }
     }
 
-    console.log(updateData);
+    //console.log(updateData);
 
     const updateResult = await this.command.updateOneNew({ id }, updateData);
     if (updateResult.err) {

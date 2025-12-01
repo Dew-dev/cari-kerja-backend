@@ -29,12 +29,14 @@ const getAllExperienceLevels = async (req, res) => {
     payload,
     queryModel.getAllExperienceLevelsType
   );
-  console.log(validatePayload);
+  //console.log(validatePayload);
 
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
-  const result = await queryHandler.getAllExperienceLevels(validatePayload.data);
+  const result = await queryHandler.getAllExperienceLevels(
+    validatePayload.data
+  );
   return paginationResponse(result, res);
 };
 
@@ -61,7 +63,9 @@ const updateExperienceLevel = async (req, res) => {
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
-  const result = await commandHandler.updateExperienceLevel(validatePayload.data);
+  const result = await commandHandler.updateExperienceLevel(
+    validatePayload.data
+  );
   return sendResponse(result, res);
 };
 
@@ -74,7 +78,9 @@ const deleteExperienceLevel = async (req, res) => {
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
-  const result = await commandHandler.deleteExperienceLevel(validatePayload.data);
+  const result = await commandHandler.deleteExperienceLevel(
+    validatePayload.data
+  );
   return sendResponse(result, res);
 };
 

@@ -11,9 +11,17 @@ class Nationality {
 
   async getOneNationality(payload) {
     const { id } = payload;
-    const nationality = await this.query.findOne({ id }, { id: 1, country_name: 1, iso_alpha2: 1, iso_alpha3: 1 });
+    const nationality = await this.query.findOne(
+      { id },
+      { id: 1, country_name: 1, iso_alpha2: 1, iso_alpha3: 1 }
+    );
     if (nationality.err) {
-      logger.error(ctx, "getNationality", "Can not find nationality", nationality.err);
+      logger.error(
+        ctx,
+        "getNationality",
+        "Can not find nationality",
+        nationality.err
+      );
       return wrapper.error(new NotFoundError("Can not find Nationality"));
     }
 
@@ -23,13 +31,22 @@ class Nationality {
   async getAllNationalities(payload) {
     const { page, limit, search } = payload;
 
-    const nationalities = await this.query.findAllNationalities(page, limit, search);
+    const nationalities = await this.query.findAllNationalities(
+      page,
+      limit,
+      search
+    );
     const count = await this.query.countAllNationalities(search);
 
-    console.log(nationalities);
+    //console.log(nationalities);
 
     if (nationalities.err) {
-      logger.error(ctx, "getAllNationalities", "Can not find nationalities", nationalities.err);
+      logger.error(
+        ctx,
+        "getAllNationalities",
+        "Can not find nationalities",
+        nationalities.err
+      );
       return wrapper.error(new NotFoundError("Can not find nationalities"));
     }
 

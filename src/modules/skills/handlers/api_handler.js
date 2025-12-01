@@ -3,12 +3,18 @@ const queryModel = require("../repositories/queries/query_model");
 const commandHandler = require("../repositories/commands/command_handler");
 const commandModel = require("../repositories/commands/command_model");
 const validator = require("../../../helpers/utils/validator");
-const { sendResponse, paginationResponse } = require("../../../helpers/utils/response");
+const {
+  sendResponse,
+  paginationResponse,
+} = require("../../../helpers/utils/response");
 
 // query
 const getSkill = async (req, res) => {
   const payload = { ...req.params };
-  const validatePayload = validator.isValidPayload(payload, queryModel.getOneSkillType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getOneSkillType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -18,8 +24,11 @@ const getSkill = async (req, res) => {
 
 const getAllSkills = async (req, res) => {
   const payload = { ...req.query };
-  const validatePayload = validator.isValidPayload(payload, queryModel.getAllSkillType);
-  console.log(validatePayload);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getAllSkillType
+  );
+  //console.log(validatePayload);
 
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
@@ -31,7 +40,10 @@ const getAllSkills = async (req, res) => {
 //command
 const addSkill = async (req, res) => {
   const payload = { ...req.body };
-  const validatePayload = validator.isValidPayload(payload, commandModel.addSkillType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.addSkillType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -41,7 +53,10 @@ const addSkill = async (req, res) => {
 
 const updateSkill = async (req, res) => {
   const payload = { ...req.params, ...req.body };
-  const validatePayload = validator.isValidPayload(payload, commandModel.updateSkillType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.updateSkillType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -51,7 +66,10 @@ const updateSkill = async (req, res) => {
 
 const deleteSkill = async (req, res) => {
   const payload = { ...req.params };
-  const validatePayload = validator.isValidPayload(payload, commandModel.deleteSkillType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.deleteSkillType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }

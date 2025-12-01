@@ -3,12 +3,18 @@ const queryModel = require("../repositories/queries/query_model");
 const commandHandler = require("../repositories/commands/command_handler");
 const commandModel = require("../repositories/commands/command_model");
 const validator = require("../../../helpers/utils/validator");
-const { sendResponse, paginationResponse } = require("../../../helpers/utils/response");
+const {
+  sendResponse,
+  paginationResponse,
+} = require("../../../helpers/utils/response");
 
 // query
 const getNationality = async (req, res) => {
   const payload = { ...req.params };
-  const validatePayload = validator.isValidPayload(payload, queryModel.getOneNationalityType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getOneNationalityType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -18,8 +24,11 @@ const getNationality = async (req, res) => {
 
 const getAllNationalities = async (req, res) => {
   const payload = { ...req.query };
-  const validatePayload = validator.isValidPayload(payload, queryModel.getAllNationalitiesType);
-  console.log(validatePayload);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getAllNationalitiesType
+  );
+  //console.log(validatePayload);
 
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
@@ -31,7 +40,10 @@ const getAllNationalities = async (req, res) => {
 //command
 const addNationality = async (req, res) => {
   const payload = { ...req.body };
-  const validatePayload = validator.isValidPayload(payload, commandModel.addNationalityType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.addNationalityType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -41,7 +53,10 @@ const addNationality = async (req, res) => {
 
 const updateNationality = async (req, res) => {
   const payload = { ...req.params, ...req.body };
-  const validatePayload = validator.isValidPayload(payload, commandModel.updateNationalityType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.updateNationalityType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -51,7 +66,10 @@ const updateNationality = async (req, res) => {
 
 const deleteNationality = async (req, res) => {
   const payload = { ...req.params };
-  const validatePayload = validator.isValidPayload(payload, commandModel.deleteNationalityType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.deleteNationalityType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }

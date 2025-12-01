@@ -24,7 +24,7 @@ class AppServer {
 
   _middlewares() {
     this.server.use(cors);
-    console.log("CORS middleware applied", cors);
+    //console.log("CORS middleware applied", cors);
     // this.server.options("*", cors);
     this.server.use(express.json());
     this.server.use(cookieParser());
@@ -45,8 +45,8 @@ class AppServer {
 
   listen() {
     this.server.listen(this.port, () => {
-      console.log("\n", __dirname);
-      console.log(`🚀 Server running at http://localhost:${this.port}\n\n`);
+      //console.log("\n", __dirname);
+      //console.log(`🚀 Server running at http://localhost:${this.port}\n\n`);
     });
   }
 }

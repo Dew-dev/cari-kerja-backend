@@ -57,7 +57,7 @@ class Query {
       const recruiterResult = await this.db.executeQuery(recruiterQuery, [
         user_id,
       ]);
-      console.log("recruiter res \n", recruiterResult);
+      //console.log("recruiter res \n", recruiterResult);
       if (!recruiterResult || recruiterResult.rows.length === 0) {
         return wrapper.error("Recruiter Not Found");
       }

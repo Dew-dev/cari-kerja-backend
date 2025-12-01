@@ -11,7 +11,10 @@ class Skill {
 
   async getOneSkill(payload) {
     const { id } = payload;
-    const skill = await this.query.findOne({ id }, { id: 1, skills_name: 1, created_at: 1 });
+    const skill = await this.query.findOne(
+      { id },
+      { id: 1, skills_name: 1, created_at: 1 }
+    );
     if (skill.err) {
       logger.error(ctx, "getSkill", "Can not find skill", skill.err);
       return wrapper.error(new NotFoundError("Can not find skill"));
@@ -26,7 +29,7 @@ class Skill {
     const skills = await this.query.findAllSkills(page, limit, search);
     const count = await this.query.countAllSkills(search);
 
-    console.log(skills);
+    //console.log(skills);
 
     if (skills.err) {
       logger.error(ctx, "getAllSkills", "Can not find skills", skills.err);
