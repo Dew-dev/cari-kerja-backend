@@ -16,6 +16,7 @@ const nationalities = require("./nationalities");
 const genders = require("./genders");
 const experienceLevels = require("./experience_levels");
 const savedJobs = require("./saved_jobs");
+const employmentTypes = require("./employment_types");
 
 module.exports = (server) => {
   users(server);
@@ -37,4 +38,5 @@ module.exports = (server) => {
   genders(server);
   experienceLevels(server);
   savedJobs(server);
+  employmentTypes(server);
 };
