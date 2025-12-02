@@ -180,16 +180,17 @@ class Query {
               JOIN currencies c ON c.id = j.currency_id
               JOIN job_post_statuses jps ON jps.id = j.status_id
               LEFT JOIN job_applications ja ON ja.job_post_id = j.id
-            
+              LEFT JOIN job_post_tags jpt ON jpt.job_post_id = j.id  -- Join tag
+              LEFT JOIN tags t ON t.id = jpt.tag_id  -- Join tag name
               WHERE 1=1 ${conditions}
               GROUP BY 
-            j.id,
-            r.id,
-            et.id,
-            el.id,
-            st.id,
-            c.id,
-            jps.id
+                j.id,
+                r.id,
+                et.id,
+                el.id,
+                st.id,
+                c.id,
+                jps.id
               ORDER BY ${orderColumn} ${orderDirection}
               LIMIT $${idx}
               OFFSET $${idx + 1};
@@ -202,13 +203,19 @@ class Query {
       if (!jobpostsResult || jobpostsResult.rows.length === 0) {
         return wrapper.error("Job posts Not Found");
       }
-      const result = jobpostsResult.rows;
+
+      const result = jobpostsResult.rows.map(row => ({
+        ...row,
+        tags: row.tags || []  // Pastikan tags selalu berupa array
+      }));
+
       const pagination = {
         page: parseInt(page, 10),
         limit: parseInt(limit, 10),
         total: jobpostsResult.rows.length,
         totalPage: jobpostsResult.rows.length / parseInt(limit, 10),
       };
+      
       return wrapper.paginationData(result, pagination);
     } catch (error) {
       logger.error(ctx, errorQueryMessage, "FindAll", error);
