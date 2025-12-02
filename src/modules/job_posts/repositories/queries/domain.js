@@ -78,7 +78,15 @@ class Jobposts {
     const orderColumn = sortableColumns[sort_by] || sortableColumns.created_at;
     const orderDirection = sort_order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
-    const newPayload = {conditions, orderColumn, orderDirection, idx, values, limit, page};
+    const newPayload = {
+      conditions,
+      orderColumn,
+      orderDirection,
+      idx,
+      values,
+      limit,
+      page,
+    };
 
     const jobposts = await this.query.findAllByRecruiterId(newPayload);
 
@@ -125,7 +133,7 @@ class Jobposts {
       sort_by = "created_at",
       sort_order = "desc",
       page = 1,
-      limit = 10,
+      limit = 12,
     } = payload;
     const conditions = [];
     const values = [];
@@ -234,6 +242,11 @@ class Jobposts {
     const orderColumn = sortableColumns[sort_by] || sortableColumns.created_at;
     const orderDirection = sort_order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
+    const count = await this.query.countAllJobPosts(conditions);
+
+    const totalData = count.data.rowCount;
+    console.log("Kata2  HARI INI: ", count.data.rowCount);
+
     const data = {
       conditions,
       orderColumn,
@@ -242,6 +255,7 @@ class Jobposts {
       values,
       limit,
       page,
+      totalData,
     };
     const jobposts = await this.query.findAll(data);
 
@@ -374,7 +388,14 @@ class Jobposts {
       idx += 1;
     }
 
-    const tagList = Array.isArray(tags) ? tags : (tags ? tags.split(',').map(t => t.trim()).filter(t => t.length > 0) : []);
+    const tagList = Array.isArray(tags)
+      ? tags
+      : tags
+      ? tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0)
+      : [];
     if (Array.isArray(tagList) && tagList.length > 0) {
       conditions.push(` AND EXISTS (
         SELECT 1 FROM job_post_tags jpt
