@@ -8,7 +8,7 @@ const verifyToken = async (req, res, next) => {
   const result = { err: null, data: null };
   let token = getToken(req.headers["authorization"]);
 
-  console.log("TOKEN MIDDLEWARE:\n", token);
+  //console.log("TOKEN MIDDLEWARE:\n", token);
   if (!token) {
     result.err = new UnauthorizedError("User Unauthorized");
     return wrapper.response(res, "fail", result, "Invalid", ERROR.UNAUTHORIZED);

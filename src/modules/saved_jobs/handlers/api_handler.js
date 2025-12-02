@@ -55,7 +55,7 @@ const getSavedJobs = async (req, res) => {
 
 const getSavedJobsSelf = async (req, res) => {
   const payload = { ...req.query, worker_id: req.userMeta.worker_id };
-  console.log(payload);
+  //console.log(payload);
 
   const validatePayload = validator.isValidPayload(
     payload,
@@ -83,7 +83,10 @@ const createSavedJob = async (req, res) => {
 
 const deleteJobPost = async (req, res) => {
   const payload = { ...req.params };
-  const validatePayload = validator.isValidPayload(payload, commandModel.deleteSavedJobParamType);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.deleteSavedJobParamType
+  );
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }

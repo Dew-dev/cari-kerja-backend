@@ -11,9 +11,17 @@ class ExperienceLevels {
 
   async getOneExperienceLevel(payload) {
     const { id } = payload;
-    const experienceLevel = await this.query.findOne({ id }, { id: 1, name: 1});
+    const experienceLevel = await this.query.findOne(
+      { id },
+      { id: 1, name: 1 }
+    );
     if (experienceLevel.err) {
-      logger.error(ctx, "getOneExperienceLevel", "Can not find ExperienceLevel", experienceLevel.err);
+      logger.error(
+        ctx,
+        "getOneExperienceLevel",
+        "Can not find ExperienceLevel",
+        experienceLevel.err
+      );
       return wrapper.error(new NotFoundError("Can not find ExperienceLevel"));
     }
 
@@ -23,13 +31,22 @@ class ExperienceLevels {
   async getAllExperienceLevels(payload) {
     const { page, limit, search } = payload;
 
-    const experienceLevels = await this.query.findAllExperienceLevels(page, limit, search);
+    const experienceLevels = await this.query.findAllExperienceLevels(
+      page,
+      limit,
+      search
+    );
     const count = await this.query.countAllExperienceLevels(search);
 
-    console.log(experienceLevels);
+    //console.log(experienceLevels);
 
     if (experienceLevels.err) {
-      logger.error(ctx, "getAllExperienceLevels", "Can not find ExperienceLevels", experienceLevels.err);
+      logger.error(
+        ctx,
+        "getAllExperienceLevels",
+        "Can not find ExperienceLevels",
+        experienceLevels.err
+      );
       return wrapper.error(new NotFoundError("Can not find ExperienceLevels"));
     }
 

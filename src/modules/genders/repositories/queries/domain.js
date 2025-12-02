@@ -11,7 +11,7 @@ class Genders {
 
   async getOneGender(payload) {
     const { id } = payload;
-    const gender = await this.query.findOne({ id }, { id: 1, gender_name: 1});
+    const gender = await this.query.findOne({ id }, { id: 1, gender_name: 1 });
     if (gender.err) {
       logger.error(ctx, "getGender", "Can not find Gender", gender.err);
       return wrapper.error(new NotFoundError("Can not find Gender"));
@@ -26,7 +26,7 @@ class Genders {
     const genders = await this.query.findAllGenders(page, limit, search);
     const count = await this.query.countAllGenders(search);
 
-    console.log(genders);
+    //console.log(genders);
 
     if (genders.err) {
       logger.error(ctx, "getAllGenders", "Can not find Genders", genders.err);

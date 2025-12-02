@@ -11,7 +11,10 @@ class Industry {
 
   async getOneIndustry(payload) {
     const { id } = payload;
-    const industry = await this.query.findOne({ id }, { id: 1, name: 1, created_at: 1 });
+    const industry = await this.query.findOne(
+      { id },
+      { id: 1, name: 1, created_at: 1 }
+    );
     if (industry.err) {
       logger.error(ctx, "getIndustry", "Can not find Industry", industry.err);
       return wrapper.error(new NotFoundError("Can not find Industry"));
@@ -26,10 +29,15 @@ class Industry {
     const industries = await this.query.findAllIndustries(page, limit, search);
     const count = await this.query.countAllIndustries(search);
 
-    console.log(industries);
+    //console.log(industries);
 
     if (industries.err) {
-      logger.error(ctx, "getAllIndustries", "Can not find Industries", industries.err);
+      logger.error(
+        ctx,
+        "getAllIndustries",
+        "Can not find Industries",
+        industries.err
+      );
       return wrapper.error(new NotFoundError("Can not find industries"));
     }
 

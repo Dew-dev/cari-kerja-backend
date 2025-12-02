@@ -41,7 +41,7 @@ const updateOneRecruiterSelf = async (req, res) => {
   if (req.file) {
     payload.avatar_url = `/uploads/avatars/${req.file.filename}`;
   }
-  console.log("payload \n", payload);
+  //console.log("payload \n", payload);
   const validatePayload = validator.isValidPayload(
     payload,
     commandModel.updateRecruiterParamType
