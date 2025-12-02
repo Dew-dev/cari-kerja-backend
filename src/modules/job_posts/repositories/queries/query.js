@@ -171,6 +171,7 @@ class Query {
                 jps.name AS status,
                 j.created_at,
                 j.updated_at,
+                j.deadline,
                 COUNT(ja.id) AS applications 
               FROM job_posts j
               JOIN recruiters r ON r.id = j.recruiter_id
@@ -197,7 +198,7 @@ class Query {
 
       values.push(parseInt(limit, 10));
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
-      //console.log(jobpostsQuery);
+      // console.log(jobpostsQuery);
       const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
       if (!jobpostsResult || jobpostsResult.rows.length === 0) {
         return wrapper.error("Job posts Not Found");

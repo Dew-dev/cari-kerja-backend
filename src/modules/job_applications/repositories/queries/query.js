@@ -171,6 +171,7 @@ class Query {
                 jps.name AS status,
                 j.created_at,
                 j.updated_at,
+                j.deadline,
                 COUNT(ja.id) AS applications 
               FROM job_posts j
               JOIN recruiters r ON r.id = j.recruiter_id
