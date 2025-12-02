@@ -27,6 +27,7 @@ const getJobpostsParamType = joi.object({
   created_after: joi.string().optional(),
   created_before: joi.string().optional(),
   search: joi.string().optional(),
+  tags: joi.string().optional(),
   sort_by: joi.string().optional(),
   sort_order: joi.string().optional(),
   page: joi.number().optional(),

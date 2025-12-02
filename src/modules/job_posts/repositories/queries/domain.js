@@ -268,6 +268,7 @@ class Jobposts {
       created_after,
       created_before,
       search, // Full-text search term
+      tags,
       sort_by = "created_at",
       sort_order = "desc",
       page = 1,
@@ -370,6 +371,17 @@ class Jobposts {
             )
             `);
       values.push(`${search}:*`);
+      idx += 1;
+    }
+
+    const tagList = Array.isArray(tags) ? tags : (tags ? tags.split(',').map(t => t.trim()).filter(t => t.length > 0) : []);
+    if (Array.isArray(tagList) && tagList.length > 0) {
+      conditions.push(` AND EXISTS (
+        SELECT 1 FROM job_post_tags jpt
+        JOIN tags t ON t.id = jpt.tag_id
+        WHERE jpt.job_post_id = j.id AND t.name = ANY($${idx})
+      )`);
+      values.push(tagList); // Array of tag names
       idx += 1;
     }
 
