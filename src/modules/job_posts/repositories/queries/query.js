@@ -149,6 +149,7 @@ class Query {
     values,
     limit,
     page,
+    totalData,
   }) {
     try {
       // Build dynamic query using WHERE 1=1
@@ -166,13 +167,19 @@ class Query {
                 st.name AS salary_type,
                 j.salary_min,
                 j.salary_max,
-                c.name AS currency,
+                c.code AS currency,
                 j.status_id,
                 jps.name AS status,
                 j.created_at,
                 j.updated_at,
                 j.deadline,
-                COUNT(ja.id) AS applications 
+                COUNT(ja.id) AS applications,
+                 (
+        SELECT json_agg(json_build_object('id', t.id, 'name', t.name))
+        FROM job_post_tags jpt
+        JOIN job_tags t ON t.id = jpt.tag_id
+        WHERE jpt.job_post_id = j.id
+    ) AS tags
               FROM job_posts j
               JOIN recruiters r ON r.id = j.recruiter_id
               JOIN employment_types et ON et.id = j.employment_type_id
@@ -181,17 +188,17 @@ class Query {
               JOIN currencies c ON c.id = j.currency_id
               JOIN job_post_statuses jps ON jps.id = j.status_id
               LEFT JOIN job_applications ja ON ja.job_post_id = j.id
-              LEFT JOIN job_post_tags jpt ON jpt.job_post_id = j.id  -- Join tag
-              LEFT JOIN tags t ON t.id = jpt.tag_id  -- Join tag name
-              WHERE 1=1 ${conditions}
-              GROUP BY 
-                j.id,
-                r.id,
-                et.id,
-                el.id,
-                st.id,
-                c.id,
-                jps.id
+              LEFT JOIN job_post_tags jpt ON jpt.job_post_id = j.id
+              LEFT JOIN job_tags t ON t.id = jpt.tag_id
+              WHERE 1=1${conditions}
+             GROUP BY
+    j.id,
+    r.id,
+    et.id,
+    el.id,
+    st.id,
+    c.id,
+    jps.id
               ORDER BY ${orderColumn} ${orderDirection}
               LIMIT $${idx}
               OFFSET $${idx + 1};
@@ -201,22 +208,22 @@ class Query {
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
       // console.log(jobpostsQuery);
       const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
+
       if (!jobpostsResult || jobpostsResult.rows.length === 0) {
         return wrapper.error("Job posts Not Found");
       }
 
-      const result = jobpostsResult.rows.map(row => ({
+      const result = jobpostsResult.rows.map((row) => ({
         ...row,
-        tags: row.tags || []  // Pastikan tags selalu berupa array
+        tags: row.tags || [], // Pastikan tags selalu berupa array
       }));
-
       const pagination = {
         page: parseInt(page, 10),
         limit: parseInt(limit, 10),
-        total: jobpostsResult.rows.length,
-        totalPage: jobpostsResult.rows.length / parseInt(limit, 10),
+        total: totalData,
+        totalPage: Math.ceil(totalData / parseInt(limit, 10)),
+        // meta: queryMetaRes,
       };
-      
       return wrapper.paginationData(result, pagination);
     } catch (error) {
       logger.error(ctx, errorQueryMessage, "FindAll", error);
@@ -291,6 +298,40 @@ class Query {
       currencies_collection,
       "OR"
     );
+  }
+
+  async countAllJobPosts(conditions) {
+    try {
+      const countQuery = `
+              SELECT 
+                COUNT(*) AS total
+              FROM job_posts j
+              JOIN recruiters r ON r.id = j.recruiter_id
+              JOIN employment_types et ON et.id = j.employment_type_id
+              JOIN experience_levels el ON el.id = j.experience_level_id
+              JOIN salary_types st ON st.id = j.salary_type_id
+              JOIN currencies c ON c.id = j.currency_id
+              JOIN job_post_statuses jps ON jps.id = j.status_id
+              LEFT JOIN job_applications ja ON ja.job_post_id = j.id
+              LEFT JOIN job_post_tags jpt ON jpt.job_post_id = j.id
+              LEFT JOIN job_tags t ON t.id = jpt.tag_id
+              WHERE 1=1${conditions}
+             GROUP BY
+    j.id,
+    r.id,
+    et.id,
+    el.id,
+    st.id,
+    c.id,
+    jps.id
+      `;
+      const countResult = await this.db.executeQuery(countQuery);
+
+      return wrapper.data(countResult);
+    } catch (error) {
+      logger.error(ctx, errorQueryMessage, "countAllJobPosts", error);
+      return wrapper.error(errorQueryMessage);
+    }
   }
 }
 
