@@ -300,7 +300,7 @@ class Query {
     );
   }
 
-  async countAllJobPosts(conditions) {
+  async countAllJobPosts(conditions, values) {
     try {
       const countQuery = `
               SELECT 
@@ -325,7 +325,7 @@ class Query {
     c.id,
     jps.id
       `;
-      const countResult = await this.db.executeQuery(countQuery);
+      const countResult = await this.db.executeQuery(countQuery, values);
 
       return wrapper.data(countResult);
     } catch (error) {

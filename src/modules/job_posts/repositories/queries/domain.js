@@ -254,10 +254,10 @@ class Jobposts {
     const orderColumn = sortableColumns[sort_by] || sortableColumns.created_at;
     const orderDirection = sort_order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
-    const count = await this.query.countAllJobPosts(conditions);
+    const count = await this.query.countAllJobPosts(conditions, values);
 
     const totalData = count.data.rowCount;
-    console.log("Kata2  HARI INI: ", count.data.rowCount);
+
 
     const data = {
       conditions,
