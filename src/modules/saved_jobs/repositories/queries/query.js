@@ -61,9 +61,12 @@ class Query {
       values.push(parseInt(limit, 10));
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
 
-      const savedJobsResult = await this.db.executeQuery(savedJobsQuery, values);
+      const savedJobsResult = await this.db.executeQuery(
+        savedJobsQuery,
+        values
+      );
       if (!savedJobsResult || savedJobsResult.rows.length === 0) {
-        return wrapper.error("Saved Jobs Not Found");
+        // return wrapper.error("Saved Jobs Not Found");
       }
       const result = savedJobsResult.rows;
       const pagination = {
@@ -212,7 +215,10 @@ class Query {
       values.push(parseInt(limit, 10));
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
 
-      const savedJobsResult = await this.db.executeQuery(savedJobsQuery, values);
+      const savedJobsResult = await this.db.executeQuery(
+        savedJobsQuery,
+        values
+      );
       if (!savedJobsResult || savedJobsResult.rows.length === 0) {
         return wrapper.error("All Saved Jobs Not Found");
       }
