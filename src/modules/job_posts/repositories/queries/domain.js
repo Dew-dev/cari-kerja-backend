@@ -256,12 +256,6 @@ class Jobposts {
 
     const count = await this.query.countAllJobPosts(conditions, values);
 
-    console.log("\n");
-    console.log("\n");
-    console.log("Kata2  HARI INI: ", count);
-    console.log("\n");
-    console.log("\n");
-
     const totalData = count.data.rowCount;
 
 
