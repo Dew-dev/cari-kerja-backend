@@ -23,8 +23,8 @@ class JobPostTags {
   }
 
   async getTagByName(payload) {
-    const { name } = payload;
-
+    const { name } = payload ?? "";
+    console.log(name);
     const jobtag = await this.query.findJobTag({ name }, { id: 1, name: 1 });
     if (jobtag.err) {
       logger.error(ctx, "getTagByName", "Can not find tag", jobtag.err);

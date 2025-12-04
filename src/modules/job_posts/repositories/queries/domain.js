@@ -130,6 +130,7 @@ class Jobposts {
       created_after,
       created_before,
       search, // Full-text search term
+      tags,
       sort_by = "created_at",
       sort_order = "desc",
       page = 1,
@@ -216,7 +217,12 @@ class Jobposts {
     }
 
     // 🔍 Full-text search on title & description
-    if (search !== undefined && search !== null && search !== "" && search.length >= 2 ) {
+    if (
+      search !== undefined &&
+      search !== null &&
+      search !== "" &&
+      search.length >= 2
+    ) {
       if (search.length >= 3) {
         conditions.push(`
           AND (
@@ -243,6 +249,24 @@ class Jobposts {
       }
     }
 
+    const tagList = Array.isArray(tags)
+      ? tags
+      : tags
+      ? tags
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0)
+      : [];
+    if (Array.isArray(tagList) && tagList.length > 0) {
+      conditions.push(` AND EXISTS (
+        SELECT 1 FROM job_post_tags jpt
+        JOIN job_tags t ON t.id = jpt.tag_id
+        WHERE jpt.job_post_id = j.id AND t.name = ANY($${idx})
+      )`);
+      values.push(tagList); // Array of tag names
+      idx += 1;
+    }
+
     const sortableColumns = {
       title: "j.title",
       location: "j.location",
@@ -254,13 +278,14 @@ class Jobposts {
     const orderColumn = sortableColumns[sort_by] || sortableColumns.created_at;
     const orderDirection = sort_order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
-    const count = await this.query.countAllJobPosts(conditions, values);
+    const conditionsString = conditions.join("\n");
 
+    const count = await this.query.countAllJobPosts(conditionsString, values);
+    // console.log(count);
     const totalData = count.data.rowCount;
 
-
     const data = {
-      conditions,
+      conditions: conditionsString,
       orderColumn,
       orderDirection,
       idx,
@@ -430,7 +455,7 @@ class Jobposts {
     const orderDirection = sort_order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
     const data = {
-      conditions,
+      conditions: conditions.join(" "),
       orderColumn,
       orderDirection,
       idx,

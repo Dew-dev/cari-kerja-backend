@@ -15,7 +15,7 @@ class Query {
   }
 
   async findAllByRecruiterId({
-    conditions,
+    conditionsString,
     orderColumn,
     orderDirection,
     idx,
@@ -52,7 +52,7 @@ class Query {
             JOIN currencies c ON c.id = j.currency_id
             JOIN job_post_statuses jps ON jps.id = j.status_id
             LEFT JOIN job_applications ja ON ja.job_post_id = j.id
-            WHERE ${conditions.join(" AND ")}
+            WHERE ${conditionsString}
             GROUP BY 
     j.id,
     r.id,
@@ -65,7 +65,7 @@ class Query {
             LIMIT $${idx}
             OFFSET $${idx + 1};
             `;
-
+      console.log(jobpostsQuery);
       // Add pagination params to values
       values.push(parseInt(limit, 10));
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
@@ -206,12 +206,12 @@ class Query {
 
       values.push(parseInt(limit, 10));
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
-      // console.log(jobpostsQuery);
+      console.log(jobpostsQuery);
       const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
 
-      if (!jobpostsResult || jobpostsResult.rows.length === 0) {
-        return wrapper.error("Job posts Not Found");
-      }
+      // if (!jobpostsResult || jobpostsResult.rows.length === 0) {
+      //   return wrapper.error("Job posts Not Found");
+      // }
 
       const result = jobpostsResult.rows.map((row) => ({
         ...row,
@@ -300,7 +300,7 @@ class Query {
     );
   }
 
-  async countAllJobPosts(conditions, values) {
+  async countAllJobPosts(conditionsString, values) {
     try {
       const countQuery = `
               SELECT 
@@ -315,7 +315,7 @@ class Query {
               LEFT JOIN job_applications ja ON ja.job_post_id = j.id
               LEFT JOIN job_post_tags jpt ON jpt.job_post_id = j.id
               LEFT JOIN job_tags t ON t.id = jpt.tag_id
-              WHERE 1=1${conditions}
+              WHERE 1=1${conditionsString}
              GROUP BY
     j.id,
     r.id,
@@ -326,6 +326,8 @@ class Query {
     jps.id
       `;
       const countResult = await this.db.executeQuery(countQuery, values);
+      console.log("query", countQuery);
+      console.log("Console Result", countResult);
 
       return wrapper.data(countResult);
     } catch (error) {
