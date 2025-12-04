@@ -410,19 +410,36 @@ class Jobposts {
     }
 
     // 🔍 Full-text search on title & description
-    if (search !== undefined && search !== null && search !== "") {
-      conditions.push(`
-            AND (
-                -- Try full-text search first with stemmed wildcard
-                (to_tsvector('english', COALESCE(j.title, '') || ' ' || COALESCE(j.description, ''))
-                 @@ websearch_to_tsquery('english', lower($${idx}) || ':*'))
-                OR
-                -- Fallback: Case-insensitive substring match
-                (LOWER(j.title || ' ' || COALESCE(j.description, '')) ILIKE '%' || lower($${idx}) || '%')
+    if (
+      search !== undefined &&
+      search !== null &&
+      search !== "" &&
+      search.length >= 2
+    ) {
+      if (search.length >= 3) {
+        conditions.push(`
+          AND (
+            -- ✅ Full-text search (stemmed)
+            (
+              to_tsvector('english', COALESCE(j.title, '') || ' ' || COALESCE(j.description, ''))
+              @@ websearch_to_tsquery('english', lower($${idx}) || ':*')
             )
-            `);
-      values.push(`${search}:*`);
-      idx += 1;
+            OR
+            -- ✅ Fallback: ILIKE (substring) untuk semua kasus, terutama yang pendek
+            (
+              LOWER(j.title || ' ' || COALESCE(j.description, '')) ILIKE '%' || lower($${idx}) || '%'
+            )
+          )
+        `);
+        values.push(search);
+        idx += 1;
+      } else {
+        conditions.push(`
+          AND LOWER(j.title || ' ' || COALESCE(j.description, '')) ILIKE '%' || lower($${idx}) || '%'
+        `);
+        values.push(search);
+        idx += 1;
+      }
     }
 
     const tagList = Array.isArray(tags)
@@ -454,6 +471,9 @@ class Jobposts {
     const orderColumn = sortableColumns[sort_by] || sortableColumns.created_at;
     const orderDirection = sort_order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
+    const count = await this.query.countAllJobPosts(conditionsString, values);
+    const totalData = count.data.rowCount;
+
     const data = {
       conditions: conditions.join(" "),
       orderColumn,
@@ -462,6 +482,7 @@ class Jobposts {
       values,
       limit,
       page,
+      totalData
     };
     const jobposts = await this.query.findAll(data);
 
