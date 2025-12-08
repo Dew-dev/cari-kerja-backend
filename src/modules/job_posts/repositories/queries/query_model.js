@@ -20,6 +20,7 @@ const getJobpostsByRecruiterIdParamType = joi.object({
 const getJobpostsParamType = joi.object({
   status: joi.string().optional(),
   employment_type: joi.string().optional(),
+  experience_level: joi.string().optional(),
   location: joi.string().optional(),
   salary_min: joi.number().optional(),
   salary_max: joi.number().optional(),
