@@ -152,13 +152,16 @@ class Jobposts {
       idx += 1;
     }
 
+    const experienceLevelList = Array.isArray(experience_level) ? experience_level : experience_level ? experience_level.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
     if (
-      experience_level !== undefined &&
-      experience_level !== null &&
-      experience_level !== ""
+      experienceLevelList !== undefined &&
+      experienceLevelList !== null &&
+      experienceLevelList !== "" &&
+      Array.isArray(experienceLevelList) && 
+      experienceLevelList.length > 0
     ) {
-      conditions.push(` AND el.name = $${idx}`);
-      values.push(experience_level);
+      conditions.push(` AND el.name = ANY($${idx})`);
+      values.push(experienceLevelList);
       idx += 1;
     }
 
