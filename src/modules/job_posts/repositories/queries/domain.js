@@ -146,9 +146,10 @@ class Jobposts {
       idx += 1;
     }
 
-    if (employment_type !== undefined && status !== null && status !== "") {
-      conditions.push(` AND et.name = $${idx}`);
-      values.push(employment_type);
+    const employmentTypeList = Array.isArray(employment_type) ? employment_type : employment_type ? employment_type.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
+    if (employmentTypeList !== undefined && employmentTypeList !== null && employmentTypeList !== "" && Array.isArray(employmentTypeList) && employmentTypeList.length > 0) {
+      conditions.push(` AND et.name = ANY($${idx})`);
+      values.push(employmentTypeList);
       idx += 1;
     }
 
