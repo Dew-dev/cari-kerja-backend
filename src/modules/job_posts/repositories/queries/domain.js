@@ -475,7 +475,7 @@ class Jobposts {
     const orderColumn = sortableColumns[sort_by] || sortableColumns.created_at;
     const orderDirection = sort_order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
-    const count = await this.query.countAllJobPosts(conditionsString, values);
+    const count = await this.query.countAllJobPosts(conditions, values);
     const totalData = count.data.rowCount;
 
     const data = {
