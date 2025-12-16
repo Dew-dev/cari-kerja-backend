@@ -13,9 +13,6 @@ const deleteSavedJob = async (payload) => {
   return domain.deleteSavedJob(payload);
 }
 
-
-
-
 module.exports = {
   createSavedJob,
   deleteSavedJob,

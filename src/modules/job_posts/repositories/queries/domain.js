@@ -135,6 +135,7 @@ class Jobposts {
       sort_order = "desc",
       page = 1,
       limit = 12,
+      user_id = null,
     } = payload;
     const conditions = [];
     const values = [];
@@ -146,19 +147,39 @@ class Jobposts {
       idx += 1;
     }
 
-    const employmentTypeList = Array.isArray(employment_type) ? employment_type : employment_type ? employment_type.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
-    if (employmentTypeList !== undefined && employmentTypeList !== null && employmentTypeList !== "" && Array.isArray(employmentTypeList) && employmentTypeList.length > 0) {
+    const employmentTypeList = Array.isArray(employment_type)
+      ? employment_type
+      : employment_type
+      ? employment_type
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0)
+      : [];
+    if (
+      employmentTypeList !== undefined &&
+      employmentTypeList !== null &&
+      employmentTypeList !== "" &&
+      Array.isArray(employmentTypeList) &&
+      employmentTypeList.length > 0
+    ) {
       conditions.push(` AND et.name = ANY($${idx})`);
       values.push(employmentTypeList);
       idx += 1;
     }
 
-    const experienceLevelList = Array.isArray(experience_level) ? experience_level : experience_level ? experience_level.split(",").map((t) => t.trim()).filter((t) => t.length > 0) : [];
+    const experienceLevelList = Array.isArray(experience_level)
+      ? experience_level
+      : experience_level
+      ? experience_level
+          .split(",")
+          .map((t) => t.trim())
+          .filter((t) => t.length > 0)
+      : [];
     if (
       experienceLevelList !== undefined &&
       experienceLevelList !== null &&
       experienceLevelList !== "" &&
-      Array.isArray(experienceLevelList) && 
+      Array.isArray(experienceLevelList) &&
       experienceLevelList.length > 0
     ) {
       conditions.push(` AND el.name = ANY($${idx})`);
@@ -298,7 +319,11 @@ class Jobposts {
       page,
       totalData,
     };
-    const jobposts = await this.query.findAll(data);
+    let finalData = data;
+    if (user_id !== undefined && user_id !== null && user_id !== "") {
+      finalData = { ...data, user_id };
+    }
+    const jobposts = await this.query.findAll(finalData);
 
     if (jobposts.err) {
       logger.error(ctx, "getJobposts", "Can not find jobposts", jobposts.err);
@@ -486,7 +511,7 @@ class Jobposts {
       values,
       limit,
       page,
-      totalData
+      totalData,
     };
     const jobposts = await this.query.findAll(data);
 

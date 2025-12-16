@@ -87,7 +87,7 @@ class Query {
     }
   }
 
-  async findOneByJobpostsId(id) {
+  async findOneByJobpostsId(id, user_id = null) {
     try {
       //console.log(id);
       const jobpostQuery = `
@@ -115,7 +115,17 @@ class Query {
                     SELECT COUNT(*)
                     FROM job_applications ja
                     WHERE ja.job_post_id = j.id
-                ) AS applications
+                ) AS applications,
+                 ${
+                   user_id
+                     ? `(
+        SELECT EXISTS (
+          SELECT 1 FROM job_applications ja
+          WHERE ja.worker_id = '${user_id}' AND ja.job_post_id = j.id
+        )
+      ) AS applied,`
+                     : `false AS applied,`
+                 }
             FROM job_posts j
             JOIN recruiters r ON r.id = j.recruiter_id
             JOIN employment_types et ON et.id = j.employment_type_id
@@ -150,8 +160,10 @@ class Query {
     limit,
     page,
     totalData,
+    user_id = null,
   }) {
     try {
+      console.log("ini user id ", user_id);
       // Build dynamic query using WHERE 1=1
       const jobpostsQuery = `
               SELECT 
@@ -174,12 +186,42 @@ class Query {
                 j.updated_at,
                 j.deadline,
                 COUNT(ja.id) AS applications,
-                 (
-        SELECT json_agg(json_build_object('id', t.id, 'name', t.name))
-        FROM job_post_tags jpt
-        JOIN job_tags t ON t.id = jpt.tag_id
-        WHERE jpt.job_post_id = j.id
-    ) AS tags
+                ${
+                  user_id
+                    ? `(
+        SELECT EXISTS (
+          SELECT 1 FROM saved_jobs sj
+          WHERE sj.worker_id = '${user_id}' AND sj.job_post_id = j.id
+        )
+      ) AS saved,`
+                    : `false AS saved,`
+                }
+                ${
+                  user_id
+                    ? `(
+        SELECT EXISTS (
+          SELECT id FROM saved_jobs sj
+          WHERE sj.worker_id = '${user_id}' AND sj.job_post_id = j.id
+        )
+      ) AS saved_id,`
+                    : `false AS saved_id,`
+                }
+                ${
+                  user_id
+                    ? `(
+        SELECT EXISTS (
+          SELECT 1 FROM job_applications ja
+          WHERE ja.worker_id = '${user_id}' AND ja.job_post_id = j.id
+        )
+      ) AS applied,`
+                    : `false AS applied,`
+                }
+                (SELECT json_agg(json_build_object('id', t.id, 'name', t.name))
+                FROM job_post_tags jpt
+                JOIN job_tags t ON t.id = jpt.tag_id
+                WHERE jpt.job_post_id = j.id
+              ) AS tags
+     
               FROM job_posts j
               JOIN recruiters r ON r.id = j.recruiter_id
               JOIN employment_types et ON et.id = j.employment_type_id
@@ -315,6 +357,7 @@ class Query {
               LEFT JOIN job_applications ja ON ja.job_post_id = j.id
               LEFT JOIN job_post_tags jpt ON jpt.job_post_id = j.id
               LEFT JOIN job_tags t ON t.id = jpt.tag_id
+              LEFT JOIN saved_jobs sj ON j.id = sj.job_post_id
               WHERE 1=1${conditionsString}
              GROUP BY
     j.id,

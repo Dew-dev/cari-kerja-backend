@@ -34,6 +34,7 @@ const getJobpostsParamType = joi.object({
   sort_order: joi.string().optional(),
   page: joi.number().optional(),
   limit: joi.number().optional(),
+  user_id: joi.string().optional(),
 });
 
 const getJobpostsSelfParamType = joi.object({
