@@ -1,4 +1,5 @@
 const verifyToken = require("../middlewares/verifyToken");
+const optionalVerifyToken = require("../middlewares/optionalVerifyToken");
 const jobpostHandler = require("../modules/job_posts/handlers/api_handler");
 
 module.exports = (server) => {
@@ -7,7 +8,11 @@ module.exports = (server) => {
     verifyToken,
     jobpostHandler.getJobpostsSelf
   );
-  server.get("/api/v1/job-posts/:id", jobpostHandler.getJobpostById);
+  server.get(
+    "/api/v1/job-posts/:id",
+    optionalVerifyToken,
+    jobpostHandler.getJobpostById
+  );
   server.get(
     "/api/v1/recruiters/:recruiter_id/job-posts",
     jobpostHandler.getJobpostsByRecruiterId

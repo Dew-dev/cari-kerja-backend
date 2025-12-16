@@ -105,8 +105,9 @@ class Jobposts {
   }
 
   async getJobpostById(payload) {
-    const { id } = payload;
-    const jobpost = await this.query.findOneByJobpostsId(id);
+    const { id, user_id } = payload;
+    console.log("user_id di domain", payload);
+    const jobpost = await this.query.findOneByJobpostsId(id, user_id ?? null);
 
     if (jobpost.err) {
       logger.error(ctx, "getJobpostById", "Job Post Query", jobpost.err);

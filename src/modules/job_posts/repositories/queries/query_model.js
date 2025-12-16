@@ -57,6 +57,7 @@ const getJobpostsSelfParamType = joi.object({
 
 const getJobpostByIdParamType = joi.object({
   id: joi.string().required(),
+  user_id: joi.string().optional(),
 });
 
 const getJobpostQuestionsParamType = joi.object({

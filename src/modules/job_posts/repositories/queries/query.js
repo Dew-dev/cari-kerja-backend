@@ -89,7 +89,8 @@ class Query {
 
   async findOneByJobpostsId(id, user_id = null) {
     try {
-      //console.log(id);
+      // console.log("id", id);
+      // ("");
       const jobpostQuery = `
             SELECT 
                 j.id,
@@ -116,16 +117,16 @@ class Query {
                     FROM job_applications ja
                     WHERE ja.job_post_id = j.id
                 ) AS applications,
-                 ${
-                   user_id
-                     ? `(
+                ${
+                  user_id
+                    ? `(
         SELECT EXISTS (
           SELECT 1 FROM job_applications ja
           WHERE ja.worker_id = '${user_id}' AND ja.job_post_id = j.id
         )
-      ) AS applied,`
-                     : `false AS applied,`
-                 }
+      ) AS applied`
+                    : `false AS applied`
+                } 
             FROM job_posts j
             JOIN recruiters r ON r.id = j.recruiter_id
             JOIN employment_types et ON et.id = j.employment_type_id
@@ -136,7 +137,7 @@ class Query {
             LEFT JOIN job_applications ja ON ja.job_post_id = j.id
             WHERE j.id = $1;
             `;
-      // //console.log("query find one", jobpostQuery);
+      //console.log("query find one", jobpostQuery);
       const jobpostResult = await this.db.executeQuery(jobpostQuery, [id]);
 
       if (!jobpostResult || jobpostResult.rows.length === 0) {

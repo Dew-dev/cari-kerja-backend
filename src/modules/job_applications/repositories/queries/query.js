@@ -89,7 +89,6 @@ class Query {
 
   async findOneByJobpostsId(id) {
     try {
-      //console.log(id);
       const jobpostQuery = `
             SELECT 
                 j.id,
