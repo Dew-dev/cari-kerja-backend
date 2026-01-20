@@ -14,7 +14,7 @@ class Query {
     return this.db.findOne(parameter, projection, collection);
   }
 
-  async findAllByRecruiterId({
+  async findAllByJobPostId({
     conditions,
     orderColumn,
     orderDirection,
