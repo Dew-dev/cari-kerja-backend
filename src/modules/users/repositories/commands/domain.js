@@ -93,7 +93,10 @@ class User {
     }
 
     const userResponse = {
-      id: user.data.id,
+      id:
+        user.data.role_id === 1
+          ? user.data["worker_id"]
+          : user.data["recruiter_id"],
       name: user.data["name"], // sekarang ada
       email: user.data.email,
       role: user.data.role_id === 1 ? "user" : "recruiter",

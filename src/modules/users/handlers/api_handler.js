@@ -37,6 +37,8 @@ const login = async (req, res) => {
 
   storeCookie(res, "refreshToken", result?.data?.refreshToken);
   storeCookie(res, "accessToken", result?.data?.token);
+  storeCookie(res, "role", result?.data?.role);
+  storeCookie(res, "user", result?.data?.user);
   storeCookie(res, "jp_session", result?.data?.token);
   return sendResponse(result, res);
 };
@@ -54,6 +56,8 @@ const loginWithGoogle = async (req, res) => {
 
   storeCookie(res, "refreshToken", result?.data?.refreshToken);
   storeCookie(res, "accessToken", result?.data?.token);
+  storeCookie(res, "role", result?.data?.role);
+  storeCookie(res, "user", result?.data?.user);
   storeCookie(res, "jp_session", result?.data?.token);
   return sendResponse(result, res);
 };
@@ -70,6 +74,8 @@ const logout = async (req, res) => {
   const result = await commandHandler.logout(validatePayload.data);
   deleteCookie(res, "refreshToken");
   deleteCookie(res, "accessToken");
+  deleteCookie(res, "role");
+  deleteCookie(res, "user");
   deleteCookie(res, "jp_session");
   return sendResponse(result, res);
 };

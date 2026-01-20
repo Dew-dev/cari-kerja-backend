@@ -4,6 +4,7 @@ const getJobpostsByRecruiterIdParamType = joi.object({
   recruiter_id: joi.string().required(),
   status: joi.string().optional(),
   employment_type: joi.string().optional(),
+  experience_level: joi.string().optional(),
   location: joi.string().optional(),
   salary_min: joi.number().optional(),
   salary_max: joi.number().optional(),
@@ -33,12 +34,14 @@ const getJobpostsParamType = joi.object({
   sort_order: joi.string().optional(),
   page: joi.number().optional(),
   limit: joi.number().optional(),
+  user_id: joi.string().optional(),
 });
 
 const getJobpostsSelfParamType = joi.object({
   recruiter_id: joi.string().required(),
   status: joi.string().optional(),
   employment_type: joi.string().optional(),
+  experience_level: joi.string().optional(),
   location: joi.string().optional(),
   salary_min: joi.number().optional(),
   salary_max: joi.number().optional(),
@@ -54,6 +57,7 @@ const getJobpostsSelfParamType = joi.object({
 
 const getJobpostByIdParamType = joi.object({
   id: joi.string().required(),
+  user_id: joi.string().optional(),
 });
 
 const getJobpostQuestionsParamType = joi.object({

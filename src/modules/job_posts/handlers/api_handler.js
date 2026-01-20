@@ -27,7 +27,11 @@ const getJobpostsByRecruiterId = async (req, res) => {
 };
 
 const getJobpostById = async (req, res) => {
-  const payload = req.params;
+  const payload = {
+    ...req.params,
+    ...(req.userMeta ? { user_id: req.userMeta.worker_id } : {}),
+  };
+  console.log("the fr payload", payload);
   const validatePayload = validator.isValidPayload(
     payload,
     queryModel.getJobpostByIdParamType
@@ -112,7 +116,11 @@ const getJobpostQuestions = async (req, res) => {
 
 const getJobposts = async (req, res) => {
   let payload = { ...req.query };
-
+  // console.log(payload);
+  // if (req.userMeta !== undefined) {
+  //   payload = { ...payload, recruiter_id: req.userMeta.recruiter_id };
+  //   console.log("ini payload ", payload);
+  // }
   const validatePayload = validator.isValidPayload(
     payload,
     queryModel.getJobpostsParamType
