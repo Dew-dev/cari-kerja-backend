@@ -147,6 +147,43 @@ const getJobpostsSelf = async (req, res) => {
   return paginationResponse(result, res);
 };
 
+const getAppliedJobposts = async (req, res) => {
+  const payload = { ...req.query, worker_id: req.userMeta.worker_id };
+  //console.log(payload);
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getAppliedJobpostsParamType
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+  const result = await queryHandler.getAppliedJobposts(validatePayload.data);
+  return paginationResponse(result, res);
+};
+
+const deleteAppliedJobpost = async (req, res) => {
+  const payload = {
+    job_post_id: req.params.job_post_id,
+    worker_id: req.userMeta.worker_id,
+  };
+  console.log("delete payload", payload);
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.deleteAppliedJobpostParamType
+  );
+
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.deleteAppliedJobpost(
+    validatePayload.data
+  );
+
+  return sendResponse(result, res);
+};
+
 const createJobPostAnswers = async (req, res) => {
   const payload = req.body;
   const { job_post_id } = req.params;
@@ -220,4 +257,6 @@ module.exports = {
   createJobApplication,
   getCurrencyByCode,
   updateJobPostStatus,
+  getAppliedJobposts,
+  deleteAppliedJobpost,
 };
