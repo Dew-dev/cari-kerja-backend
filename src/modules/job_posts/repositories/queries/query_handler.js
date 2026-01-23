@@ -19,6 +19,9 @@ const getJobposts = async (payload) => {
 const getJobpostsSelf = async (payload) => {
   return domain.getJobpostsSelf(payload);
 };
+const getAppliedJobposts = async (payload) => {
+  return domain.getAppliedJobposts(payload);
+};
 const getJobpostQuestions = async (payload, ctx) => {
   return domain.getJobpostQuestions(payload, ctx);
 };
@@ -32,4 +35,5 @@ module.exports = {
   getJobpostsSelf,
   getJobpostQuestions,
   getCurrencyByCode,
+  getAppliedJobposts,
 };

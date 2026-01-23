@@ -9,7 +9,7 @@ class Query {
     this.db = db;
   }
 
-  async findOne(parameter, projection, collection = collection) {
+  async findOne(parameter, projection) {
     return this.db.findOne(parameter, projection, collection);
   }
 
@@ -188,6 +188,7 @@ class Query {
                 n.country_name AS country,
                 r.religion_name AS religion,
                 ms.status_name AS marriage_status,
+                rec.company_name AS company_name,
                 w.address,
                 w.profile_summary,
                 w.current_salary,
@@ -206,6 +207,7 @@ class Query {
               JOIN nationalities n ON n.id = w.nationality_id
               JOIN religions r ON r.id = w.religion_id
               JOIN marriage_statuses ms ON ms.id = w.marriage_status_id
+              JOIN recruiters rec ON rec.id = j.recruiter_id
               WHERE 1=1 ${conditions}
               ORDER BY ${orderColumn} ${orderDirection}
               LIMIT $${idx}

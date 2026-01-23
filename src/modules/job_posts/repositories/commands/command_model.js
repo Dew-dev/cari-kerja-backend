@@ -94,6 +94,11 @@ const updateJobApplicationParamType = joi.object({
   updated_at: joi.date().default(() => new Date().toISOString()),
 });
 
+const deleteAppliedJobpostParamType = joi.object({
+  job_post_id: joi.string().uuid().required(),
+  worker_id: joi.string().uuid().required(),
+});
+
 module.exports = {
   createJobPostParamType,
   jobPostQuestionParamType,
@@ -103,4 +108,5 @@ module.exports = {
   createJobApplicationParamType,
   updateJobApplicationParamType,
   jobPostStatusUpdateParamType,
+  deleteAppliedJobpostParamType,
 };

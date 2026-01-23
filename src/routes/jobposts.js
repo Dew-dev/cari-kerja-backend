@@ -49,5 +49,18 @@ module.exports = (server) => {
     verifyToken,
     jobpostHandler.createJobApplication
   );
+
+  server.get(
+    "/api/v1/job-posts/applied/self",
+    verifyToken,
+    jobpostHandler.getAppliedJobposts
+  );
+
+  server.delete(
+    "/api/v1/job-applications/:job_post_id",
+    verifyToken,
+    jobpostHandler.deleteAppliedJobpost
+  );
+
   server.get("/api/v1/currencies/:code", jobpostHandler.getCurrencyByCode);
 };

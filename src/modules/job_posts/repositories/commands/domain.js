@@ -426,6 +426,19 @@ class Jobpost {
       return wrapper.error(new InternalServerError(err.message));
     }
   }
-}
+
+  async deleteAppliedJobpost({ job_post_id, worker_id }) {
+    const result = await this.command.deleteAppliedJobpost({
+      job_post_id,
+      worker_id,
+    });
+
+    if (result.rowCount === 0) {
+      return wrapper.error("Application not found or already withdrawn");
+    }
+
+    return wrapper.data("Application withdrawn successfully");
+  }
+}   
 
 module.exports = Jobpost;

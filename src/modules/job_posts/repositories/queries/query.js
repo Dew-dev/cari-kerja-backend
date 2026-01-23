@@ -274,6 +274,109 @@ class Query {
     }
   }
 
+  async findAppliedJobs({
+    conditions,
+    orderColumn,
+    orderDirection,
+    idx,
+    values,
+    limit,
+    page,
+    totalData,
+    user_id = null,
+  }) {
+    try {
+      // Build dynamic query using WHERE 1=1
+      const jobpostsQuery = `
+              SELECT
+  j.id,
+  j.recruiter_id,
+
+  r.company_name,
+  r.avatar_url,
+
+  j.title,
+  j.description,
+  j.location,
+
+  et.name AS employment_type,
+  el.name AS experience_level,
+  st.name AS salary_type,
+
+  j.salary_min,
+  j.salary_max,
+  c.code AS currency,
+
+  j.status_id,
+  jps.name AS status,
+
+  j.created_at,
+  j.updated_at,
+  j.deadline,
+
+  -- Applied data
+  ja.applied_at,
+  ja.cover_letter,
+  a.name AS application_status,
+
+  -- Resume
+  re.resume_url,
+  re.title AS resume_title,
+
+  -- Tags
+  (
+    SELECT json_agg(json_build_object('id', t.id, 'name', t.name))
+    FROM job_post_tags jpt
+    JOIN job_tags t ON t.id = jpt.tag_id
+    WHERE jpt.job_post_id = j.id
+  ) AS tags
+
+FROM job_applications ja
+JOIN job_posts j ON j.id = ja.job_post_id
+
+JOIN recruiters r ON r.id = j.recruiter_id
+JOIN employment_types et ON et.id = j.employment_type_id
+JOIN experience_levels el ON el.id = j.experience_level_id
+JOIN salary_types st ON st.id = j.salary_type_id
+JOIN currencies c ON c.id = j.currency_id
+JOIN job_post_statuses jps ON jps.id = j.status_id
+
+LEFT JOIN application_statuses a ON a.id = ja.application_status_id
+LEFT JOIN resumes re ON re.id = ja.resume_id
+
+              WHERE 1=1${conditions}
+              ORDER BY ${orderColumn} ${orderDirection}
+              LIMIT $${idx}
+              OFFSET $${idx + 1};
+            `;
+
+      values.push(parseInt(limit, 10));
+      values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
+      console.log("ini query", jobpostsQuery);
+      const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
+
+      // if (!jobpostsResult || jobpostsResult.rows.length === 0) {
+      //   return wrapper.error("Job posts Not Found");
+      // }
+
+      const result = jobpostsResult.rows.map((row) => ({
+        ...row,
+        tags: row.tags || [], // Pastikan tags selalu berupa array
+      }));
+      const pagination = {
+        page: parseInt(page, 10),
+        limit: parseInt(limit, 10),
+        total: totalData,
+        totalPage: Math.ceil(totalData / parseInt(limit, 10)),
+        // meta: queryMetaRes,
+      };
+      return wrapper.paginationData(result, pagination);
+    } catch (error) {
+      logger.error(ctx, errorQueryMessage, "FindAll", error);
+      return wrapper.error(errorQueryMessage);
+    }
+  }
+
   async findAllByJobPostId({
     job_post_id,
     conditions = "",

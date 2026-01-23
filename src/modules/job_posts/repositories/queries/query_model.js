@@ -55,6 +55,25 @@ const getJobpostsSelfParamType = joi.object({
   limit: joi.number().optional(),
 });
 
+  
+const getAppliedJobpostsParamType = joi.object({
+  worker_id: joi.string().required(),
+  status: joi.string().optional(),
+  employment_type: joi.string().optional(),
+  experience_level: joi.string().optional(),
+  location: joi.string().optional(),
+  salary_min: joi.number().optional(),
+  salary_max: joi.number().optional(),
+  currency: joi.string().optional(),
+  created_after: joi.string().optional(),
+  created_before: joi.string().optional(),
+  search: joi.string().optional(),
+  sort_by: joi.string().optional(),
+  sort_order: joi.string().optional(),
+  page: joi.number().optional(),
+  limit: joi.number().optional(),
+});
+
 const getJobpostByIdParamType = joi.object({
   id: joi.string().required(),
   user_id: joi.string().optional(),
@@ -111,6 +130,7 @@ module.exports = {
   getJobpostByIdParamType,
   getJobpostsParamType,
   getJobpostsSelfParamType,
+  getAppliedJobpostsParamType,
   getJobpostQuestionsParamType,
   getJobPostAnswersParamType,
   getJobApplicationsParamType,
