@@ -106,7 +106,6 @@ class Jobposts {
 
   async getJobpostById(payload) {
     const { id, user_id } = payload;
-    console.log("user_id di domain", payload);
     const jobpost = await this.query.findOneByJobpostsId(id, user_id ?? null);
 
     if (jobpost.err) {
@@ -128,6 +127,7 @@ class Jobposts {
       salary_min,
       salary_max,
       currency,
+      category,
       created_after,
       created_before,
       search, // Full-text search term
@@ -163,7 +163,7 @@ class Jobposts {
       Array.isArray(employmentTypeList) &&
       employmentTypeList.length > 0
     ) {
-      conditions.push(` AND et.name = ANY($${idx})`);
+      conditions.push(` AND et.name = ANY($${idx}::text[])`);
       values.push(employmentTypeList);
       idx += 1;
     }
@@ -219,6 +219,16 @@ class Jobposts {
     if (currency !== undefined && currency !== null && currency !== "") {
       conditions.push(` AND c.name = $${idx}`);
       values.push(currency);
+      idx += 1;
+    }
+
+    if (
+      category !== undefined &&
+      category !== null &&
+      category !== ""
+    ) {
+      conditions.push(` AND cat.name = $${idx}`);
+      values.push(category);
       idx += 1;
     }
 
