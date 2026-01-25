@@ -12,7 +12,12 @@ const getAllCategories = async (payload) => {
   return domain.getAllCategories(payload);
 };
 
+const getAllCategoriesWithJobcount = async () => {
+  return domain.getAllCategoriesWithJobcount();
+}
+
 module.exports = {
   getCategory,
   getAllCategories,
+  getAllCategoriesWithJobcount
 };

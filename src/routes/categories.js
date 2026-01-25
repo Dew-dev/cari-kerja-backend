@@ -6,6 +6,10 @@ module.exports = (server) => {
     categoryHandler.getAllCategories
   );
   server.get(
+    "/api/v1/categories/jobcount",
+    categoryHandler.getAllCategoriesWithJobcount
+  );
+  server.get(
     "/api/v1/categories/:id",
     categoryHandler.getCategory
   );

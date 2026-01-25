@@ -38,6 +38,11 @@ const getAllCategories = async (req, res) => {
   return paginationResponse(result, res);
 };
 
+const getAllCategoriesWithJobcount = async (req, res) => {
+  const result = await queryHandler.getAllCategoriesWithJobcount();
+  return paginationResponse(result, res);
+};
+
 //command
 const addCategory = async (req, res) => {
   const payload = { ...req.body };
@@ -81,6 +86,7 @@ const deleteCategory = async (req, res) => {
 module.exports = {
   getCategory,
   getAllCategories,
+  getAllCategoriesWithJobcount,
   addCategory,
   updateCategory,
   deleteCategory,

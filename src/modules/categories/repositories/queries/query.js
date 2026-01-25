@@ -43,6 +43,33 @@ class Query {
     }
   }
 
+  async findAllCategoriesWithJobcount() {
+        try {
+
+      const query = `
+      SELECT
+        c.id,
+        c.name,
+        COUNT(j.id)::int AS job_count
+      FROM categories c
+      LEFT JOIN job_posts j
+        ON j.category_id = c.id
+      GROUP BY c.id
+      ORDER BY job_count DESC;
+      `;
+
+      const result = await this.db.executeQuery(query);
+
+      if (!result || result.rows.length === 0) {
+        return wrapper.error(errorEmptyMessage);
+      }
+      return wrapper.data(result.rows);
+    } catch (error) {
+      logger.error(ctx, errorQueryMessage, "findAllCategoriesWithJobcount", error);
+      return wrapper.error(errorQueryMessage);
+    }
+  } 
+
   async countAllCategories(search) {
     try {
       const searchQuery = search ? `%${search}%` : "%%";

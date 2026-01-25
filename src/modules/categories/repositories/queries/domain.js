@@ -52,6 +52,23 @@ class Categories {
 
     return wrapper.paginationData(categories.data, meta);
   }
+
+  async getAllCategoriesWithJobcount() {
+
+    const categories = await this.query.findAllCategoriesWithJobcount();
+
+    if (categories.err) {
+      logger.error(
+        ctx,
+        "getAllCategories",
+        "Can not find Categories",
+        categories.err
+      );
+      return wrapper.error(new NotFoundError("Can not find categories"));
+    }
+
+    return wrapper.data(categories.data);
+  }
 }
 
 module.exports = Categories;
