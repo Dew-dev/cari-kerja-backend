@@ -26,6 +26,7 @@ const getJobpostsParamType = joi.object({
   salary_min: joi.number().optional(),
   salary_max: joi.number().optional(),
   currency: joi.string().optional(),
+  category: joi.string().optional(),
   created_after: joi.string().optional(),
   created_before: joi.string().optional(),
   search: joi.string().optional(),

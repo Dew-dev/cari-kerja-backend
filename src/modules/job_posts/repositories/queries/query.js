@@ -91,8 +91,6 @@ class Query {
 
   async findOneByJobpostsId(id, user_id = null) {
     try {
-      // console.log("id", id);
-      // ("");
       const jobpostQuery = `
             SELECT 
                 j.id,
@@ -149,7 +147,6 @@ class Query {
 
             WHERE j.id = $1;
             `;
-      //console.log("query find one", jobpostQuery);
       const jobpostResult = await this.db.executeQuery(jobpostQuery, [id]);
 
       if (!jobpostResult || jobpostResult.rows.length === 0) {
@@ -176,7 +173,6 @@ class Query {
     user_id = null,
   }) {
     try {
-      console.log("ini user id ", user_id);
       // Build dynamic query using WHERE 1=1
       const jobpostsQuery = `
               SELECT 
@@ -190,6 +186,7 @@ class Query {
                 et.name AS employment_type,
                 el.name AS experience_level,
                 st.name AS salary_type,
+                cat.name AS category,
                 j.salary_min,
                 j.salary_max,
                 c.code AS currency,
@@ -241,6 +238,7 @@ class Query {
               JOIN experience_levels el ON el.id = j.experience_level_id
               JOIN salary_types st ON st.id = j.salary_type_id
               JOIN currencies c ON c.id = j.currency_id
+              JOIN categories cat ON cat.id = j.category_id
               JOIN job_post_statuses jps ON jps.id = j.status_id
               LEFT JOIN job_applications ja ON ja.job_post_id = j.id
               LEFT JOIN job_post_tags jpt ON jpt.job_post_id = j.id
@@ -253,6 +251,7 @@ class Query {
     el.id,
     st.id,
     c.id,
+    cat.id,
     jps.id
               ORDER BY ${orderColumn} ${orderDirection}
               LIMIT $${idx}
@@ -261,7 +260,6 @@ class Query {
 
       values.push(parseInt(limit, 10));
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
-      console.log(jobpostsQuery);
       const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
 
       // if (!jobpostsResult || jobpostsResult.rows.length === 0) {
@@ -480,12 +478,13 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
               JOIN experience_levels el ON el.id = j.experience_level_id
               JOIN salary_types st ON st.id = j.salary_type_id
               JOIN currencies c ON c.id = j.currency_id
+              JOIN categories cat ON cat.id = j.category_id
               JOIN job_post_statuses jps ON jps.id = j.status_id
               LEFT JOIN job_applications ja ON ja.job_post_id = j.id
               LEFT JOIN job_post_tags jpt ON jpt.job_post_id = j.id
               LEFT JOIN job_tags t ON t.id = jpt.tag_id
               LEFT JOIN saved_jobs sj ON j.id = sj.job_post_id
-              WHERE 1=1${conditionsString}
+              WHERE 1=1 ${conditionsString}
              GROUP BY
     j.id,
     r.id,
@@ -493,12 +492,10 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
     el.id,
     st.id,
     c.id,
+    cat.id,
     jps.id
       `;
       const countResult = await this.db.executeQuery(countQuery, values);
-      console.log("query", countQuery);
-      console.log("Console Result", countResult);
-
       return wrapper.data(countResult);
     } catch (error) {
       logger.error(ctx, errorQueryMessage, "countAllJobPosts", error);
