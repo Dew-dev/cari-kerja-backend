@@ -257,6 +257,45 @@ const getCategoriesByName = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const getJobApplicants = async (req, res) => {
+  const payload = req.params;
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getJobApplicantsParamType,
+  );
+
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await queryHandler.getJobApplicants(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const updateApplicationStatus = async (req, res) => {
+  const payload = {
+    id: req.params.id,
+    application_status_id: req.body.application_status_id,
+    recruiter_id: req.userMeta.recruiter_id,
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.updateApplicationStatusParamType,
+  );
+
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.updateApplicationStatus(
+    validatePayload.data,
+  );
+
+  return sendResponse(result, res);
+};
+
 module.exports = {
   getJobpostsByRecruiterId,
   getJobpostById,
@@ -273,4 +312,6 @@ module.exports = {
   getAppliedJobposts,
   deleteAppliedJobpost,
   getCategoriesByName,
+  getJobApplicants,
+  updateApplicationStatus
 };

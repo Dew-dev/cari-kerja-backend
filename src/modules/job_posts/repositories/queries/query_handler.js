@@ -32,6 +32,10 @@ const getJobpostQuestions = async (payload, ctx) => {
 const getCurrencyByCode = async (payload) => {
   return domain.getCurrencyByCode(payload);
 };
+const getJobApplicants = async (payload) => {
+  return domain.getJobApplicants(payload);
+};
+
 module.exports = {
   getJobpostsByRecruiterId,
   getJobpostById,
@@ -41,4 +45,5 @@ module.exports = {
   getCurrencyByCode,
   getAppliedJobposts,
   getCategoriesByName,
+  getJobApplicants,
 };

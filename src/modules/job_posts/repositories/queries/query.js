@@ -387,6 +387,67 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
     }
   }
 
+  async findJobApplicants({ job_post_id }) {
+    try {
+      const query = `
+      SELECT
+        ja.id AS application_id,
+        ja.applied_at,
+        ja.cover_letter,
+
+        w.id,
+        w.user_id,
+        w.name,
+        u.email,
+
+        ast.name AS status,
+
+        re.resume_url,
+        re.title AS resume_title
+
+      FROM job_applications ja
+      JOIN workers w ON w.id = ja.worker_id
+      JOIN users u ON u.id = w.user_id
+
+      LEFT JOIN application_statuses ast ON ast.id = ja.application_status_id
+      LEFT JOIN resumes re ON re.id = ja.resume_id
+
+      WHERE ja.job_post_id = $1
+      ORDER BY ja.applied_at DESC;
+    `;
+      console.log("Executing query to find job applicants:", query, [
+        job_post_id,
+      ]);
+      const result = await this.db.executeQuery(query, [job_post_id]);
+
+      return wrapper.data(result.rows);
+    } catch (error) {
+      logger.error(ctx, "findJobApplicants", "Query failed", error);
+      return wrapper.error("Failed to fetch applicants");
+    }
+  }
+
+  async findOneJobApplication({ id }) {
+    try {
+      const query = `
+      SELECT
+        ja.id,
+        j.recruiter_id
+      FROM job_applications ja
+      JOIN job_posts j ON j.id = ja.job_post_id
+      WHERE ja.id = $1
+      LIMIT 1;
+    `;
+
+      const result = await this.db.executeQuery(query, [id]);
+
+      return wrapper.data(result.rows[0]);
+    } catch (error) {
+      logger.error(ctx, "findOneJobApplication", "Query failed", error);
+      return wrapper.error("Failed to fetch job application");
+    }
+  }
+
   async findCategories(parameter, projection) {
     return this.db.findManyLike(
       { name: parameter.name },

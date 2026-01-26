@@ -34,6 +34,26 @@ class Command {
 
     return this.db.executeQuery(query, values);
   }
+
+  async updateJobApplicationStatus({ id, application_status_id }) {
+
+      const query = `
+      UPDATE job_applications
+      SET
+        application_status_id = $2,
+        updated_at = NOW()
+      WHERE id = $1
+      RETURNING id;
+    `;
+
+      const result = await this.db.executeQuery(query, [
+        id,
+        application_status_id,
+      ]);
+
+      return result;
+    
+  }
 }
 
 module.exports = Command;

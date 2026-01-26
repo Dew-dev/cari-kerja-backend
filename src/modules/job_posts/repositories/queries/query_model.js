@@ -130,6 +130,11 @@ const getOneCurrencyParamType = joi.object({
   code: joi.string().uppercase().optional(),
 });
 
+const getJobApplicantsParamType = joi.object({
+  job_post_id: joi.string().uuid().required(),
+});
+
+
 module.exports = {
   getJobpostsByRecruiterIdParamType,
   getJobpostByIdParamType,
@@ -141,4 +146,5 @@ module.exports = {
   getJobApplicationsParamType,
   getOneCurrencyParamType,
   getCategoriesByNameParamType,
+  getJobApplicantsParamType,
 };

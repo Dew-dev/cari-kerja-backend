@@ -67,4 +67,16 @@ module.exports = (server) => {
     "/api/v1/categories/name/:name",
     jobpostHandler.getCategoriesByName
   );
+
+  server.get(
+    "/api/v1/job-posts/:job_post_id/applicants",
+    verifyToken,
+    jobpostHandler.getJobApplicants
+  );
+  
+  server.put(
+    "/api/v1/job-applications/:id/status",
+    verifyToken,
+    jobpostHandler.updateApplicationStatus,
+  );
 };
