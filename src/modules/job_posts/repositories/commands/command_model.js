@@ -20,9 +20,12 @@ const createJobPostParamType = joi.object({
       joi.object({
         id: joi.string().required(),
         name: joi.string().required(),
-      })
+      }),
     )
     .optional(),
+  country: joi.string().optional(),
+  city: joi.string().optional(),
+  category_id: joi.number().required(),
 });
 
 const jobPostQuestionParamType = joi.object({

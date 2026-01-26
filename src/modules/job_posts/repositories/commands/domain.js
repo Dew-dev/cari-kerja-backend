@@ -42,6 +42,7 @@ class Jobpost {
       status_id,
       deadline,
       tags,
+      category_id,
     } = payload;
 
     const data = {
@@ -58,6 +59,7 @@ class Jobpost {
       currency_id,
       status_id,
       deadline,
+      category_id,
     };
 
     const result = await this.command.insertOne(data);
@@ -268,7 +270,7 @@ class Jobpost {
         updateQuery,
         "job_posts"
       );
-
+      
       if (result.err) {
         logger.error(
           ctx,

@@ -869,6 +869,22 @@ class Jobposts {
     logger.info(ctx, "getCurrencyByCode", "Get currency", payload);
     return wrapper.data(currency.data);
   }
+
+   async getCategoriesByName(payload) {
+      const { name } = payload ?? "";
+      console.log(name);
+      const jobtag = await this.query.findCategories(
+        { name },
+        { id: 1, name: 1 },
+      );
+      if (jobtag.err) {
+        logger.error(ctx, "getTagByName", "Can not find tag", jobtag.err);
+        return wrapper.error(new NotFoundError("Can not find tag"));
+      }
+  
+      logger.info(ctx, "getTagByName", "Get job tag", payload);
+      return wrapper.data(jobtag.data);
+    }
 }
 
 module.exports = Jobposts;

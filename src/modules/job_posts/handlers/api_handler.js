@@ -244,6 +244,19 @@ const updateJobPostStatus = async (req, res) => {
   return sendResponse(result, res, 201);
 };
 
+const getCategoriesByName = async (req, res) => {
+  const payload = req.params;
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getCategoriesByNameParamType
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+  const result = await queryHandler.getCategoriesByName(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 module.exports = {
   getJobpostsByRecruiterId,
   getJobpostById,
@@ -259,4 +272,5 @@ module.exports = {
   updateJobPostStatus,
   getAppliedJobposts,
   deleteAppliedJobpost,
+  getCategoriesByName,
 };

@@ -43,6 +43,8 @@ class Query {
                 jps.name AS status,
                 j.created_at,
                 j.updated_at,
+                j.location,
+                j.category_id,
                 COUNT(ja.id) AS applications
             FROM job_posts j
             JOIN recruiters r ON r.id = j.recruiter_id
@@ -103,9 +105,15 @@ class Query {
                 et.name AS employment_type,
                 el.name AS experience_level,
                 st.name AS salary_type,
+                j.category_id,
+                cat.name AS category_name,
+                j.experience_level_id,
+                j.employment_type_id,
                 j.salary_min,
                 j.salary_max,
+                c.code AS currency_code,
                 c.name AS currency,
+                c.id AS currency_id,
                 j.status_id,
                 jps.name AS status,
                 j.published_at,
@@ -135,6 +143,10 @@ class Query {
             JOIN currencies c ON c.id = j.currency_id
             JOIN job_post_statuses jps ON jps.id = j.status_id
             LEFT JOIN job_applications ja ON ja.job_post_id = j.id
+            LEFT JOIN job_post_tags jpt ON jpt.job_post_id = j.id
+            LEFT JOIN job_tags t ON t.id = jpt.tag_id
+            LEFT JOIN categories cat ON cat.id = j.category_id
+
             WHERE j.id = $1;
             `;
       //console.log("query find one", jobpostQuery);
@@ -377,6 +389,17 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
     }
   }
 
+  async findCategories(parameter, projection) {
+    return this.db.findManyLike(
+      { name: parameter.name },
+      projection,
+      { name: "ASC" },
+      1,
+      10,
+      "categories",
+      "OR",
+    );
+  }
   async findAllByJobPostId({
     job_post_id,
     conditions = "",
@@ -442,7 +465,7 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       1,
       10,
       currencies_collection,
-      "OR"
+      "OR",
     );
   }
 

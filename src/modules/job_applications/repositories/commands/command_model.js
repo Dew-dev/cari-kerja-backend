@@ -8,9 +8,24 @@ const createJobPostParamType = joi.object({
   experience_level_id: joi.number().required(),
   salary_type_id: joi.number().required(),
   job_post_status_id: joi.number().required(),
-  location: joi.string().required(),
+  location: joi.object({
+    country: joi.string().required(),
+    city: joi.string().required(),
+  }),
   salary_min: joi.number().required(),
-  salary_max: joi.number().required(),
+  salary_max: joi
+    .number()
+    .required()
+    .custom((value, helpers) => {
+      const { salary_min } = helpers.state.ancestors[0];
+      if (value < salary_min) {
+        return helpers.error("any.invalid");
+      }
+      return value;
+    })
+    .messages({
+      "any.invalid": "salary_max must be greater than salary_min",
+    }),
   currency_id: joi.number().required(),
   status_id: joi.number().default(3),
   deadline: joi.string().optional().allow(""),
@@ -20,9 +35,12 @@ const createJobPostParamType = joi.object({
       joi.object({
         id: joi.string().required(),
         name: joi.string().required(),
-      })
+      }),
     )
     .optional(),
+    country: joi.string().optional(),
+    city: joi.string().optional(),
+    category_id: joi.string().id().required(),
 });
 
 const jobPostQuestionParamType = joi.object({

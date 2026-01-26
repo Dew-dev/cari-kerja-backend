@@ -185,6 +185,16 @@ const logoutParamType = joi.object({
   token: joi.string().required(),
 });
 
+const forgotPasswordParamType = joi.object({
+  email: joi.string().email().required(),
+});
+
+const resetPasswordParamType = joi.object({
+  token: joi.string().required(),
+  password: joi.string().min(8).required(),
+});
+
+
 module.exports = {
   loginParamType,
   loginWithGoogleParamType,
@@ -194,4 +204,6 @@ module.exports = {
   refreshTokenParamType,
   logoutParamType,
   registerRecruiterParamType,
+  forgotPasswordParamType,
+  resetPasswordParamType,
 };
