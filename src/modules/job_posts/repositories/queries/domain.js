@@ -9,116 +9,9 @@ class Jobposts {
     this.query = new Query(db);
   }
 
-  async getJobpostsByRecruiterId(payload) {
+  async getJobPostsLogic(payload) {
     const {
       recruiter_id,
-      status,
-      employment_type,
-      experience_level,
-      salary_type,
-      location,
-      salary_min,
-      salary_max,
-      currency,
-      created_after,
-      created_before,
-      search,
-      sort_by = "created_at",
-      sort_order = "desc",
-      limit = 10,
-      page = 1,
-    } = payload;
-    const conditions = ["j.recruiter_id = $1"]; // $1 is recruiterId
-    const values = [recruiter_id];
-    let idx = 2; // parameter index tracker
-
-    const addCondition = (cond, val) => {
-      if (val !== undefined && val !== null && val !== "") {
-        conditions.push(cond.replace("?", `$${idx}`));
-        values.push(val);
-        idx += 1;
-      }
-    };
-
-    // Optional filters – note: we compare to the column name used in the SELECT query
-    addCondition("jps.name = ?", status);
-    addCondition("et.name = ?", employment_type);
-    addCondition("el.name = ?", experience_level);
-    addCondition("st.name = ?", salary_type);
-    addCondition("j.location ILIKE ?", location ? `%${location}%` : null);
-    addCondition("j.salary_min >= ?", salary_min);
-    addCondition("j.salary_max <= ?", salary_max);
-    addCondition("c.name = ?", currency);
-    addCondition("j.created_at >= ?", created_after);
-    addCondition("j.created_at <= ?", created_before);
-    // 🔍 Full-text search on title & description
-    if (search !== undefined && search !== null && search !== "") {
-      conditions.push(`
-            AND (
-                -- Try full-text search first with stemmed wildcard
-                (to_tsvector('english', COALESCE(j.title, '') || ' ' || COALESCE(j.description, ''))
-                 @@ websearch_to_tsquery('english', lower($${idx}) || ':*'))
-                OR
-                -- Fallback: Case-insensitive substring match
-                (LOWER(j.title || ' ' || COALESCE(j.description, '')) ILIKE '%' || lower($${idx}) || '%')
-            )
-            `);
-      values.push(`${search}:*`);
-      idx += 1;
-    }
-
-    const sortableColumns = {
-      title: "j.title",
-      location: "j.location",
-      salary_min: "j.salary_min",
-      salary_max: "j.salary_max",
-      created_at: "j.created_at",
-    };
-
-    const orderColumn = sortableColumns[sort_by] || sortableColumns.created_at;
-    const orderDirection = sort_order.toLowerCase() === "asc" ? "ASC" : "DESC";
-
-    const newPayload = {
-      conditions,
-      orderColumn,
-      orderDirection,
-      idx,
-      values,
-      limit,
-      page,
-    };
-
-    const jobposts = await this.query.findAllByRecruiterId(newPayload);
-
-    if (jobposts.err) {
-      logger.error(
-        ctx,
-        "getJobpostsByRecruiterId",
-        "Can not find jobposts",
-        jobposts.err,
-      );
-      return wrapper.error(new NotFoundError("Can not find jobposts"));
-    }
-
-    logger.info(ctx, "getJobpostsByRecruiterId", "Get Jobposts", newPayload);
-    return wrapper.paginationData(jobposts.data, jobposts.meta);
-  }
-
-  async getJobpostById(payload) {
-    const { id, user_id } = payload;
-    const jobpost = await this.query.findOneByJobpostsId(id, user_id ?? null);
-
-    if (jobpost.err) {
-      logger.error(ctx, "getJobpostById", "Job Post Query", jobpost.err);
-      return wrapper.error(new NotFoundError("Can not find the job post"));
-    }
-
-    logger.info(ctx, "getJobpostById", "Job Post Query", payload);
-    return wrapper.data(jobpost.data);
-  }
-
-  async getJobposts(payload) {
-    const {
       status,
       employment_type,
       experience_level,
@@ -138,9 +31,17 @@ class Jobposts {
       limit = 12,
       user_id = null,
     } = payload;
+
+
     const conditions = [];
     const values = [];
     let idx = 1;
+
+    if (recruiter_id !== undefined && recruiter_id !== null && recruiter_id !== "") {
+      conditions.push(` AND j.recruiter_id = $${idx}`);
+      values.push(recruiter_id);
+      idx += 1;
+    }
 
     if (status !== undefined && status !== null && status !== "") {
       conditions.push(` AND jps.name = $${idx}`);
@@ -341,194 +242,17 @@ class Jobposts {
     return wrapper.paginationData(jobposts.data, jobposts.meta);
   }
 
-  async getJobpostsSelf(payload) {
-    const {
-      recruiter_id,
-      status,
-      employment_type,
-      experience_level,
-      salary_type,
-      location,
-      salary_min,
-      salary_max,
-      currency,
-      created_after,
-      created_before,
-      search, // Full-text search term
-      tags,
-      sort_by = "created_at",
-      sort_order = "desc",
-      page = 1,
-      limit = 10,
-    } = payload;
-    const conditions = [];
-    const values = [];
-    let idx = 1;
+  async getJobpostById(payload) {
+    const { id, user_id } = payload;
+    const jobpost = await this.query.findOneByJobpostsId(id, user_id ?? null);
 
-    conditions.push(` AND j.recruiter_id = $${idx}`);
-    values.push(recruiter_id);
-    idx += 1;
-
-    if (status !== undefined && status !== null && status !== "") {
-      conditions.push(` AND jps.name = $${idx}`);
-      values.push(status);
-      idx += 1;
+    if (jobpost.err) {
+      logger.error(ctx, "getJobpostById", "Job Post Query", jobpost.err);
+      return wrapper.error(new NotFoundError("Can not find the job post"));
     }
 
-    if (employment_type !== undefined && status !== null && status !== "") {
-      conditions.push(` AND et.name = $${idx}`);
-      values.push(employment_type);
-      idx += 1;
-    }
-
-    if (
-      experience_level !== undefined &&
-      experience_level !== null &&
-      experience_level !== ""
-    ) {
-      conditions.push(` AND el.name = $${idx}`);
-      values.push(experience_level);
-      idx += 1;
-    }
-
-    if (
-      salary_type !== undefined &&
-      salary_type !== null &&
-      salary_type !== ""
-    ) {
-      conditions.push(` AND st.name = $${idx}`);
-      values.push(salary_type);
-      idx += 1;
-    }
-
-    if (location !== undefined && location !== null && location !== "") {
-      conditions.push(` AND j.location ILIKE $${idx}`);
-      values.push(location);
-      idx += 1;
-    }
-
-    if (salary_min !== undefined && salary_min !== null && salary_min !== "") {
-      conditions.push(` AND j.salary_min >= $${idx}`);
-      values.push(salary_min);
-      idx += 1;
-    }
-
-    if (salary_max !== undefined && salary_max !== null && salary_max !== "") {
-      conditions.push(` AND j.salary_max <= $${idx}`);
-      values.push(salary_max);
-      idx += 1;
-    }
-
-    if (currency !== undefined && currency !== null && currency !== "") {
-      conditions.push(` AND c.name = $${idx}`);
-      values.push(currency);
-      idx += 1;
-    }
-
-    if (
-      created_after !== undefined &&
-      created_after !== null &&
-      created_after !== ""
-    ) {
-      conditions.push(` AND j.created_at >= $${idx}`);
-      values.push(created_after);
-      idx += 1;
-    }
-
-    if (
-      created_before !== undefined &&
-      created_before !== null &&
-      created_before !== ""
-    ) {
-      conditions.push(` AND j.created_at <= $${idx}`);
-      values.push(created_before);
-      idx += 1;
-    }
-
-    // 🔍 Full-text search on title & description
-    if (
-      search !== undefined &&
-      search !== null &&
-      search !== "" &&
-      search.length >= 2
-    ) {
-      if (search.length >= 3) {
-        conditions.push(`
-          AND (
-            -- ✅ Full-text search (stemmed)
-            (
-              to_tsvector('english', COALESCE(j.title, '') || ' ' || COALESCE(j.description, ''))
-              @@ websearch_to_tsquery('english', lower($${idx}) || ':*')
-            )
-            OR
-            -- ✅ Fallback: ILIKE (substring) untuk semua kasus, terutama yang pendek
-            (
-              LOWER(j.title || ' ' || COALESCE(j.description, '')) ILIKE '%' || lower($${idx}) || '%'
-            )
-          )
-        `);
-        values.push(search);
-        idx += 1;
-      } else {
-        conditions.push(`
-          AND LOWER(j.title || ' ' || COALESCE(j.description, '')) ILIKE '%' || lower($${idx}) || '%'
-        `);
-        values.push(search);
-        idx += 1;
-      }
-    }
-
-    const tagList = Array.isArray(tags)
-      ? tags
-      : tags
-        ? tags
-            .split(",")
-            .map((t) => t.trim())
-            .filter((t) => t.length > 0)
-        : [];
-    if (Array.isArray(tagList) && tagList.length > 0) {
-      conditions.push(` AND EXISTS (
-        SELECT 1 FROM job_post_tags jpt
-        JOIN tags t ON t.id = jpt.tag_id
-        WHERE jpt.job_post_id = j.id AND t.name = ANY($${idx})
-      )`);
-      values.push(tagList); // Array of tag names
-      idx += 1;
-    }
-
-    const sortableColumns = {
-      title: "j.title",
-      location: "j.location",
-      salary_min: "j.salary_min",
-      salary_max: "j.salary_max",
-      created_at: "j.created_at",
-    };
-
-    const orderColumn = sortableColumns[sort_by] || sortableColumns.created_at;
-    const orderDirection = sort_order.toLowerCase() === "asc" ? "ASC" : "DESC";
-
-    const count = await this.query.countAllJobPosts(conditions, values);
-    const totalData = count.data.rowCount;
-
-    const data = {
-      conditions: conditions.join(" "),
-      orderColumn,
-      orderDirection,
-      idx,
-      values,
-      limit,
-      page,
-      totalData,
-    };
-    const jobposts = await this.query.findAll(data);
-
-    if (jobposts.err) {
-      logger.error(ctx, "getJobposts", "Can not find jobposts", jobposts.err);
-      return wrapper.error(new NotFoundError("Can not find jobposts"));
-    }
-
-    logger.info(ctx, "getJobposts", "Get Jobposts", data);
-    return wrapper.paginationData(jobposts.data, jobposts.meta);
+    logger.info(ctx, "getJobpostById", "Job Post Query", payload);
+    return wrapper.data(jobpost.data);
   }
 
   async getAppliedJobposts(payload) {
