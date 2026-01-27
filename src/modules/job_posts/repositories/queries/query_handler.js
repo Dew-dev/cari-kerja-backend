@@ -4,20 +4,22 @@ const DB = require("../../../../helpers/databases/postgresql/db");
 
 const db = new DB(config.get("/postgresqlUrl"));
 const domain = new Domain(db);
-const getJobpostsByRecruiterId = async (payload) => {
-  return domain.getJobpostsByRecruiterId(payload);
-};
+
 
 const getJobpostById = async (payload) => {
   return domain.getJobpostById(payload);
 };
 
+const getJobpostsByRecruiterId = async (payload) => {
+  return domain.getJobPostsLogic(payload);
+};
+
 const getJobposts = async (payload) => {
-  return domain.getJobposts(payload);
+  return domain.getJobPostsLogic(payload);
 };
 
 const getJobpostsSelf = async (payload) => {
-  return domain.getJobpostsSelf(payload);
+  return domain.getJobPostsLogic(payload);
 };
 const getAppliedJobposts = async (payload) => {
   return domain.getAppliedJobposts(payload);
@@ -29,8 +31,8 @@ const getCurrencyByCode = async (payload) => {
   return domain.getCurrencyByCode(payload);
 };
 module.exports = {
-  getJobpostsByRecruiterId,
   getJobpostById,
+  getJobpostsByRecruiterId,
   getJobposts,
   getJobpostsSelf,
   getJobpostQuestions,
