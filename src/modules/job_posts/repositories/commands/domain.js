@@ -486,7 +486,7 @@ class Jobpost {
     const { id, recruiter_id, user_id, tags, ...jobData } = payload;
 
     // 1️⃣ cek job milik recruiter
-    const job = await this.query.findOneByJobpostsId({
+    const job = await this.query.findOneJobPost({
       id,
       recruiter_id,
     });

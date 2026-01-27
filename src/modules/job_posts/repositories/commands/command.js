@@ -66,7 +66,6 @@ class Command {
     location,
     deadline,
   }) {
-    try {
       const query = `
       UPDATE job_posts
       SET
@@ -100,11 +99,7 @@ class Command {
       ];
 
       const result = await this.db.executeQuery(query, values);
-      return wrapper.data(result.rows[0]);
-    } catch (error) {
-      logger.error(ctx, "updateJobPost", "Update failed", error);
-      return wrapper.error("Failed to update job");
-    }
+      return result;
   }
 
   async deleteJobPostTags({ job_post_id }) {
