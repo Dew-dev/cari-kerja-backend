@@ -34,6 +34,10 @@ const updateJobPostStatus = async (payload, id) => {
 const deleteAppliedJobpost = async (payload) => {
   return domain.deleteAppliedJobpost(payload);
 };
+const updateApplicationStatus = async (payload) => {
+  return domain.updateApplicationStatus(payload);
+};
+
 module.exports = {
   createJobPost,
   createJobPostQuestions,
@@ -42,4 +46,5 @@ module.exports = {
   createJobApplication,
   updateJobPostStatus,
   deleteAppliedJobpost,
+  updateApplicationStatus,
 };

@@ -5,7 +5,6 @@ const { uploadAvatarRecruiter } = require("../middlewares/uploader");
 module.exports = (server) => {
   server.get(
     "/api/v1/users/:user_id/recruiters",
-    verifyToken,
     recruiterHandler.getRecruiterByUserId
   );
   server.put(

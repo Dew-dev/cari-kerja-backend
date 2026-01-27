@@ -51,7 +51,7 @@ class User {
         provider_id: 1,
         role_id: 1,
       },
-      "OR"
+      "OR",
     );
 
     if (user.err) {
@@ -63,7 +63,7 @@ class User {
 
     const passwordMatch = await compareHash(
       password,
-      user.data.hashed_password
+      user.data.hashed_password,
     );
     if (!passwordMatch) {
       return wrapper.error(new BadRequestError("Wrong username or password"));
@@ -73,23 +73,27 @@ class User {
     if (user.data.role_id === 1) {
       const result = await this.queryWorker.findOne(
         { user_id: user.data.id },
-        { id: 1, name: 1 }
+        { id: 1, name: 1 },
       );
       if (result.err) {
         return wrapper.error(new NotFoundError("Worker not found"));
       }
       user.data["worker_id"] = result.data.id;
       user.data["name"] = result.data.name;
+      user.data["role"] = "user";
+      user.data["avatar_url"] = result.data.avatar_url;
     } else {
       const result = await this.queryRecruiter.findOne(
         { user_id: user.data.id },
-        { id: 1, contact_name: 1 }
+        { id: 1, contact_name: 1 },
       );
       if (result.err) {
         return wrapper.error(new NotFoundError("Recruiter Not Found!"));
       }
       user.data["recruiter_id"] = result.data.id;
       user.data["name"] = result.data.contact_name;
+      user.data["avatar_url"] = result.data.avatar_url;
+      user.data["role"] = "recruiter";
     }
 
     const userResponse = {
@@ -99,6 +103,7 @@ class User {
           : user.data["recruiter_id"],
       name: user.data["name"], // sekarang ada
       email: user.data.email,
+      avatar_url: user.data.avatar_url,
       role: user.data.role_id === 1 ? "user" : "recruiter",
     };
 
@@ -112,7 +117,7 @@ class User {
     const { id, email, role_id, name } = payload;
     const user = await this.query.findOne(
       { email },
-      { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1 }
+      { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1 },
     );
     let data;
     let dataWorker;
@@ -139,7 +144,7 @@ class User {
         const resultWorker = await this.workerCommand.insertOne(dataWorker);
         if (resultWorker.err) {
           return wrapper.error(
-            new InternalServerError("Sign up worker failed")
+            new InternalServerError("Sign up worker failed"),
           );
         }
       } else {
@@ -150,12 +155,11 @@ class User {
           contact_name: name,
           contact_phone: "NULL",
         };
-        const resultRecruiter = await this.recruiterCommand.insertOne(
-          dataRecruiter
-        );
+        const resultRecruiter =
+          await this.recruiterCommand.insertOne(dataRecruiter);
         if (resultRecruiter.err) {
           return wrapper.error(
-            new InternalServerError("Sign up recruiter failed")
+            new InternalServerError("Sign up recruiter failed"),
           );
         }
       }
@@ -168,13 +172,13 @@ class User {
       if (data.role_id === 1) {
         const resultWorker = await this.queryWorker.findOne(
           { user_id: data.id },
-          { id: 1, name: 1 }
+          { id: 1, name: 1 },
         );
         data["worker_id"] = resultWorker.data.id;
       } else {
         const resultRecruiter = await this.queryRecruiter.findOne(
           { user_id: data.id },
-          { id: 1, contact_name: 1 }
+          { id: 1, contact_name: 1 },
         );
         data["recruiter_id"] = resultRecruiter.data.id;
       }
@@ -232,7 +236,7 @@ class User {
         ctx,
         "register worker",
         "Register Worker Failed",
-        resultWorker.err
+        resultWorker.err,
       );
       return wrapper.error(new InternalServerError("Register Worker Failed"));
     }
@@ -288,18 +292,17 @@ class User {
     }
     delete data.hashed_password;
 
-    const resultRecruiter = await this.recruiterCommand.insertOne(
-      dataRecruiter
-    );
+    const resultRecruiter =
+      await this.recruiterCommand.insertOne(dataRecruiter);
     if (resultRecruiter.err) {
       logger.error(
         ctx,
         "register recruiter",
         "Register Recruiter Failed",
-        resultRecruiter.err
+        resultRecruiter.err,
       );
       return wrapper.error(
-        new InternalServerError("Register Recruiter Failed")
+        new InternalServerError("Register Recruiter Failed"),
       );
     }
 
@@ -364,7 +367,7 @@ class User {
 
     if (user.data.id === user_online_id) {
       return wrapper.error(
-        new ConflictError("Not allowed to delete your own account")
+        new ConflictError("Not allowed to delete your own account"),
       );
     }
 
@@ -386,7 +389,7 @@ class User {
 
     const userData = await this.query.findOne(
       { id: checkedToken.data.id },
-      { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1 }
+      { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1 },
     );
     if (userData.err) {
       logger.error(ctx, "findUser", "User not found", userData.err);
@@ -396,7 +399,7 @@ class User {
     if (userData.data.role_id === 1) {
       const result = await this.queryWorker.findOne(
         { user_id: userData.data.id },
-        { id: 1, name: 1 }
+        { id: 1, name: 1 },
       );
       if (result.err) {
         return wrapper.error(new NotFoundError("Worker not found"));
@@ -407,7 +410,7 @@ class User {
     } else {
       const result = await this.queryRecruiter.findOne(
         { user_id: userData.data.id },
-        { id: 1, contact_name: 1 }
+        { id: 1, contact_name: 1 },
       );
       if (result.err) {
         return wrapper.error(new NotFoundError("Recruiter Not Found!"));
@@ -424,7 +427,68 @@ class User {
     });
   }
 
-  // async updateUser(payload){}
+  async forgotPassword(payload) {
+    const { email } = payload;
+
+    const user = await this.query.findOne({ email }, { id: 1, email: 1 });
+
+    // 🔐 SECURITY: jangan bocorin user ada / tidak
+    if (user.err || !user.data) {
+      return wrapper.data("If that email exists, a reset link has been sent");
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    const expiredAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    await this.command.updateResetToken({
+      id: user.data.id,
+      reset_password_token: hashedToken,
+      reset_password_expires: expiredAt,
+    });
+
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+
+    await mailer.send({
+      to: email,
+      subject: "Reset your password",
+      html: `
+        <p>You requested a password reset.</p>
+        <p><a href="${resetLink}">Reset Password</a></p>
+        <p>This link will expire in 15 minutes.</p>
+      `,
+    });
+
+    return wrapper.data("Reset password link sent");
+  }
+
+  async resetPassword(payload) {
+    
+    const { token, password } = payload;
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await this.query.findByResetToken(hashedToken, new Date());
+
+    if (user.err || !user.data) {
+      return wrapper.error(
+        new BadRequestError("Invalid or expired reset token"),
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    await this.command.resetPassword({
+      id: user.data.id,
+      password: hashedPassword,
+    });
+
+    return wrapper.data("Password successfully reset");
+  }
 }
 
 module.exports = User;

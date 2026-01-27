@@ -28,10 +28,15 @@ class Query {
                 et.name AS employment_type,
                 el.name AS experience_level,
                 st.name AS salary_type,
-                cat.name AS category,
+                j.category_id,
+                cat.name AS category_name,
+                j.experience_level_id,
+                j.employment_type_id,
                 j.salary_min,
                 j.salary_max,
+                c.code AS currency_code,
                 c.name AS currency,
+                c.id AS currency_id,
                 j.status_id,
                 jps.name AS status,
                 j.published_at,
@@ -62,6 +67,10 @@ class Query {
             JOIN categories cat ON cat.id = j.category_id
             JOIN job_post_statuses jps ON jps.id = j.status_id
             LEFT JOIN job_applications ja ON ja.job_post_id = j.id
+            LEFT JOIN job_post_tags jpt ON jpt.job_post_id = j.id
+            LEFT JOIN job_tags t ON t.id = jpt.tag_id
+            LEFT JOIN categories cat ON cat.id = j.category_id
+
             WHERE j.id = $1;
             `;
       const jobpostResult = await this.db.executeQuery(jobpostQuery, [id]);
@@ -306,6 +315,78 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
     }
   }
 
+  async findJobApplicants({ job_post_id }) {
+    try {
+      const query = `
+      SELECT
+        ja.id AS application_id,
+        ja.applied_at,
+        ja.cover_letter,
+
+        w.id,
+        w.user_id,
+        w.name,
+        u.email,
+
+        ast.name AS status,
+
+        re.resume_url,
+        re.title AS resume_title
+
+      FROM job_applications ja
+      JOIN workers w ON w.id = ja.worker_id
+      JOIN users u ON u.id = w.user_id
+
+      LEFT JOIN application_statuses ast ON ast.id = ja.application_status_id
+      LEFT JOIN resumes re ON re.id = ja.resume_id
+
+      WHERE ja.job_post_id = $1
+      ORDER BY ja.applied_at DESC;
+    `;
+      console.log("Executing query to find job applicants:", query, [
+        job_post_id,
+      ]);
+      const result = await this.db.executeQuery(query, [job_post_id]);
+
+      return wrapper.data(result.rows);
+    } catch (error) {
+      logger.error(ctx, "findJobApplicants", "Query failed", error);
+      return wrapper.error("Failed to fetch applicants");
+    }
+  }
+
+  async findOneJobApplication({ id }) {
+    try {
+      const query = `
+      SELECT
+        ja.id,
+        j.recruiter_id
+      FROM job_applications ja
+      JOIN job_posts j ON j.id = ja.job_post_id
+      WHERE ja.id = $1
+      LIMIT 1;
+    `;
+
+      const result = await this.db.executeQuery(query, [id]);
+
+      return wrapper.data(result.rows[0]);
+    } catch (error) {
+      logger.error(ctx, "findOneJobApplication", "Query failed", error);
+      return wrapper.error("Failed to fetch job application");
+    }
+  }
+
+  async findCategories(parameter, projection) {
+    return this.db.findManyLike(
+      { name: parameter.name },
+      projection,
+      { name: "ASC" },
+      1,
+      10,
+      "categories",
+      "OR",
+    );
+  }
   async findAllByJobPostId({
     job_post_id,
     conditions = "",
@@ -371,7 +452,7 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       1,
       10,
       currencies_collection,
-      "OR"
+      "OR",
     );
   }
 
@@ -408,6 +489,46 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
     } catch (error) {
       logger.error(ctx, errorQueryMessage, "countAllJobPosts", error);
       return wrapper.error(errorQueryMessage);
+    }
+  }
+
+  async findWorkerByApplicationId({ id }) {
+    try {
+      const query = `
+      SELECT
+        w.id,
+        w.name,
+        u.email,
+        w.telephone,
+        w.avatar_url,
+
+        ja.cover_letter,
+        ja.applied_at,
+        ja.application_status_id,
+        ast.name AS status,
+        ast.id AS status_id,
+
+        re.resume_url,
+        re.title AS resume_title
+
+      FROM job_applications ja
+      JOIN workers w ON w.id = ja.worker_id
+      JOIN users u ON u.id = w.user_id
+      LEFT JOIN application_statuses ast ON ast.id = ja.application_status_id
+      LEFT JOIN resumes re ON re.id = ja.resume_id
+
+      WHERE ja.id = $1
+      LIMIT 1;
+    `;
+      console.log("Executing query to find worker by application ID:", query, [
+        id,
+      ]);
+      const result = await this.db.executeQuery(query, [id]);
+
+      return wrapper.data(result.rows[0]);
+    } catch (error) {
+      logger.error(ctx, "findWorkerByApplicationId", "Query failed", error);
+      return wrapper.error("Failed to fetch worker");
     }
   }
 }

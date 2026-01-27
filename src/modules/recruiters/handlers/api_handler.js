@@ -39,7 +39,7 @@ const updateOneRecruiterSelf = async (req, res) => {
     ...req.body,
   };
   if (req.file) {
-    payload.avatar_url = `/uploads/avatars/${req.file.filename}`;
+    payload.avatar_url = `/uploads/avatars/recruiter/avatars/${req.file.filename}`;
   }
   //console.log("payload \n", payload);
   const validatePayload = validator.isValidPayload(

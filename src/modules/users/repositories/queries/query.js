@@ -34,6 +34,15 @@ class Query {
       return wrapper.error(errorQueryMessage);
     }
   }
+  
+  async findByResetToken(token, now) {
+    const result = await this.db("users")
+      .where("reset_password_token", token)
+      .andWhere("reset_password_expires", ">", now)
+      .first();
+
+    return { data: result };
+  }
 }
 
 module.exports = Query;

@@ -149,6 +149,39 @@ const refreshToken = async (req, res) => {
   return sendResponse(result, res);
 };
 
+
+const forgotPassword = async (req, res) => {
+  const payload = { email: req.body.email };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.forgotPasswordParamType,
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.forgotPassword(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const resetPassword = async (req, res) => {
+  const payload = {
+    token: req.body.token,
+    password: req.body.password,
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.resetPasswordParamType,
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.resetPassword(validatePayload.data);
+  return sendResponse(result, res);
+};
 module.exports = {
   getUserById,
   login,
@@ -159,4 +192,6 @@ module.exports = {
   updateOneUser,
   deleteUser,
   refreshToken,
+  forgotPassword,
+  resetPassword,
 };

@@ -42,6 +42,7 @@ class Jobpost {
       status_id,
       deadline,
       tags,
+      category_id,
     } = payload;
 
     const data = {
@@ -58,6 +59,7 @@ class Jobpost {
       currency_id,
       status_id,
       deadline,
+      category_id,
     };
 
     const result = await this.command.insertOne(data);
@@ -79,7 +81,7 @@ class Jobpost {
       const validatedData = payloadArray.map((item, idx) => {
         const validateItem = validator.isValidPayload(
           item,
-          commandModel.jobPostQuestionParamType
+          commandModel.jobPostQuestionParamType,
         );
 
         if (validateItem.err) {
@@ -102,14 +104,14 @@ class Jobpost {
       // Lakukan bulk insert
       const result = await this.command.insertMany(
         validatedData,
-        "job_post_questions"
+        "job_post_questions",
       );
       if (result.err) {
         logger.error(
           ctx,
           "Bulk create job post questions",
           "Job Posts Commands",
-          result.err
+          result.err,
         );
         return wrapper.error(new InternalServerError(result.err));
       }
@@ -120,7 +122,7 @@ class Jobpost {
         ctx,
         "Bulk create job post questions",
         "Job Posts Commands",
-        err
+        err,
       );
       return wrapper.error(new InternalServerError(err.message));
     }
@@ -134,7 +136,7 @@ class Jobpost {
       payload = { ...payload, id: id };
       const validateItem = validator.isValidPayload(
         payload,
-        commandModel.jobPostQuestionUpdateParamType
+        commandModel.jobPostQuestionUpdateParamType,
       );
 
       if (validateItem.err) {
@@ -160,7 +162,7 @@ class Jobpost {
       const result = await this.command.updateOneNew(
         parameter,
         updateQuery,
-        "job_post_questions"
+        "job_post_questions",
       );
 
       if (result.err) {
@@ -168,7 +170,7 @@ class Jobpost {
           ctx,
           "Update job post question",
           "Job Posts Commands",
-          result.err
+          result.err,
         );
         return wrapper.error(new InternalServerError(result.err));
       }
@@ -188,7 +190,7 @@ class Jobpost {
       payload = { ...payload, id: id };
       const validateItem = validator.isValidPayload(
         payload,
-        commandModel.jobPostQuestionUpdateParamType
+        commandModel.jobPostQuestionUpdateParamType,
       );
 
       if (validateItem.err) {
@@ -214,7 +216,7 @@ class Jobpost {
       const result = await this.command.updateOneNew(
         parameter,
         updateQuery,
-        "job_post_questions"
+        "job_post_questions",
       );
 
       if (result.err) {
@@ -222,7 +224,7 @@ class Jobpost {
           ctx,
           "Update job post question",
           "Job Posts Commands",
-          result.err
+          result.err,
         );
         return wrapper.error(new InternalServerError(result.err));
       }
@@ -245,7 +247,7 @@ class Jobpost {
       //console.log("payload status: ", payload);
       const validateItem = validator.isValidPayload(
         payload,
-        commandModel.jobPostStatusUpdateParamType
+        commandModel.jobPostStatusUpdateParamType,
       );
 
       if (validateItem.err) {
@@ -266,7 +268,7 @@ class Jobpost {
       const result = await this.command.updateOneNew(
         parameter,
         updateQuery,
-        "job_posts"
+        "job_posts",
       );
 
       if (result.err) {
@@ -274,7 +276,7 @@ class Jobpost {
           ctx,
           "Update job post status",
           "Job Posts Commands",
-          result.err
+          result.err,
         );
         return wrapper.error(new InternalServerError(result.err));
       }
@@ -305,7 +307,7 @@ class Jobpost {
       const existing = await this.query.findOne(
         { job_post_id, worker_id }, // parameter
         { id: true }, // projection (kolom apa yang mau diambil)
-        "job_applications" // nama tabel
+        "job_applications", // nama tabel
       );
       if (existing.data) {
         return wrapper.error(new Error("Anda sudah melamar pekerjaan ini."));
@@ -327,7 +329,7 @@ class Jobpost {
       if (result.err) {
         logger.error(ctx, "Create Job Application", ctx, result.err);
         return wrapper.error(
-          new InternalServerError("Create Job Application Failed")
+          new InternalServerError("Create Job Application Failed"),
         );
       }
 
@@ -343,12 +345,12 @@ class Jobpost {
 
         const resultAnswer = await this.command.insertMany(
           answerPayload,
-          "job_post_answers"
+          "job_post_answers",
         );
         if (resultAnswer.err) {
           logger.error(ctx, "Insert Job Post Answers", ctx, resultAnswer.err);
           return wrapper.error(
-            new InternalServerError("Create Job Post Answers Failed")
+            new InternalServerError("Create Job Post Answers Failed"),
           );
         }
       }
@@ -365,7 +367,7 @@ class Jobpost {
         "Job Applications Commands",
         "Create Job Application",
         ctx,
-        err
+        err,
       );
 
       return wrapper.error(new InternalServerError(err.message));
@@ -383,7 +385,7 @@ class Jobpost {
         item = { ...item, job_application_id: jobApplicationId };
         const validateItem = validator.isValidPayload(
           item,
-          commandModel.createJobPostAnswerParamType
+          commandModel.createJobPostAnswerParamType,
         );
 
         if (validateItem.err) {
@@ -403,14 +405,14 @@ class Jobpost {
       // Lakukan bulk insert
       const result = await this.command.insertMany(
         validatedData,
-        "job_post_answers"
+        "job_post_answers",
       );
       if (result.err) {
         logger.error(
           ctx,
           "Bulk create job post answers",
           "Job Post Answers Commands",
-          result.err
+          result.err,
         );
         return wrapper.error(new InternalServerError(result.err));
       }
@@ -421,7 +423,7 @@ class Jobpost {
         ctx,
         "Bulk create job post answers",
         "Job Post Answers Commands",
-        err
+        err,
       );
       return wrapper.error(new InternalServerError(err.message));
     }
@@ -438,6 +440,46 @@ class Jobpost {
     }
 
     return wrapper.data("Application withdrawn successfully");
+  }
+  
+  async updateApplicationStatus(payload) {
+    const { id, application_status_id, recruiter_id } = payload;
+
+    // 1. Ambil application + job_post
+    const application = await this.query.findOneJobApplication({
+      id,
+    });
+
+    if (application.err || !application.data) {
+      return wrapper.error(new NotFoundError("Application not found"));
+    }
+
+    // 2. Pastikan recruiter pemilik job
+    if (application.data.recruiter_id !== recruiter_id) {
+      return wrapper.error(
+        new ForbiddenError("You are not allowed to update this application"),
+      );
+    }
+
+    // 3. Update status
+    const result = await this.command.updateJobApplicationStatus({
+      id,
+      application_status_id,
+    });
+
+    if (result.err) {
+      logger.error(
+        ctx,
+        "updateApplicationStatus",
+        "Failed to update application status",
+        result.err,
+      );
+      return wrapper.error(
+        new InternalServerError("Failed to update application status"),
+      );
+    }
+
+    return wrapper.data("Application status updated successfully");
   }
 }   
 

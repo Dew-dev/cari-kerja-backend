@@ -52,11 +52,11 @@ class Jobposts {
     const employmentTypeList = Array.isArray(employment_type)
       ? employment_type
       : employment_type
-      ? employment_type
-          .split(",")
-          .map((t) => t.trim())
-          .filter((t) => t.length > 0)
-      : [];
+        ? employment_type
+            .split(",")
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0)
+        : [];
     if (
       employmentTypeList !== undefined &&
       employmentTypeList !== null &&
@@ -72,11 +72,11 @@ class Jobposts {
     const experienceLevelList = Array.isArray(experience_level)
       ? experience_level
       : experience_level
-      ? experience_level
-          .split(",")
-          .map((t) => t.trim())
-          .filter((t) => t.length > 0)
-      : [];
+        ? experience_level
+            .split(",")
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0)
+        : [];
     if (
       experienceLevelList !== undefined &&
       experienceLevelList !== null &&
@@ -123,11 +123,7 @@ class Jobposts {
       idx += 1;
     }
 
-    if (
-      category !== undefined &&
-      category !== null &&
-      category !== ""
-    ) {
+    if (category !== undefined && category !== null && category !== "") {
       conditions.push(` AND cat.name = $${idx}`);
       values.push(category);
       idx += 1;
@@ -189,11 +185,11 @@ class Jobposts {
     const tagList = Array.isArray(tags)
       ? tags
       : tags
-      ? tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter((t) => t.length > 0)
-      : [];
+        ? tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0)
+        : [];
     if (Array.isArray(tagList) && tagList.length > 0) {
       conditions.push(` AND EXISTS (
         SELECT 1 FROM job_post_tags jpt
@@ -399,11 +395,11 @@ class Jobposts {
     const tagList = Array.isArray(tags)
       ? tags
       : tags
-      ? tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter((t) => t.length > 0)
-      : [];
+        ? tags
+            .split(",")
+            .map((t) => t.trim())
+            .filter((t) => t.length > 0)
+        : [];
     if (Array.isArray(tagList) && tagList.length > 0) {
       conditions.push(` AND EXISTS (
         SELECT 1 FROM job_post_tags jpt
@@ -560,7 +556,7 @@ class Jobposts {
           ctx,
           "getJobpostQuestions",
           "Cannot find questions",
-          questions.err
+          questions.err,
         );
         return wrapper.error(new NotFoundError("Cannot find questions"));
       }
@@ -581,14 +577,14 @@ class Jobposts {
 
     const currency = await this.query.findCurrency(
       { code },
-      { id: 1, code: 1, name: 1, symbol: 1 }
+      { id: 1, code: 1, name: 1, symbol: 1 },
     );
     //console.log("currency", currency);
 
     if (currency.err) {
       const list = await this.query.findCurrency(
         { code: "" },
-        { id: 1, code: 1, name: 1, symbol: 1 }
+        { id: 1, code: 1, name: 1, symbol: 1 },
       );
 
       if (list.err) {
@@ -602,6 +598,77 @@ class Jobposts {
 
     logger.info(ctx, "getCurrencyByCode", "Get currency", payload);
     return wrapper.data(currency.data);
+  }
+
+  async getCategoriesByName(payload) {
+    const { name } = payload ?? "";
+    console.log(name);
+    const jobtag = await this.query.findCategories(
+      { name },
+      { id: 1, name: 1 },
+    );
+    if (jobtag.err) {
+      logger.error(ctx, "getTagByName", "Can not find tag", jobtag.err);
+      return wrapper.error(new NotFoundError("Can not find tag"));
+    }
+
+    logger.info(ctx, "getTagByName", "Get job tag", payload);
+    return wrapper.data(jobtag.data);
+  }
+
+  async getJobApplicants(payload) {
+    const { job_post_id } = payload;
+
+    const applicants = await this.query.findJobApplicants({
+      job_post_id,
+    });
+
+    if (applicants.err) {
+      logger.error(
+        ctx,
+        "getJobApplicants",
+        "Can not find applicants",
+        applicants.err,
+      );
+      return wrapper.error(new NotFoundError("Applicants not found"));
+    }
+
+    logger.info(ctx, "getJobApplicants", "Get job applicants", payload);
+    return wrapper.data(applicants.data);
+  }
+  async getWorkerByApplication(payload) {
+    const { id, recruiter_id } = payload;
+
+    // 1. Ambil application + recruiter owner
+    const application = await this.query.findOneJobApplication({
+      id,
+    });
+
+    if (application.err || !application.data) {
+      return wrapper.error(new NotFoundError("Application not found"));
+    }
+
+    if (application.data.recruiter_id !== recruiter_id) {
+      return wrapper.error(
+        new ForbiddenError("You are not allowed to access this worker"),
+      );
+    }
+
+    // 2. Ambil worker detail
+    const worker = await this.query.findWorkerByApplicationId({ id });
+
+    if (worker.err) {
+      logger.error(
+        ctx,
+        "getWorkerByApplication",
+        "Worker not found",
+        worker.err,
+      );
+      return wrapper.error(new NotFoundError("Worker not found"));
+    }
+
+    logger.info(ctx, "getWorkerByApplication", "Get worker detail", payload);
+    return wrapper.data(worker.data);
   }
 }
 

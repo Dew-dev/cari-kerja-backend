@@ -18,6 +18,10 @@ const getJobposts = async (payload) => {
   return domain.getJobPostsLogic(payload);
 };
 
+const getCategoriesByName = async (payload) => {
+  return domain.getCategoriesByName(payload);
+};
+
 const getJobpostsSelf = async (payload) => {
   return domain.getJobPostsLogic(payload);
 };
@@ -30,6 +34,13 @@ const getJobpostQuestions = async (payload, ctx) => {
 const getCurrencyByCode = async (payload) => {
   return domain.getCurrencyByCode(payload);
 };
+const getJobApplicants = async (payload) => {
+  return domain.getJobApplicants(payload);
+};
+const getWorkerByApplication = async (payload) => {
+  return domain.getWorkerByApplication(payload);
+};
+
 module.exports = {
   getJobpostById,
   getJobpostsByRecruiterId,
@@ -38,4 +49,7 @@ module.exports = {
   getJobpostQuestions,
   getCurrencyByCode,
   getAppliedJobposts,
+  getCategoriesByName,
+  getJobApplicants,
+  getWorkerByApplication,
 };

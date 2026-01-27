@@ -3,21 +3,26 @@ const path = require("path");
 const fs = require("fs");
 
 // Utility pembuat uploader
-function createUploader(folder, allowedMimeTypes, maxSizeMB = 2) {
-  const uploadPath = path.join(__dirname, `../uploads/${folder}`);
+function createUploader(
+  subPath, // contoh: "recruiters/avatars"
+  filePrefix, // contoh: "recruiter"
+  allowedMimeTypes,
+  maxSizeMB = 2,
+) {
+  const uploadPath = path.join(__dirname, "../uploads", subPath);
 
-  // Pastikan folder ada
+  // pastikan folder ada
   if (!fs.existsSync(uploadPath)) {
     fs.mkdirSync(uploadPath, { recursive: true });
   }
 
   const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
+    destination(req, file, cb) {
       cb(null, uploadPath);
     },
-    filename: function (req, file, cb) {
+    filename(req, file, cb) {
       const ext = path.extname(file.originalname);
-      const fileName = `${folder}-${Date.now()}${ext}`;
+      const fileName = `${filePrefix}-${Date.now()}${ext}`;
       cb(null, fileName);
     },
   });
@@ -36,21 +41,24 @@ function createUploader(folder, allowedMimeTypes, maxSizeMB = 2) {
   });
 }
 
+
 // ==========================
 // EXPORTS
 // ==========================
 
 // Avatar → JPG/PNG only
 const uploadAvatarRecruiter = createUploader(
-  "avatars/recruiter",
+  "avatars/recruiter/avatars",
+  "recruiter",
   ["image/jpeg", "image/png", "image/jpg"],
-  2
+  2,
 );
 
 const uploadAvatarWorker = createUploader(
-  "avatars/worker",
+  "avatars/worker/avatars",
+  "worker",
   ["image/jpeg", "image/png", "image/jpg"],
-  2
+  2,
 );
 
 // Resume → PDF only, max 5MB

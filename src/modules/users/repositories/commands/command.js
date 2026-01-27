@@ -15,6 +15,21 @@ class Command {
   async deleteOne(parameter) {
     return this.db.deleteOne(parameter, collection);
   }
+
+  async updateResetToken(payload) {
+    return this.db("users").where({ id: payload.id }).update({
+      reset_password_token: payload.reset_password_token,
+      reset_password_expires: payload.reset_password_expires,
+    });
+  }
+
+  async resetPassword(payload) {
+    return this.db("users").where({ id: payload.id }).update({
+      password: payload.password,
+      reset_password_token: null,
+      reset_password_expires: null,
+    });
+  }
 }
 
 module.exports = Command;
