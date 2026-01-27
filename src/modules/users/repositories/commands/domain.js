@@ -73,24 +73,26 @@ class User {
     if (user.data.role_id === 1) {
       const result = await this.queryWorker.findOne(
         { user_id: user.data.id },
-        { id: 1, name: 1 },
+        { id: 1, name: 1, avatar_url: 1, user_id: 1 },
       );
       if (result.err) {
         return wrapper.error(new NotFoundError("Worker not found"));
       }
       user.data["worker_id"] = result.data.id;
+      user.data["user_id"] = result.data.user_id;
       user.data["name"] = result.data.name;
       user.data["role"] = "user";
       user.data["avatar_url"] = result.data.avatar_url;
     } else {
       const result = await this.queryRecruiter.findOne(
         { user_id: user.data.id },
-        { id: 1, contact_name: 1 },
+        { id: 1, contact_name: 1, avatar_url: 1, user_id: 1 },
       );
       if (result.err) {
         return wrapper.error(new NotFoundError("Recruiter Not Found!"));
       }
       user.data["recruiter_id"] = result.data.id;
+      user.data["user_id"] = result.data.user_id;
       user.data["name"] = result.data.contact_name;
       user.data["avatar_url"] = result.data.avatar_url;
       user.data["role"] = "recruiter";
@@ -101,6 +103,7 @@ class User {
         user.data.role_id === 1
           ? user.data["worker_id"]
           : user.data["recruiter_id"],
+      user_id: user.data["user_id"],
       name: user.data["name"], // sekarang ada
       email: user.data.email,
       avatar_url: user.data.avatar_url,
