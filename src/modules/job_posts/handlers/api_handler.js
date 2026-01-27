@@ -349,6 +349,62 @@ const updateJobPost = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const duplicateJobPost = async (req, res) => {
+  const payload = {
+    id: req.params.id,
+    recruiter_id: req.userMeta.recruiter_id,
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.duplicateJobPostParamType,
+  );
+
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.duplicateJobPost(validatePayload.data);
+  return sendResponse(result, res);
+};
+const archiveJobPost = async (req, res) => {
+  const payload = {
+    id: req.params.id,
+    recruiter_id: req.userMeta.recruiter_id,
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.archiveJobPostParamType,
+  );
+
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.archiveJobPost(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const restoreJobPost = async (req, res) => {
+  const payload = {
+    id: req.params.id,
+    recruiter_id: req.userMeta.recruiter_id,
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.archiveJobPostParamType,
+  );
+
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.restoreJobPost(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 
 module.exports = {
   getJobpostsByRecruiterId,
@@ -370,4 +426,7 @@ module.exports = {
   updateApplicationStatus,
   getWorkerByApplication,
   updateJobPost,
+  duplicateJobPost,
+  restoreJobPost,
+  archiveJobPost,
 };

@@ -85,4 +85,19 @@ module.exports = (server) => {
     jobpostHandler.getWorkerByApplication,
   );
   server.put("/api/v1/job-posts/:id", verifyToken, jobpostHandler.updateJobPost);
+  server.post(
+    "/api/v1/job-posts/:id/duplicate",
+    verifyToken,
+    jobpostHandler.duplicateJobPost,  
+  );
+  server.post(
+    "/api/v1/job-posts/:id/archive",
+    verifyToken,
+    jobpostHandler.archiveJobPost,  
+  );
+  server.post(
+    "/api/v1/job-posts/:id/restore",
+    verifyToken,
+    jobpostHandler.restoreJobPost,  
+  );
 };

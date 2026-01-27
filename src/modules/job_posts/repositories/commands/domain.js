@@ -524,6 +524,89 @@ class Jobpost {
 
     return wrapper.data(payload);
   }
+
+  async duplicateJobPost(payload) {
+    const { id, recruiter_id } = payload;
+
+    // 1️⃣ ambil job asli
+    const job = await this.query.findJobWithTags({
+      id,
+      recruiter_id,
+    });
+
+    if (job.err || !job.data) {
+      return wrapper.error(
+        new NotFoundError("Job not found or not owned by recruiter"),
+      );
+    }
+
+    const original = job.data;
+
+    // 2️⃣ create job baru (DRAFT)
+    const newJob = await this.command.insertJobPost({
+      recruiter_id,
+      title: `${original.title} (Copy)`,
+      description: original.description,
+      employment_type_id: original.employment_type_id,
+      experience_level_id: original.experience_level_id,
+      salary_type_id: original.salary_type_id,
+      salary_min: original.salary_min,
+      salary_max: original.salary_max,
+      currency_id: original.currency_id,
+      location: original.location,
+      deadline: original.deadline,
+      status_id: 3, // DRAFT
+      category_id: original.category_id,
+    });
+
+    if (newJob.err) {
+      console.log("ini newJob.err", newJob.err);
+      logger.error(ctx, "duplicateJobPost", "Insert job failed", newJob.err);
+      return wrapper.error(new InternalServerError("Failed to duplicate job"));
+    }
+
+    const newJobId = newJob.id;
+    // console.log("ini newJobId", newJob.id);
+    // 3️⃣ copy tags
+    if (original.tags?.length) {
+      for (const tag of original.tags) {
+        await this.command.insertJobPostTag({
+          job_post_id: newJobId,
+          tag_id: tag.id,
+        });
+      }
+    }
+
+    return wrapper.data({
+      id: newJobId,
+      message: "Job duplicated successfully",
+    });
+  }
+  async archiveJobPost({ id, recruiter_id }) {
+    const job = await this.query.findOneJobPost({ id, recruiter_id });
+
+    if (job.err || !job.data) {
+      return wrapper.error(
+        new NotFoundError("Job not found or not owned by recruiter"),
+      );
+    }
+
+    await this.command.archiveJobPost(id);
+    return wrapper.data("Job archived");
+  }
+
+  async restoreJobPost({ id, recruiter_id }) {
+    const job = await this.query.findOneJobPost({ id, recruiter_id });
+
+    if (job.err || !job.data) {
+      return wrapper.error(
+        new NotFoundError("Job not found or not owned by recruiter"),
+      );
+    }
+
+    await this.command.restoreJobPost(id);
+    return wrapper.data("Job restored");
+  }
 }   
 
 module.exports = Jobpost;

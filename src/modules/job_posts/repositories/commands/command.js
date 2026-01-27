@@ -66,7 +66,7 @@ class Command {
     location,
     deadline,
   }) {
-      const query = `
+    const query = `
       UPDATE job_posts
       SET
         title = $2,
@@ -84,22 +84,22 @@ class Command {
       RETURNING id;
     `;
 
-      const values = [
-        id,
-        title,
-        description,
-        employment_type_id,
-        experience_level_id,
-        salary_type_id,
-        salary_min,
-        salary_max,
-        currency_id,
-        location,
-        deadline,
-      ];
+    const values = [
+      id,
+      title,
+      description,
+      employment_type_id,
+      experience_level_id,
+      salary_type_id,
+      salary_min,
+      salary_max,
+      currency_id,
+      location,
+      deadline,
+    ];
 
-      const result = await this.db.executeQuery(query, values);
-      return result;
+    const result = await this.db.executeQuery(query, values);
+    return result;
   }
 
   async deleteJobPostTags({ job_post_id }) {
@@ -116,6 +116,75 @@ class Command {
     VALUES ($1, $2)
     `,
       [job_post_id, tag_id],
+    );
+  }
+  async insertJobPost({
+    recruiter_id,
+    title,
+    description,
+    employment_type_id,
+    experience_level_id,
+    salary_type_id,
+    salary_min,
+    salary_max,
+    currency_id,
+    location,
+    deadline,
+    status_id,
+    category_id,
+  }) {
+    const query = `
+      INSERT INTO job_posts (
+        recruiter_id,
+        title,
+        description,
+        employment_type_id,
+        experience_level_id,
+        salary_type_id,
+        salary_min,
+        salary_max,
+        currency_id,
+        location,
+        deadline,
+        status_id,
+        category_id
+      ) VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
+      )
+      RETURNING id;
+    `;
+
+    const values = [
+      recruiter_id,
+      title,
+      description,
+      employment_type_id,
+      experience_level_id,
+      salary_type_id,
+      salary_min,
+      salary_max,
+      currency_id,
+      location,
+      deadline,
+      status_id,
+      category_id,
+    ];
+
+    const result = await this.db.executeQuery(query, values);
+    return result.rows[0];
+  }
+  
+  async archiveJobPost(id) {
+    return this.db.executeQuery(
+      `UPDATE job_posts SET archived_at = NOW() WHERE id = $1`,
+      [id],
+    );
+  }
+
+  async restoreJobPost(id) {
+    return this.db.executeQuery(
+      `UPDATE job_posts SET archived_at = NULL WHERE id = $1`,
+      [id],
     );
   }
 }

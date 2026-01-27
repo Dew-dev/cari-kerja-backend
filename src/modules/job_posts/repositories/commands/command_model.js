@@ -108,6 +108,11 @@ const updateApplicationStatusParamType = joi.object({
   recruiter_id: joi.string().uuid().required(),
 });
 
+const duplicateJobPostParamType = joi.object({
+  id: joi.string().uuid().required(),
+  recruiter_id: joi.string().uuid().required(),
+});
+
 const updateJobPostParamType = joi.object({
   id: joi.string().uuid().required(),
 
@@ -137,6 +142,11 @@ const updateJobPostParamType = joi.object({
     )
     .optional(),
 });
+const archiveJobPostParamType = joi.object({
+  id: joi.string().uuid().required(),
+  recruiter_id: joi.string().uuid().required(),
+});
+
 
 module.exports = {
   createJobPostParamType,
@@ -150,4 +160,6 @@ module.exports = {
   deleteAppliedJobpostParamType,
   updateApplicationStatusParamType,
   updateJobPostParamType,
+  duplicateJobPostParamType,
+  archiveJobPostParamType,
 };

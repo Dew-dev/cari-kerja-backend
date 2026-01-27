@@ -195,7 +195,7 @@ class Query {
                 j.created_at,
                 j.updated_at,
                 j.deadline,
-                COUNT(ja.id) AS applications,
+                COUNT(DISTINCT ja.id) AS applications,
                 ${
                   user_id
                     ? `(
@@ -260,6 +260,7 @@ class Query {
 
       values.push(parseInt(limit, 10));
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
+      console.log("ini query", jobpostsQuery);
       const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
 
       // if (!jobpostsResult || jobpostsResult.rows.length === 0) {
@@ -620,6 +621,29 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
     } catch (error) {
       logger.error(ctx, "findOneJobPost", "Query failed", error);
       return wrapper.error("Failed to find job post");
+    }
+  }
+  async findJobWithTags({ id, recruiter_id }) {
+    try {
+      const query = `
+      SELECT
+        j.*,
+        (
+          SELECT json_agg(json_build_object('id', t.id, 'name', t.name))
+          FROM job_post_tags jpt
+          JOIN job_tags t ON t.id = jpt.tag_id
+          WHERE jpt.job_post_id = j.id
+        ) AS tags
+      FROM job_posts j
+      WHERE j.id = $1 AND j.recruiter_id = $2
+      LIMIT 1;
+    `;
+
+      const result = await this.db.executeQuery(query, [id, recruiter_id]);
+      return wrapper.data(result.rows[0]);
+    } catch (error) {
+      logger.error(ctx, "findJobWithTags", "Query failed", error);
+      return wrapper.error("Failed to fetch job");
     }
   }
 }
