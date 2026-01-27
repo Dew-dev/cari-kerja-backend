@@ -315,6 +315,40 @@ const getWorkerByApplication = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const updateJobPost = async (req, res) => {
+  const payload = {
+    id: req.params.id,
+    recruiter_id: req.userMeta.recruiter_id,
+
+    title: req.body.title,
+    description: req.body.description,
+
+    employment_type_id: req.body.employment_type_id,
+    experience_level_id: req.body.experience_level_id,
+    salary_type_id: req.body.salary_type_id,
+
+    salary_min: req.body.salary_min,
+    salary_max: req.body.salary_max,
+    currency_id: req.body.currency_id,
+
+    location: req.body.location,
+    deadline: req.body.deadline,
+    tags: req.body.tags,
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.updateJobPostParamType,
+  );
+
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.updateJobPost(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 
 module.exports = {
   getJobpostsByRecruiterId,
@@ -335,4 +369,5 @@ module.exports = {
   getJobApplicants,
   updateApplicationStatus,
   getWorkerByApplication,
+  updateJobPost,
 };

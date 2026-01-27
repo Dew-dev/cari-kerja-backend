@@ -84,4 +84,5 @@ module.exports = (server) => {
     verifyToken,
     jobpostHandler.getWorkerByApplication,
   );
+  server.put("/api/v1/job-posts/:id", verifyToken, jobpostHandler.updateJobPost);
 };

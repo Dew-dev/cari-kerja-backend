@@ -603,6 +603,25 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       return wrapper.error("Failed to fetch worker");
     }
   }
+
+  async findOneJobPost({ id, recruiter_id }) {
+    try {
+      const query = `
+      SELECT id
+      FROM job_posts
+      WHERE id = $1
+        AND recruiter_id = $2
+      LIMIT 1;
+    `;
+
+      const result = await this.db.executeQuery(query, [id, recruiter_id]);
+
+      return wrapper.data(result.rows[0]);
+    } catch (error) {
+      logger.error(ctx, "findOneJobPost", "Query failed", error);
+      return wrapper.error("Failed to find job post");
+    }
+  }
 }
 
 module.exports = Query;

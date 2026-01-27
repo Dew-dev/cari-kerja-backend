@@ -108,6 +108,36 @@ const updateApplicationStatusParamType = joi.object({
   recruiter_id: joi.string().uuid().required(),
 });
 
+const updateJobPostParamType = joi.object({
+  id: joi.string().uuid().required(),
+
+  recruiter_id: joi.string().uuid().required(),
+
+  title: joi.string().required(),
+  description: joi.string().required(),
+
+  employment_type_id: joi.number().required(),
+  experience_level_id: joi.number().required(),
+  salary_type_id: joi.number().required(),
+
+  salary_min: joi.number().required(),
+  salary_max: joi.number().required(),
+  currency_id: joi.number().required(),
+
+  location: joi.string().required(),
+  deadline: joi.string().optional().allow(""),
+
+  tags: joi
+    .array()
+    .items(
+      joi.object({
+        id: joi.string().uuid().required(),
+        name: joi.string().required(),
+      }),
+    )
+    .optional(),
+});
+
 module.exports = {
   createJobPostParamType,
   jobPostQuestionParamType,
@@ -119,4 +149,5 @@ module.exports = {
   jobPostStatusUpdateParamType,
   deleteAppliedJobpostParamType,
   updateApplicationStatusParamType,
+  updateJobPostParamType,
 };

@@ -81,6 +81,7 @@ class User {
       user.data["worker_id"] = result.data.id;
       user.data["name"] = result.data.name;
       user.data["role"] = "user";
+      user.data["user_id"] = result.data.id;
       user.data["avatar_url"] = result.data.avatar_url;
     } else {
       const result = await this.queryRecruiter.findOne(
@@ -93,6 +94,7 @@ class User {
       user.data["recruiter_id"] = result.data.id;
       user.data["name"] = result.data.contact_name;
       user.data["avatar_url"] = result.data.avatar_url;
+      user.data["user_id"] = result.data.id;
       user.data["role"] = "recruiter";
     }
 
