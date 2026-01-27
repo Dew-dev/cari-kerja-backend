@@ -35,6 +35,9 @@ const getCurrencyByCode = async (payload) => {
 const getJobApplicants = async (payload) => {
   return domain.getJobApplicants(payload);
 };
+const getWorkerByApplication = async (payload) => {
+  return domain.getWorkerByApplication(payload);
+};
 
 module.exports = {
   getJobpostsByRecruiterId,
@@ -46,4 +49,5 @@ module.exports = {
   getAppliedJobposts,
   getCategoriesByName,
   getJobApplicants,
+  getWorkerByApplication,
 };

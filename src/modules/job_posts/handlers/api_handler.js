@@ -10,6 +10,7 @@ const {
   sendResponse,
   paginationResponse,
 } = require("../../../helpers/utils/response");
+const { get } = require("../../../config/global_config");
 
 const getJobpostsByRecruiterId = async (req, res) => {
   const payload = { ...req.params, ...req.query };
@@ -295,6 +296,25 @@ const updateApplicationStatus = async (req, res) => {
 
   return sendResponse(result, res);
 };
+const getWorkerByApplication = async (req, res) => {
+  const payload = {
+    id: req.params.id,
+    recruiter_id: req.userMeta.recruiter_id,
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getWorkerByApplicationParamType,
+  );
+
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await queryHandler.getWorkerByApplication(payload);
+  return sendResponse(result, res);
+};
+
 
 module.exports = {
   getJobpostsByRecruiterId,
@@ -313,5 +333,6 @@ module.exports = {
   deleteAppliedJobpost,
   getCategoriesByName,
   getJobApplicants,
-  updateApplicationStatus
+  updateApplicationStatus,
+  getWorkerByApplication,
 };

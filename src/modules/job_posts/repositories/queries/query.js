@@ -563,6 +563,46 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       return wrapper.error(errorQueryMessage);
     }
   }
+
+  async findWorkerByApplicationId({ id }) {
+    try {
+      const query = `
+      SELECT
+        w.id,
+        w.name,
+        u.email,
+        w.telephone,
+        w.avatar_url,
+
+        ja.cover_letter,
+        ja.applied_at,
+        ja.application_status_id,
+        ast.name AS status,
+        ast.id AS status_id,
+
+        re.resume_url,
+        re.title AS resume_title
+
+      FROM job_applications ja
+      JOIN workers w ON w.id = ja.worker_id
+      JOIN users u ON u.id = w.user_id
+      LEFT JOIN application_statuses ast ON ast.id = ja.application_status_id
+      LEFT JOIN resumes re ON re.id = ja.resume_id
+
+      WHERE ja.id = $1
+      LIMIT 1;
+    `;
+      console.log("Executing query to find worker by application ID:", query, [
+        id,
+      ]);
+      const result = await this.db.executeQuery(query, [id]);
+
+      return wrapper.data(result.rows[0]);
+    } catch (error) {
+      logger.error(ctx, "findWorkerByApplicationId", "Query failed", error);
+      return wrapper.error("Failed to fetch worker");
+    }
+  }
 }
 
 module.exports = Query;

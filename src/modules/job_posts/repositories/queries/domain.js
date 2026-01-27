@@ -891,7 +891,7 @@ class Jobposts {
     logger.info(ctx, "getTagByName", "Get job tag", payload);
     return wrapper.data(jobtag.data);
   }
-  
+
   async getJobApplicants(payload) {
     const { job_post_id } = payload;
 
@@ -911,6 +911,40 @@ class Jobposts {
 
     logger.info(ctx, "getJobApplicants", "Get job applicants", payload);
     return wrapper.data(applicants.data);
+  }
+  async getWorkerByApplication(payload) {
+    const { id, recruiter_id } = payload;
+
+    // 1. Ambil application + recruiter owner
+    const application = await this.query.findOneJobApplication({
+      id,
+    });
+
+    if (application.err || !application.data) {
+      return wrapper.error(new NotFoundError("Application not found"));
+    }
+
+    if (application.data.recruiter_id !== recruiter_id) {
+      return wrapper.error(
+        new ForbiddenError("You are not allowed to access this worker"),
+      );
+    }
+
+    // 2. Ambil worker detail
+    const worker = await this.query.findWorkerByApplicationId({ id });
+
+    if (worker.err) {
+      logger.error(
+        ctx,
+        "getWorkerByApplication",
+        "Worker not found",
+        worker.err,
+      );
+      return wrapper.error(new NotFoundError("Worker not found"));
+    }
+
+    logger.info(ctx, "getWorkerByApplication", "Get worker detail", payload);
+    return wrapper.data(worker.data);
   }
 }
 

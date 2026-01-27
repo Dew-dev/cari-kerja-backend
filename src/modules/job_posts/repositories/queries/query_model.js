@@ -134,6 +134,10 @@ const getJobApplicantsParamType = joi.object({
   job_post_id: joi.string().uuid().required(),
 });
 
+const getWorkerByApplicationParamType = joi.object({
+  id: joi.string().uuid().required(), // job_application.id
+  recruiter_id: joi.string().uuid().required(),
+});
 
 module.exports = {
   getJobpostsByRecruiterIdParamType,
@@ -147,4 +151,5 @@ module.exports = {
   getOneCurrencyParamType,
   getCategoriesByNameParamType,
   getJobApplicantsParamType,
+  getWorkerByApplicationParamType,
 };

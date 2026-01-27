@@ -79,4 +79,9 @@ module.exports = (server) => {
     verifyToken,
     jobpostHandler.updateApplicationStatus,
   );
+  server.get(
+    "/api/v1/job-applications/:id/worker",
+    verifyToken,
+    jobpostHandler.getWorkerByApplication,
+  );
 };
