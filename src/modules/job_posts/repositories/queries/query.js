@@ -69,8 +69,6 @@ class Query {
             LEFT JOIN job_applications ja ON ja.job_post_id = j.id
             LEFT JOIN job_post_tags jpt ON jpt.job_post_id = j.id
             LEFT JOIN job_tags t ON t.id = jpt.tag_id
-            LEFT JOIN categories cat ON cat.id = j.category_id
-
             WHERE j.id = $1;
             `;
       const jobpostResult = await this.db.executeQuery(jobpostQuery, [id]);
