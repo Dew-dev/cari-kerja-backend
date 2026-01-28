@@ -25,6 +25,11 @@ const {
 const { result } = require("validate.js");
 const { use } = require("passport");
 const ctx = "User-Command-Domain";
+const crypto = require("crypto");
+const bcrypt = require("bcrypt");
+
+const { sendMail } = require("../../../../helpers/utils/mailer");
+const resetPasswordEmail = require("../../../../helpers/utils/resetPasswordEmail");
 
 class User {
   constructor(db) {
@@ -404,7 +409,7 @@ class User {
     if (userData.data.role_id === 1) {
       const result = await this.queryWorker.findOne(
         { user_id: userData.data.id },
-        { id: 1, name: 1 },
+        { id: 1, name: 1, avatar_url: 1, user_id: 1 },
       );
       if (result.err) {
         return wrapper.error(new NotFoundError("Worker not found"));
@@ -415,7 +420,7 @@ class User {
     } else {
       const result = await this.queryRecruiter.findOne(
         { user_id: userData.data.id },
-        { id: 1, contact_name: 1 },
+        { id: 1, contact_name: 1, avatar_url: 1, user_id: 1 },
       );
       if (result.err) {
         return wrapper.error(new NotFoundError("Recruiter Not Found!"));
@@ -435,51 +440,78 @@ class User {
   async forgotPassword(payload) {
     const { email } = payload;
 
-    const user = await this.query.findOne({ email }, { id: 1, email: 1 });
-
-    // 🔐 SECURITY: jangan bocorin user ada / tidak
+    const user = await this.query.findUserByEmail(email);
     if (user.err || !user.data) {
-      return wrapper.data("If that email exists, a reset link has been sent");
+      // security: jangan bocorin email exists
+      return wrapper.data("If email exists, reset link sent");
     }
 
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(resetToken)
-      .digest("hex");
+    // 🔒 RATE LIMIT PER USER
+    const recentCount = await this.query.countRecentPasswordResets(
+      user.data.id,
+    );
 
-    const expiredAt = new Date(Date.now() + 15 * 60 * 1000);
+    if (!recentCount.err && recentCount.data >= 3) {
+      // jangan bocorin
+      return wrapper.data("If email exists, reset link sent");
+    }
 
-    await this.command.updateResetToken({
-      id: user.data.id,
-      reset_password_token: hashedToken,
-      reset_password_expires: expiredAt,
+    // ⏱️ COOLDOWN (2 menit)
+    const lastReset = await this.query.getLastPasswordReset(user.data.id);
+
+    if (
+      lastReset.data &&
+      Date.now() - new Date(lastReset.data.created_at).getTime() < 2 * 60 * 1000
+    ) {
+      return wrapper.data("If email exists, reset link sent");
+    }
+
+    // ❌ invalidate token lama
+    await this.command.invalidatePasswordResets(user.data.id);
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiredAt = new Date(Date.now() + 1000 * 60 * 30); // 30 menit
+
+    const saveToken = await this.command.insertPasswordReset({
+      user_id: user.data.id,
+      token,
+      expired_at: expiredAt,
     });
 
-    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    if (saveToken.err) {
+      logger.error(ctx, "forgotPassword", "Failed save token", saveToken.err);
+      return wrapper.error(
+        new InternalServerError("Failed to process request"),
+      );
+    }
 
-    await mailer.send({
-      to: email,
-      subject: "Reset your password",
-      html: `
-        <p>You requested a password reset.</p>
-        <p><a href="${resetLink}">Reset Password</a></p>
-        <p>This link will expire in 15 minutes.</p>
-      `,
-    });
+    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
+    console.log(user.data);
+    // TODO: send email
+    try {
+      await sendMail({
+        to: user.data.email,
+        subject: "Reset your password",
+        html: resetPasswordEmail({
+          name: user.data.name,
+          resetUrl,
+        }),
+      });
+    } catch (err) {
+      logger.error(ctx, "forgotPassword", "Send email failed", err.message);
+      return wrapper.error(
+        new InternalServerError("Failed to send reset email"),
+      );
+    }
 
-    return wrapper.data("Reset password link sent");
+    return wrapper.data("If email exists, reset link sent");
   }
 
   async resetPassword(payload) {
-    
     const { token, password } = payload;
 
-    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
-
-    const user = await this.query.findByResetToken(hashedToken, new Date());
-
-    if (user.err || !user.data) {
+    const reset = await this.query.findValidPasswordReset(token);
+    if (reset.err || !reset.data) {
       return wrapper.error(
         new BadRequestError("Invalid or expired reset token"),
       );
@@ -487,12 +519,24 @@ class User {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await this.command.resetPassword({
-      id: user.data.id,
+    const updateUser = await this.command.updateUserPassword({
+      user_id: reset.data.user_id,
       password: hashedPassword,
     });
+    // console.log("updateUser", updateUser)
+    if (updateUser.err) {
+      logger.error(
+        ctx,
+        "resetPassword",
+        "Update password failed",
+        updateUser.err,
+      );
+      return wrapper.error(new InternalServerError("Failed to reset password"));
+    }
 
-    return wrapper.data("Password successfully reset");
+    await this.command.markPasswordResetUsed(reset.data.id);
+
+    return wrapper.data("Password reset successfully");
   }
 }
 

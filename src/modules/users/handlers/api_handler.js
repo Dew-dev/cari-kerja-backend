@@ -182,6 +182,7 @@ const resetPassword = async (req, res) => {
   const result = await commandHandler.resetPassword(validatePayload.data);
   return sendResponse(result, res);
 };
+
 module.exports = {
   getUserById,
   login,
