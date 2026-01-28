@@ -31,6 +31,7 @@ class Jobposts {
       limit = 12,
       user_id = null,
       archive = null,
+      exclude_id
     } = payload;
 
 
@@ -205,6 +206,12 @@ class Jobposts {
       conditions.push(` AND archived_at IS NOT NULL`); // Archived
     } else {
       conditions.push(` AND archived_at IS NULL`); // Not archived
+    }
+
+    if (exclude_id !== undefined && exclude_id !== null && exclude_id !== "") {
+      conditions.push(` AND j.id <> $${idx}`);
+      values.push(exclude_id);
+      idx += 1;
     }
 
     const sortableColumns = {

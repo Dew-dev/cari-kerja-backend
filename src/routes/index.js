@@ -18,6 +18,7 @@ const experienceLevels = require("./experience_levels");
 const savedJobs = require("./saved_jobs");
 const employmentTypes = require("./employment_types");
 const categories = require('./categories');
+const jobPostRequirements = require('./job_post_requirements');
 
 module.exports = (server) => {
   users(server);
@@ -41,4 +42,5 @@ module.exports = (server) => {
   savedJobs(server);
   employmentTypes(server);
   categories(server);
+  jobPostRequirements(server);
 };

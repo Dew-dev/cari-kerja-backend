@@ -29,10 +29,9 @@ const getJobpostsByRecruiterId = async (req, res) => {
 
 const getJobpostById = async (req, res) => {
   const payload = {
-    ...req.params,
+    id: req.params.id,
     ...(req.userMeta ? { user_id: req.userMeta.worker_id } : {}),
   };
-  console.log("the fr payload", payload);
   const validatePayload = validator.isValidPayload(
     payload,
     queryModel.getJobpostByIdParamType
@@ -40,6 +39,7 @@ const getJobpostById = async (req, res) => {
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
+  
   const result = await queryHandler.getJobpostById(validatePayload.data);
   return sendResponse(result, res);
 };
