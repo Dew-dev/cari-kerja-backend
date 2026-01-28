@@ -30,6 +30,7 @@ class Jobposts {
       page = 1,
       limit = 12,
       user_id = null,
+      archive = null,
     } = payload;
 
 
@@ -198,6 +199,12 @@ class Jobposts {
       )`);
       values.push(tagList); // Array of tag names
       idx += 1;
+    }
+
+    if (archive) {
+      conditions.push(` AND archived_at IS NOT NULL`); // Archived
+    } else {
+      conditions.push(` AND archived_at IS NULL`); // Not archived
     }
 
     const sortableColumns = {

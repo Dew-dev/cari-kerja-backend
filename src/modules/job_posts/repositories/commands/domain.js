@@ -441,7 +441,7 @@ class Jobpost {
 
     return wrapper.data("Application withdrawn successfully");
   }
-  
+
   async updateApplicationStatus(payload) {
     const { id, application_status_id, recruiter_id } = payload;
 
@@ -480,6 +480,132 @@ class Jobpost {
     }
 
     return wrapper.data("Application status updated successfully");
+  }
+
+  async updateJobPost(payload) {
+    const { id, recruiter_id, user_id, tags, ...jobData } = payload;
+
+    // 1️⃣ cek job milik recruiter
+    const job = await this.query.findOneJobPost({
+      id,
+      recruiter_id,
+    });
+
+    if (job.err || !job.data) {
+      return wrapper.error(
+        new NotFoundError("Job not found or not owned by recruiter"),
+      );
+    }
+
+    // 2️⃣ update job_posts
+    const updateResult = await this.command.updateJobPost({
+      id,
+      ...jobData,
+    });
+
+    if (updateResult.err) {
+      logger.error(ctx, "updateJobPost", "Update job failed", updateResult.err);
+      return wrapper.error(new InternalServerError("Failed to update job"));
+    }
+
+    // 3️⃣ update tags (replace)
+    if (tags) {
+      // hapus existing
+      await this.command.deleteJobPostTags({ job_post_id: id });
+
+      // insert ulang
+      for (const tag of tags) {
+        await this.command.insertJobPostTag({
+          job_post_id: id,
+          tag_id: tag.id,
+        });
+      }
+    }
+
+    return wrapper.data(payload);
+  }
+
+  async duplicateJobPost(payload) {
+    const { id, recruiter_id } = payload;
+
+    // 1️⃣ ambil job asli
+    const job = await this.query.findJobWithTags({
+      id,
+      recruiter_id,
+    });
+
+    if (job.err || !job.data) {
+      return wrapper.error(
+        new NotFoundError("Job not found or not owned by recruiter"),
+      );
+    }
+
+    const original = job.data;
+
+    // 2️⃣ create job baru (DRAFT)
+    const newJob = await this.command.insertJobPost({
+      recruiter_id,
+      title: `${original.title} (Copy)`,
+      description: original.description,
+      employment_type_id: original.employment_type_id,
+      experience_level_id: original.experience_level_id,
+      salary_type_id: original.salary_type_id,
+      salary_min: original.salary_min,
+      salary_max: original.salary_max,
+      currency_id: original.currency_id,
+      location: original.location,
+      deadline: original.deadline,
+      status_id: 3, // DRAFT
+      category_id: original.category_id,
+    });
+
+    if (newJob.err) {
+      console.log("ini newJob.err", newJob.err);
+      logger.error(ctx, "duplicateJobPost", "Insert job failed", newJob.err);
+      return wrapper.error(new InternalServerError("Failed to duplicate job"));
+    }
+
+    const newJobId = newJob.id;
+    // console.log("ini newJobId", newJob.id);
+    // 3️⃣ copy tags
+    if (original.tags?.length) {
+      for (const tag of original.tags) {
+        await this.command.insertJobPostTag({
+          job_post_id: newJobId,
+          tag_id: tag.id,
+        });
+      }
+    }
+
+    return wrapper.data({
+      id: newJobId,
+      message: "Job duplicated successfully",
+    });
+  }
+  async archiveJobPost({ id, recruiter_id }) {
+    const job = await this.query.findOneJobPost({ id, recruiter_id });
+
+    if (job.err || !job.data) {
+      return wrapper.error(
+        new NotFoundError("Job not found or not owned by recruiter"),
+      );
+    }
+
+    await this.command.archiveJobPost(id);
+    return wrapper.data("Job archived");
+  }
+
+  async restoreJobPost({ id, recruiter_id }) {
+    const job = await this.query.findOneJobPost({ id, recruiter_id });
+
+    if (job.err || !job.data) {
+      return wrapper.error(
+        new NotFoundError("Job not found or not owned by recruiter"),
+      );
+    }
+
+    await this.command.restoreJobPost(id);
+    return wrapper.data("Job restored");
   }
 }   
 
