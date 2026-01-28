@@ -65,16 +65,13 @@ class Query {
             FROM job_posts j
             JOIN recruiters r ON r.id = j.recruiter_id
             JOIN users u ON u.id = r.user_id
-            JOIN industries i ON i.id = r.industry_id
             JOIN employment_types et ON et.id = j.employment_type_id
             JOIN experience_levels el ON el.id = j.experience_level_id
             JOIN salary_types st ON st.id = j.salary_type_id
             JOIN currencies c ON c.id = j.currency_id
             JOIN categories cat ON cat.id = j.category_id
             JOIN job_post_statuses jps ON jps.id = j.status_id
-            LEFT JOIN job_applications ja ON ja.job_post_id = j.id
-            LEFT JOIN job_post_tags jpt ON jpt.job_post_id = j.id
-            LEFT JOIN job_tags t ON t.id = jpt.tag_id
+            LEFT JOIN industries i ON i.id = r.industry_id
             WHERE j.id = $1;
             `;
       const jobpostResult = await this.db.executeQuery(jobpostQuery, [id]);
