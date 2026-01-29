@@ -43,6 +43,11 @@ const forgotPassword = async (payload) => {
 const resetPassword = async (payload) => {
   return domain.resetPassword(payload);
 };
+
+const changePassword = async (payload) => {
+  return domain.changePassword(payload);
+};
+
 module.exports = {
   login,
   loginWithGoogle,
@@ -54,4 +59,5 @@ module.exports = {
   refreshToken,
   forgotPassword,
   resetPassword,
+  changePassword,
 };

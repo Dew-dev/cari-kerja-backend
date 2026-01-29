@@ -2,6 +2,7 @@ const basicAuth = require("../middlewares/basicAuth");
 const verifyToken = require("../middlewares/verifyToken");
 const userHandler = require("../modules/users/handlers/api_handler");
 const { authGoogle, authGoogleCallback } = require("../helpers/auth/google_oauth");
+const forgotPasswordLimiter = require("../middlewares/rateLimitForgotPassword");
 
 module.exports = (server) => {
   server.post("/api/v1/users/register-worker", basicAuth.isAuthenticated, userHandler.registerWorker);
@@ -14,4 +15,12 @@ module.exports = (server) => {
   server.put("/api/v1/users/refresh-token", basicAuth.isAuthenticated, userHandler.refreshToken);
   server.get("/api/v1/users/:id", verifyToken, userHandler.getUserById);
   server.delete("/api/v1/users/:id", verifyToken, userHandler.deleteUser);
+  server.post("/api/v1/auth/forgot-password", forgotPasswordLimiter, userHandler.forgotPassword);
+  server.post("/api/v1/auth/reset-password", userHandler.resetPassword);
+
+  server.post(
+    "/api/v1/auth/change-password",
+    verifyToken, // wajib login
+    userHandler.changePassword,
+  );
 };

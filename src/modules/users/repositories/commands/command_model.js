@@ -194,6 +194,11 @@ const resetPasswordParamType = joi.object({
   password: joi.string().min(8).required(),
 });
 
+const changePasswordParamType = joi.object({
+  current_password: joi.string().required(),
+  new_password: joi.string().min(8).required(),
+});
+
 
 module.exports = {
   loginParamType,
@@ -206,4 +211,5 @@ module.exports = {
   registerRecruiterParamType,
   forgotPasswordParamType,
   resetPasswordParamType,
+  changePasswordParamType,
 };

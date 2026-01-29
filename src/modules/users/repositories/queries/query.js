@@ -34,14 +34,89 @@ class Query {
       return wrapper.error(errorQueryMessage);
     }
   }
-  
-  async findByResetToken(token, now) {
-    const result = await this.db("users")
-      .where("reset_password_token", token)
-      .andWhere("reset_password_expires", ">", now)
-      .first();
 
-    return { data: result };
+  async findUserByEmail(email) {
+    try {
+      const res = await this.db.executeQuery(
+        "SELECT id, email FROM users WHERE email = $1 LIMIT 1",
+        [email],
+      );
+      return wrapper.data(res.rows[0]);
+    } catch (e) {
+      return wrapper.error(e);
+    }
+  }
+
+  async findValidPasswordReset(token) {
+    try {
+      const res = await this.db.executeQuery(
+        `
+      SELECT *
+      FROM password_resets
+      WHERE token = $1
+        AND used_at IS NULL
+        AND expired_at > NOW()
+      LIMIT 1
+      `,
+        [token],
+      );
+      return wrapper.data(res.rows[0]);
+    } catch (e) {
+      return wrapper.error(e);
+    }
+  }
+  async countRecentPasswordResets(user_id) {
+    try {
+      const res = await this.db.executeQuery(
+        `
+      SELECT COUNT(*)::int AS total
+      FROM password_resets
+      WHERE user_id = $1
+        AND created_at > NOW() - INTERVAL '15 minutes'
+      `,
+        [user_id],
+      );
+
+      return wrapper.data(res.rows[0].total);
+    } catch (e) {
+      return wrapper.error(e);
+    }
+  }
+  async getLastPasswordReset(user_id) {
+    try {
+      const res = await this.db.executeQuery(
+        `
+      SELECT created_at
+      FROM password_resets
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+      LIMIT 1
+      `,
+        [user_id],
+      );
+
+      return wrapper.data(res.rows[0]);
+    } catch (e) {
+      return wrapper.error(e);
+    }
+  }
+
+  async findUserById(id) {
+    try {
+      const res = await this.db.executeQuery(
+        `
+      SELECT id, hashed_password
+      FROM users
+      WHERE id = $1
+      LIMIT 1
+      `,
+        [id],
+      );
+      console.log("res", id, res);
+      return wrapper.data(res.rows[0]);
+    } catch (e) {
+      return wrapper.error(e);
+    }
   }
 }
 
