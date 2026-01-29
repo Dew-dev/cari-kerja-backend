@@ -87,7 +87,6 @@ class User {
       user.data["user_id"] = result.data.user_id;
       user.data["name"] = result.data.name;
       user.data["role"] = "user";
-      user.data["user_id"] = result.data.id;
       user.data["avatar_url"] = result.data.avatar_url;
     } else {
       const result = await this.queryRecruiter.findOne(
@@ -101,7 +100,6 @@ class User {
       user.data["user_id"] = result.data.user_id;
       user.data["name"] = result.data.contact_name;
       user.data["avatar_url"] = result.data.avatar_url;
-      user.data["user_id"] = result.data.id;
       user.data["role"] = "recruiter";
     }
 
@@ -537,6 +535,42 @@ class User {
     await this.command.markPasswordResetUsed(reset.data.id);
 
     return wrapper.data("Password reset successfully");
+  }
+
+  async changePassword(payload) {
+    const { user_id, id, current_password, new_password } = payload;
+
+    const user = await this.query.findUserById(user_id);
+    console.log("user", payload);
+    if (user.err || !user.data) {
+      return wrapper.error("Unauthorized");
+    }
+    const isMatch = await bcrypt.compare(
+      current_password,
+      user.data.hashed_password,
+    );
+
+    if (!isMatch) {
+      return wrapper.error(
+        new BadRequestError("Current password is incorrect"),
+      );
+    }
+
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+
+    const update = await this.command.updateUserPassword({
+      user_id,
+      password: hashedPassword,
+    });
+    console.log("update", update);
+    if (update.err) {
+      logger.error(ctx, "changePassword", "Update password failed", update.err);
+      return wrapper.error(
+        new InternalServerError("Failed to change password"),
+      );
+    }
+
+    return wrapper.data("Password changed successfully");
   }
 }
 

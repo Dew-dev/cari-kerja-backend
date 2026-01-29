@@ -18,4 +18,9 @@ module.exports = (server) => {
   server.post("/api/v1/auth/forgot-password", forgotPasswordLimiter, userHandler.forgotPassword);
   server.post("/api/v1/auth/reset-password", userHandler.resetPassword);
 
+  server.post(
+    "/api/v1/auth/change-password",
+    verifyToken, // wajib login
+    userHandler.changePassword,
+  );
 };

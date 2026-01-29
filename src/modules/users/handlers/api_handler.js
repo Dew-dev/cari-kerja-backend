@@ -8,7 +8,7 @@ const {
   storeCookie,
   deleteCookie,
 } = require("../../../helpers/auth/cookie_helper");
-
+const joi = require("joi");
 // query
 const getUserById = async (req, res) => {
   const payload = { ...req.params };
@@ -183,6 +183,28 @@ const resetPassword = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const changePassword = async (req, res) => {
+  const payload = {
+    ...req.body,
+    user_id: req.userMeta.user_id, // dari auth middleware
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.changePasswordParamType.keys({
+      user_id: joi.string().required(),
+    }),
+  );
+
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.changePassword(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+
 module.exports = {
   getUserById,
   login,
@@ -195,4 +217,5 @@ module.exports = {
   refreshToken,
   forgotPassword,
   resetPassword,
+  changePassword,
 };

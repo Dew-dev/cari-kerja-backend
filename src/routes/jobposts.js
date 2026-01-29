@@ -100,4 +100,5 @@ module.exports = (server) => {
     verifyToken,
     jobpostHandler.restoreJobPost,  
   );
+
 };

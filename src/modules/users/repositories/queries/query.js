@@ -100,6 +100,24 @@ class Query {
       return wrapper.error(e);
     }
   }
+
+  async findUserById(id) {
+    try {
+      const res = await this.db.executeQuery(
+        `
+      SELECT id, hashed_password
+      FROM users
+      WHERE id = $1
+      LIMIT 1
+      `,
+        [id],
+      );
+      console.log("res", id, res);
+      return wrapper.data(res.rows[0]);
+    } catch (e) {
+      return wrapper.error(e);
+    }
+  }
 }
 
 module.exports = Query;
