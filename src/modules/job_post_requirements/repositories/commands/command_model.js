@@ -13,7 +13,7 @@ const updateJobPostRequirementParamType = joi.object({
   id: joi.string().required(), // JobPostRequirement id
   job_post_id: joi.string().required(),
   recruiter_id: joi.string().required(),
-  description: joi.string().optional().allow(null),
+  requirement: joi.string().optional().allow(null),
   order_index: joi.number().optional().allow(null),
 });
 
