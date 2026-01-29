@@ -23,4 +23,13 @@ module.exports = (server) => {
     verifyToken, // wajib login
     userHandler.changePassword,
   );
+  server.post(
+    "/api/v1/auth/verify-email/send",
+    verifyToken,
+    userHandler.sendVerifyEmail,
+  );
+
+  server.get("/api/v1/auth/verify-email", userHandler.verifyEmail);
+  server.post("/api/v1/auth/verify-email/resend", userHandler.resendVerifyEmail);
+
 };

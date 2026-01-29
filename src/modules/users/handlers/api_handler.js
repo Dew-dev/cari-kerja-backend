@@ -204,6 +204,44 @@ const changePassword = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const sendVerifyEmail = async (req, res) => {
+  const payload = { user_id: req.userMeta.id };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.sendVerifyEmailParamType,
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.sendVerifyEmail(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const verifyEmail = async (req, res) => {
+  const payload = req.query;
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.verifyEmailParamType,
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.verifyEmail(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const resendVerifyEmail = async (req, res) => {
+  const payload = { email: req.body.email };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    joi.object({ email: joi.string().email().required() }),
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.resendVerifyEmail(validatePayload.data);
+  return sendResponse(result, res);
+};
 
 module.exports = {
   getUserById,
@@ -218,4 +256,7 @@ module.exports = {
   forgotPassword,
   resetPassword,
   changePassword,
+  verifyEmail,
+  sendVerifyEmail,
+  resendVerifyEmail,
 };

@@ -87,6 +87,38 @@ class Command {
       [user_id],
     );
   }
+
+  async insertEmailVerification({ user_id, token, expired_at }) {
+    return this.db.executeQuery(
+      `
+    INSERT INTO email_verifications (user_id, token, expired_at)
+    VALUES ($1, $2, $3)
+    `,
+      [user_id, token, expired_at],
+    );
+  }
+
+  async invalidateEmailVerifications(user_id) {
+    return this.db.executeQuery(
+      `
+    UPDATE email_verifications
+    SET used_at = NOW()
+    WHERE user_id = $1 AND used_at IS NULL
+    `,
+      [user_id],
+    );
+  }
+
+  async markEmailVerified(user_id) {
+    return this.db.executeQuery(
+      `
+    UPDATE users
+    SET email_verified_at = NOW()
+    WHERE id = $1
+    `,
+      [user_id],
+    );
+  }
 }
 
 module.exports = Command;

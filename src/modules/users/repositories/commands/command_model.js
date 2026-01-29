@@ -199,6 +199,13 @@ const changePasswordParamType = joi.object({
   new_password: joi.string().min(8).required(),
 });
 
+const sendVerifyEmailParamType = joi.object({
+  user_id: joi.string().required(),
+});
+
+const verifyEmailParamType = joi.object({
+  token: joi.string().required(),
+});
 
 module.exports = {
   loginParamType,
@@ -212,4 +219,6 @@ module.exports = {
   forgotPasswordParamType,
   resetPasswordParamType,
   changePasswordParamType,
+  sendVerifyEmailParamType,
+  verifyEmailParamType,
 };

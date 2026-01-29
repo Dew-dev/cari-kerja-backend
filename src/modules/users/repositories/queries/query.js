@@ -38,7 +38,7 @@ class Query {
   async findUserByEmail(email) {
     try {
       const res = await this.db.executeQuery(
-        "SELECT id, email FROM users WHERE email = $1 LIMIT 1",
+        "SELECT id, email, hashed_password, role_id, email_verified_at FROM users WHERE email = $1 OR username = $1 LIMIT 1",
         [email],
       );
       return wrapper.data(res.rows[0]);
@@ -117,6 +117,29 @@ class Query {
     } catch (e) {
       return wrapper.error(e);
     }
+  }
+
+  async findUserById(id) {
+    const res = await this.db.executeQuery(
+      `SELECT id, email, name, email_verified_at FROM users WHERE id=$1 LIMIT 1`,
+      [id],
+    );
+    return wrapper.data(res.rows[0]);
+  }
+
+  async findValidEmailVerification(token) {
+    const res = await this.db.executeQuery(
+      `
+    SELECT *
+    FROM email_verifications
+    WHERE token = $1
+      AND used_at IS NULL
+      AND expired_at > NOW()
+    LIMIT 1
+    `,
+      [token],
+    );
+    return wrapper.data(res.rows[0]);
   }
 }
 
