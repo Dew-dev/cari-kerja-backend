@@ -31,15 +31,19 @@ class Jobposts {
       limit = 12,
       user_id = null,
       archive = null,
-      exclude_id
+      exclude_id,
+      self = false,
     } = payload;
-
 
     const conditions = [];
     const values = [];
     let idx = 1;
 
-    if (recruiter_id !== undefined && recruiter_id !== null && recruiter_id !== "") {
+    if (
+      recruiter_id !== undefined &&
+      recruiter_id !== null &&
+      recruiter_id !== ""
+    ) {
       conditions.push(` AND j.recruiter_id = $${idx}`);
       values.push(recruiter_id);
       idx += 1;
@@ -206,6 +210,10 @@ class Jobposts {
       conditions.push(` AND archived_at IS NOT NULL`); // Archived
     } else {
       conditions.push(` AND archived_at IS NULL`); // Not archived
+    }
+
+    if (!self) {
+      conditions.push(` AND j.status_id < 3`); // Only open-closed job posts
     }
 
     if (exclude_id !== undefined && exclude_id !== null && exclude_id !== "") {

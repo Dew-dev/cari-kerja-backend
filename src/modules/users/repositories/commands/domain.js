@@ -246,6 +246,7 @@ class User {
     }
     delete data.hashed_password;
 
+    
     const resultWorker = await this.workerCommand.insertOne(dataWorker);
     if (resultWorker.err) {
       logger.error(
@@ -256,6 +257,43 @@ class User {
       );
       return wrapper.error(new InternalServerError("Register Worker Failed"));
     }
+
+    
+    const userId = data.id;
+
+    // 2. invalidate token verifikasi lama (aman kalau belum ada)
+    await this.command.invalidateEmailVerifications(userId);
+
+    // 3. generate verification token
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiredAt = new Date(Date.now() + 30 * 60 * 1000); // 30 menit
+
+    const saveToken = await this.command.insertEmailVerification({
+      user_id: userId,
+      token,
+      expired_at: expiredAt,
+    });
+
+    if (saveToken.err) {
+      return wrapper.error(
+        new InternalServerError("Failed to send verification email"),
+      );
+    }
+
+    // 4. send verification email
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+
+    try {
+      await sendMail({
+        to: email,
+        subject: "Verify your email",
+        html: verifyEmailTemplate({ name, verifyUrl }),
+      });
+    } catch (e) {
+      // jangan gagalkan register kalau email gagal
+      logger.error(ctx, "register", "Send verify email failed", e);
+    }
+    
 
     return wrapper.data({ user_id: data.id, worker_id: resultWorker.id });
   }

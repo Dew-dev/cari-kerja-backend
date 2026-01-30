@@ -187,7 +187,7 @@ class Query {
 
       values.push(parseInt(limit, 10));
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
-      console.log("ini query", jobpostsQuery);
+      // console.log("ini query", jobpostsQuery);
       const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
 
       // if (!jobpostsResult || jobpostsResult.rows.length === 0) {
