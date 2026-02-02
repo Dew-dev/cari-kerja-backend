@@ -187,7 +187,7 @@ class Query {
 
       values.push(parseInt(limit, 10));
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
-      console.log("ini query", jobpostsQuery);
+      // console.log("ini query", jobpostsQuery);
       const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
 
       // if (!jobpostsResult || jobpostsResult.rows.length === 0) {
@@ -572,6 +572,30 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       logger.error(ctx, "findJobWithTags", "Query failed", error);
       return wrapper.error("Failed to fetch job");
     }
+  }
+
+  async findApplicationWithUser(application_id) {
+    const res = await this.db.executeQuery(
+      `
+    SELECT
+      ja.id,
+      ja.application_status_id,
+      u.email,
+      w.name AS user_name,
+      j.title AS job_title,
+      a.name AS status_name
+    FROM job_applications ja
+    JOIN workers w ON w.id = ja.worker_id
+    JOIN users u ON u.id = w.user_id
+    JOIN job_posts j ON j.id = ja.job_post_id
+    JOIN application_statuses a ON a.id = ja.application_status_id
+    WHERE ja.id = $1
+    LIMIT 1
+    `,
+      [application_id],
+    );
+
+    return wrapper.data(res.rows[0]);
   }
 }
 

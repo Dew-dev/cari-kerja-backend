@@ -181,8 +181,8 @@ const getJobposts = async (req, res) => {
 };
 
 const getJobpostsSelf = async (req, res) => {
-  const payload = { ...req.query, recruiter_id: req.userMeta.recruiter_id };
-  //console.log(payload);
+  const payload = { ...req.query, recruiter_id: req.userMeta.recruiter_id,self:true };
+  console.log("payload self", payload);
 
   const validatePayload = validator.isValidPayload(
     payload,
@@ -255,6 +255,33 @@ const updateJobPostStatus = async (req, res) => {
   return sendResponse(result, res, 201);
 };
 
+const addApplicationNote = async (req, res) => {
+  const payload = {
+    application_id: req.params.id,
+    recruiter_id: req.userMeta.recruiter_id,
+    note: req.body.note,
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.addApplicationNoteParamType,
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.addApplicationNote(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const getApplicationNotes = async (req, res) => {
+  const payload = {
+    application_id: req.params.id,
+    recruiter_id: req.userMeta.recruiter_id,
+  };
+
+  const result = await commandHandler.getApplicationNotes(payload);
+  return sendResponse(result, res);
+};
+
 module.exports = {
   getJobpostsByRecruiterId,
   getJobpostById,
@@ -268,4 +295,6 @@ module.exports = {
   createJobApplication,
   getCurrencyByCode,
   updateJobPostStatus,
+  addApplicationNote,
+  getApplicationNotes,
 };

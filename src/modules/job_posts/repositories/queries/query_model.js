@@ -56,6 +56,7 @@ const getJobpostsSelfParamType = joi.object({
   page: joi.number().optional(),
   limit: joi.number().optional(),
   archive: joi.boolean().optional(),
+  self: joi.boolean().optional(),
 });
 
   

@@ -112,6 +112,12 @@ const updateJobApplicationParamType = joi.object({
   updated_at: joi.date().default(() => new Date().toISOString()),
 });
 
+const addApplicationNoteParamType = joi.object({
+  application_id: joi.string().required(),
+  recruiter_id: joi.string().required(),
+  note: joi.string().min(1).required(),
+});
+
 module.exports = {
   createJobPostParamType,
   jobPostQuestionParamType,
@@ -121,4 +127,5 @@ module.exports = {
   createJobApplicationParamType,
   updateJobApplicationParamType,
   jobPostStatusUpdateParamType,
+  addApplicationNoteParamType,
 };

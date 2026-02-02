@@ -12,6 +12,7 @@ const {
   ConflictError,
   InternalServerError,
   BadRequestError,
+  ForbiddenError,
 } = require("../../../../helpers/errors");
 const {
   compareHash,
@@ -30,6 +31,9 @@ const bcrypt = require("bcrypt");
 
 const { sendMail } = require("../../../../helpers/utils/mailer");
 const resetPasswordEmail = require("../../../../helpers/utils/resetPasswordEmail");
+const verifyEmailTemplate = require("../../../../helpers/utils/verifyEmail");
+const COOLDOWN_SECONDS = 60;
+const MAX_PER_HOUR = 5;
 
 class User {
   constructor(db) {
@@ -55,6 +59,7 @@ class User {
         login_provider: 1,
         provider_id: 1,
         role_id: 1,
+        email_verified_at: 1,
       },
       "OR",
     );
@@ -64,6 +69,11 @@ class User {
         logger.log(`${ctx}:generateCredential`, user.err, "User not found");
         return wrapper.error(new NotFoundError("Wrong username or password"));
       }
+    }
+
+    // 🔥 BLOK LOGIN JIKA BELUM VERIF
+    if (!user.data.email_verified_at) {
+      return wrapper.error(new ForbiddenError("Email not verified"));
     }
 
     const passwordMatch = await compareHash(
@@ -247,6 +257,41 @@ class User {
         resultWorker.err,
       );
       return wrapper.error(new InternalServerError("Register Worker Failed"));
+    }
+
+    const userId = data.id;
+
+    // 2. invalidate token verifikasi lama (aman kalau belum ada)
+    await this.command.invalidateEmailVerifications(userId);
+
+    // 3. generate verification token
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiredAt = new Date(Date.now() + 30 * 60 * 1000); // 30 menit
+
+    const saveToken = await this.command.insertEmailVerification({
+      user_id: userId,
+      token,
+      expired_at: expiredAt,
+    });
+
+    if (saveToken.err) {
+      return wrapper.error(
+        new InternalServerError("Failed to send verification email"),
+      );
+    }
+
+    // 4. send verification email
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+
+    try {
+      await sendMail({
+        to: email,
+        subject: "Verify your email",
+        html: verifyEmailTemplate({ name, verifyUrl }),
+      });
+    } catch (e) {
+      // jangan gagalkan register kalau email gagal
+      logger.error(ctx, "register", "Send verify email failed", e);
     }
 
     return wrapper.data({ user_id: data.id, worker_id: resultWorker.id });
@@ -571,6 +616,119 @@ class User {
     }
 
     return wrapper.data("Password changed successfully");
+  }
+
+  async sendVerifyEmail({ user_id }) {
+    const user = await this.query.findUserById(user_id);
+    if (user.err || !user.data) {
+      return wrapper.error(new UnauthorizedError("Unauthorized"));
+    }
+
+    if (user.data.email_verified_at) {
+      return wrapper.data("Email already verified");
+    }
+
+    // cooldown sederhana (reuse count logic kalau mau)
+    await this.command.invalidateEmailVerifications(user_id);
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiredAt = new Date(Date.now() + 30 * 60 * 1000);
+
+    const save = await this.command.insertEmailVerification({
+      user_id,
+      token,
+      expired_at: expiredAt,
+    });
+    if (save.err) {
+      return wrapper.error(
+        new InternalServerError("Failed to send verification"),
+      );
+    }
+
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+
+    await sendMail({
+      to: user.data.email,
+      subject: "Verify your email",
+      html: verifyEmailTemplate({
+        name: user.data.name,
+        verifyUrl,
+      }),
+    });
+
+    return wrapper.data("Verification email sent");
+  }
+
+  async verifyEmail({ token }) {
+    const record = await this.query.findValidEmailVerification(token);
+    if (record.err || !record.data) {
+      return wrapper.error(new BadRequestError("Invalid or expired token"));
+    }
+
+    await this.command.markEmailVerified(record.data.user_id);
+    await this.command.invalidateEmailVerifications(record.data.user_id);
+
+    return wrapper.data("Email verified successfully");
+  }
+  async resendVerifyEmail({ email }) {
+    const user = await this.query.findUserByEmail(email);
+    if (user.err || !user.data) {
+      return wrapper.data("If email exists, verification sent");
+    }
+
+    if (user.data.email_verified_at) {
+      return wrapper.data("Email already verified");
+    }
+    const userId = user.data.id;
+
+    // ⏳ COOLDOWN CHECK
+    const latest = await this.query.getLatestEmailVerification(userId);
+    if (latest.data) {
+      const diff =
+        (Date.now() - new Date(latest.data.created_at).getTime()) / 1000;
+
+      if (diff < COOLDOWN_SECONDS) {
+        return wrapper.error(
+          new TooManyRequestsError(
+            `Please wait ${Math.ceil(COOLDOWN_SECONDS - diff)} seconds`,
+          ),
+        );
+      }
+    }
+
+    // 🚦 RATE LIMIT CHECK
+    const count = await this.query.countEmailVerificationsInWindow(userId, 60);
+
+    if (count >= MAX_PER_HOUR) {
+      return wrapper.error(
+        new TooManyRequestsError(
+          "Too many verification requests. Please try again later.",
+        ),
+      );
+    }
+    await this.command.invalidateEmailVerifications(user.data.id);
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiredAt = new Date(Date.now() + 30 * 60 * 1000);
+
+    await this.command.insertEmailVerification({
+      user_id: user.data.id,
+      token,
+      expired_at: expiredAt,
+    });
+
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
+
+    await sendMail({
+      to: user.data.email,
+      subject: "Verify your email",
+      html: verifyEmailTemplate({
+        name: user.data.name,
+        verifyUrl,
+      }),
+    });
+
+    return wrapper.data("If email exists, verification sent");
   }
 }
 

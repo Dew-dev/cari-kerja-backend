@@ -48,6 +48,11 @@ const changePassword = async (payload) => {
   return domain.changePassword(payload);
 };
 
+const sendVerifyEmail = async (payload) => domain.sendVerifyEmail(payload);
+const verifyEmail = async (payload) => domain.verifyEmail(payload);
+const resendVerifyEmail = async (payload) => domain.resendVerifyEmail(payload);
+
+
 module.exports = {
   login,
   loginWithGoogle,
@@ -60,4 +65,7 @@ module.exports = {
   forgotPassword,
   resetPassword,
   changePassword,
+  sendVerifyEmail,
+  verifyEmail,
+  resendVerifyEmail,
 };
