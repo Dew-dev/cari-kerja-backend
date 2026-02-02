@@ -689,7 +689,7 @@ class Jobpost {
   async duplicateJobPost(payload) {
     const { id, recruiter_id } = payload;
 
-    // 1️⃣ ambil job asli
+    // 1️⃣ ambil job asli dengan semua relasi
     const job = await this.query.findJobWithTags({
       id,
       recruiter_id,
@@ -727,7 +727,7 @@ class Jobpost {
     }
 
     const newJobId = newJob.id;
-    // console.log("ini newJobId", newJob.id);
+
     // 3️⃣ copy tags
     if (original.tags?.length) {
       for (const tag of original.tags) {
@@ -736,6 +736,68 @@ class Jobpost {
           tag_id: tag.id,
         });
       }
+    }
+
+    // 4️⃣ copy requirements
+    const requirementsResult = await this.query.getJobPostRequirements(id);
+    if (!requirementsResult.err && requirementsResult.data && requirementsResult.data.length > 0) {
+      const requirementsData = requirementsResult.data.map((req) => ({
+        id: uuidv4(),
+        job_post_id: newJobId,
+        requirement: req.requirement,
+        order_index: req.order_index,
+      }));
+      await this.command.insertMany(requirementsData, "job_post_requirements");
+    }
+
+    // 5️⃣ copy benefits
+    const benefitsResult = await this.query.getJobPostBenefits(id);
+    if (!benefitsResult.err && benefitsResult.data && benefitsResult.data.length > 0) {
+      const benefitsData = benefitsResult.data.map((ben) => ({
+        id: uuidv4(),
+        job_post_id: newJobId,
+        benefit: ben.benefit,
+        order_index: ben.order_index,
+      }));
+      await this.command.insertMany(benefitsData, "job_post_benefits");
+    }
+
+    // 6️⃣ copy responsibilities
+    const responsibilitiesResult = await this.query.getJobPostResponsibilities(id);
+    if (!responsibilitiesResult.err && responsibilitiesResult.data && responsibilitiesResult.data.length > 0) {
+      const responsibilitiesData = responsibilitiesResult.data.map((resp) => ({
+        id: uuidv4(),
+        job_post_id: newJobId,
+        responsibility: resp.responsibility,
+        order_index: resp.order_index,
+      }));
+      await this.command.insertMany(responsibilitiesData, "job_post_responsibilities");
+    }
+
+    // 7️⃣ copy questions
+    const questionsResult = await this.query.findAllByJobPostId({
+      job_post_id: id,
+      conditions: "",
+      orderColumn: "q.order_index",
+      orderDirection: "ASC",
+      idx: 2,
+      values: [id],
+      limit: 1000,
+      page: 1,
+    });
+    if (!questionsResult.err && questionsResult.data && questionsResult.data.length > 0) {
+      const questionsData = questionsResult.data.map((q) => ({
+        id: uuidv4(),
+        job_post_id: newJobId,
+        question_text: q.question_text,
+        question_type_id: q.question_type_id,
+        options: q.options,
+        is_required: q.is_required,
+        order_index: q.order_index,
+        created_at: new Date(),
+        updated_at: new Date(),
+      }));
+      await this.command.insertMany(questionsData, "job_post_questions");
     }
 
     return wrapper.data({

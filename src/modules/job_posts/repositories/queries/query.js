@@ -626,6 +626,54 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       return wrapper.error("Failed to fetch answers");
     }
   }
+
+  async getJobPostRequirements(job_post_id) {
+    try {
+      const query = `
+      SELECT id, requirement, order_index
+      FROM job_post_requirements
+      WHERE job_post_id = $1
+      ORDER BY order_index ASC;
+    `;
+      const result = await this.db.executeQuery(query, [job_post_id]);
+      return wrapper.data(result.rows);
+    } catch (error) {
+      logger.error(ctx, "getJobPostRequirements", "Query failed", error);
+      return wrapper.error("Failed to fetch requirements");
+    }
+  }
+
+  async getJobPostBenefits(job_post_id) {
+    try {
+      const query = `
+      SELECT id, benefit, order_index
+      FROM job_post_benefits
+      WHERE job_post_id = $1
+      ORDER BY order_index ASC;
+    `;
+      const result = await this.db.executeQuery(query, [job_post_id]);
+      return wrapper.data(result.rows);
+    } catch (error) {
+      logger.error(ctx, "getJobPostBenefits", "Query failed", error);
+      return wrapper.error("Failed to fetch benefits");
+    }
+  }
+
+  async getJobPostResponsibilities(job_post_id) {
+    try {
+      const query = `
+      SELECT id, responsibility, order_index
+      FROM job_post_responsibilities
+      WHERE job_post_id = $1
+      ORDER BY order_index ASC;
+    `;
+      const result = await this.db.executeQuery(query, [job_post_id]);
+      return wrapper.data(result.rows);
+    } catch (error) {
+      logger.error(ctx, "getJobPostResponsibilities", "Query failed", error);
+      return wrapper.error("Failed to fetch responsibilities");
+    }
+  }
 }
 
 module.exports = Query;
