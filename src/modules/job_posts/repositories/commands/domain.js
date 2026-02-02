@@ -20,6 +20,8 @@ const {
 const jobPostQuestionParamType = require("./command_model.js");
 // const commandModel = require("../../job_tags/repositories/commands/command_model");
 const tagsModel = require("../../../job_tags/repositories/commands/command_model.js");
+const { sendMail } = require("../../../../helpers/utils/mailer");
+const   statusEmailTemplate = require("../../../../helpers/utils/statusEmailTemplate");
 
 class Jobpost {
   constructor(db) {
@@ -476,6 +478,29 @@ class Jobpost {
       );
       return wrapper.error(
         new InternalServerError("Failed to update application status"),
+      );
+    }
+
+    const app = await this.query.findApplicationWithUser(id);
+    if (app.err || !app.data) {
+      return wrapper.error(new NotFoundError("Application not found"));
+    }
+
+    // kirim email (NON-BLOCKING OPTIONAL)
+    try {
+      await sendMail({
+        to: app.data.email,
+        subject: `Application status updated — ${app.data.job_title}`,
+        html: statusEmailTemplate({
+          name: app.data.user_name,
+          jobTitle: app.data.job_title,
+          status: app.data.status_name,
+        }),
+      });
+    } catch (e) {
+      logger.error(ctx, "changeApplicationStatus", "Send email failed", e);
+      return wrapper.error(
+        new InternalServerError(e.message),
       );
     }
 

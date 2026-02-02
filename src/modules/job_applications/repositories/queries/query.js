@@ -281,8 +281,55 @@ class Query {
       1,
       10,
       currencies_collection,
-      "OR"
+      "OR",
     );
+  }
+  async findApplicationById(application_id) {
+    const res = await this.db.executeQuery(
+      `
+    SELECT id
+    FROM job_applications
+    WHERE id = $1
+    LIMIT 1
+    `,
+      [application_id],
+    );
+    return wrapper.data(res.rows[0]);
+  }
+
+  async getNotesByApplication(application_id) {
+    const res = await this.db.executeQuery(
+      `
+    SELECT
+      n.id,
+      n.note,
+      n.created_at,
+      r.company_name
+    FROM application_notes n
+    JOIN recruiters r ON r.id = n.recruiter_id
+    WHERE n.application_id = $1
+    ORDER BY n.created_at DESC
+    `,
+      [application_id],
+    );
+    return wrapper.data(res.rows);
+  }
+
+  async findApplicationWithRecruiter(application_id) {
+    const res = await this.db.executeQuery(
+      `
+    SELECT
+      ja.id AS application_id,
+      jp.recruiter_id
+    FROM job_applications ja
+    JOIN job_posts jp ON jp.id = ja.job_post_id
+    WHERE ja.id = $1
+    LIMIT 1
+    `,
+      [application_id],
+    );
+
+    return wrapper.data(res.rows[0]);
   }
 }
 

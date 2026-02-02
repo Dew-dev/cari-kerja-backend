@@ -31,6 +31,11 @@ const updateJobPostStatus = async (payload, id) => {
 // const updateJobPostAnswers = async (payload, id) => {
 //   return domain.updateJobPostAnswers(payload, id);
 // };
+const addApplicationNote = async (payload) =>
+  domain.addApplicationNote(payload);
+
+const getApplicationNotes = async (payload) =>
+  domain.getApplicationNotes(payload);
 
 module.exports = {
   createJobPost,
@@ -39,4 +44,6 @@ module.exports = {
   createJobPostAnswers,
   createJobApplication,
   updateJobPostStatus,
+  addApplicationNote,
+  getApplicationNotes,
 };

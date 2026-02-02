@@ -12,7 +12,7 @@ const {
   ConflictError,
   InternalServerError,
   BadRequestError,
-  ForbiddenError
+  ForbiddenError,
 } = require("../../../../helpers/errors");
 const {
   compareHash,
@@ -32,6 +32,8 @@ const bcrypt = require("bcrypt");
 const { sendMail } = require("../../../../helpers/utils/mailer");
 const resetPasswordEmail = require("../../../../helpers/utils/resetPasswordEmail");
 const verifyEmailTemplate = require("../../../../helpers/utils/verifyEmail");
+const COOLDOWN_SECONDS = 60;
+const MAX_PER_HOUR = 5;
 
 class User {
   constructor(db) {
@@ -246,7 +248,6 @@ class User {
     }
     delete data.hashed_password;
 
-    
     const resultWorker = await this.workerCommand.insertOne(dataWorker);
     if (resultWorker.err) {
       logger.error(
@@ -258,7 +259,6 @@ class User {
       return wrapper.error(new InternalServerError("Register Worker Failed"));
     }
 
-    
     const userId = data.id;
 
     // 2. invalidate token verifikasi lama (aman kalau belum ada)
@@ -293,7 +293,6 @@ class User {
       // jangan gagalkan register kalau email gagal
       logger.error(ctx, "register", "Send verify email failed", e);
     }
-    
 
     return wrapper.data({ user_id: data.id, worker_id: resultWorker.id });
   }
@@ -680,7 +679,33 @@ class User {
     if (user.data.email_verified_at) {
       return wrapper.data("Email already verified");
     }
+    const userId = user.data.id;
 
+    // ⏳ COOLDOWN CHECK
+    const latest = await this.query.getLatestEmailVerification(userId);
+    if (latest.data) {
+      const diff =
+        (Date.now() - new Date(latest.data.created_at).getTime()) / 1000;
+
+      if (diff < COOLDOWN_SECONDS) {
+        return wrapper.error(
+          new TooManyRequestsError(
+            `Please wait ${Math.ceil(COOLDOWN_SECONDS - diff)} seconds`,
+          ),
+        );
+      }
+    }
+
+    // 🚦 RATE LIMIT CHECK
+    const count = await this.query.countEmailVerificationsInWindow(userId, 60);
+
+    if (count >= MAX_PER_HOUR) {
+      return wrapper.error(
+        new TooManyRequestsError(
+          "Too many verification requests. Please try again later.",
+        ),
+      );
+    }
     await this.command.invalidateEmailVerifications(user.data.id);
 
     const token = crypto.randomBytes(32).toString("hex");

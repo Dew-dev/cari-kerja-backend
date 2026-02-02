@@ -141,6 +141,33 @@ class Query {
     );
     return wrapper.data(res.rows[0]);
   }
+
+  async getLatestEmailVerification(user_id) {
+    const res = await this.db.executeQuery(
+      `
+    SELECT created_at
+    FROM email_verifications
+    WHERE user_id = $1
+    ORDER BY created_at DESC
+    LIMIT 1
+    `,
+      [user_id],
+    );
+    return wrapper.data(res.rows[0]);
+  }
+
+  async countEmailVerificationsInWindow(user_id, minutes = 60) {
+    const res = await this.db.executeQuery(
+      `
+    SELECT COUNT(*)::int AS total
+    FROM email_verifications
+    WHERE user_id = $1
+      AND created_at > NOW() - INTERVAL '${minutes} minutes'
+    `,
+      [user_id],
+    );
+    return wrapper.data(res.rows[0]?.total || 0);
+  }
 }
 
 module.exports = Query;
