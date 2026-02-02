@@ -7,7 +7,7 @@ const { sendResponse } = require("../../../helpers/utils/response");
 
 // query
 const getAllJobPostResponsibilitiesByJobPostId = async (req, res) => {
-    const payload = {job_post_id: req.params};
+    const payload = {job_post_id: req.params.job_post_id};
     const validatePayload = validator.isValidPayload(payload, queryModel.getAllJobPostResponsibilitiesParam);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);
@@ -28,7 +28,7 @@ const insertJobPostResponsibility = async (req, res) => {
 }
 
 const updateJobPostResponsibility = async (req, res) => {
-    const payload = {...req.body, job_post_id: req.params, recruiter_id: req.userMeta.recruiter_id};
+    const payload = {...req.body, job_post_id: req.params.job_post_id, recruiter_id: req.userMeta.recruiter_id};
     const validatePayload = validator.isValidPayload(payload, commandModel.updateJobPostResponsibilityParamType);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);
@@ -38,7 +38,7 @@ const updateJobPostResponsibility = async (req, res) => {
 }
 
 const deleteJobPostResponsibility = async (req, res) => {
-    const payload = {...req.body, job_post_id: req.params, recruiter_id: req.userMeta.recruiter_id };
+    const payload = {...req.body, job_post_id: req.params.job_post_id, recruiter_id: req.userMeta.recruiter_id };
     const validatePayload = validator.isValidPayload(payload, commandModel.deleteJobPostResponsibilityParamType);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);

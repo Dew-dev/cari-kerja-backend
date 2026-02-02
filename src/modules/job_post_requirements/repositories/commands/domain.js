@@ -20,17 +20,18 @@ class JobPostRequirements {
       id: uuidv4(),
       job_post_id: payload.job_post_id,
       requirement: payload.requirement,
-      order_index: payload.order_index, 
-      recruiter_id: payload.recruiter_id,
+      order_index: payload.order_index,
     };
+    const { recruiter_id } = payload;
 
     const job_post = await this.domain.getJobpostById({id: document.job_post_id});
-    if (document.recruiter_id !== job_post.data.recruiter_id) {
+    if (recruiter_id !== job_post.data.recruiter_id) {
       return wrapper.error(new UnauthorizedError("Unauthorized"));
     }
     
     const result = await this.command.insertOne(document);
     if (result.err) {
+      console.log("============================ERROR DI INSERT ONE============================\n",result.err);
       return wrapper.error(new InternalServerError("Failed to insert JobPostRequirements"));
     }
 

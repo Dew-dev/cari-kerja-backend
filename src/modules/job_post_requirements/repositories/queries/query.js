@@ -22,8 +22,7 @@ class Query {
         try {
             const query = `
             SELECT 
-                id,
-                requirement,
+                *
             FROM job_post_requirements
             WHERE job_post_id = $1
             ORDER BY order_index ASC;

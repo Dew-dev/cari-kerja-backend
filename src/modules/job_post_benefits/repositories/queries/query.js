@@ -1,9 +1,9 @@
-const collection = "job_post_responsibilities";
+const collection = "job_post_benefits";
 const errorEmptyMessage = "Data Not Found Please Try Another Input";
 const errorQueryMessage = "Error querying PostgreSQL";
 const logger = require("../../../../helpers/utils/logger");
 const wrapper = require("../../../../helpers/utils/wrapper");
-const ctx = "JobPostResponsibilities-Query";
+const ctx = "JobPostBenefits-Query";
 
 class Query {
   constructor(db) {
@@ -22,7 +22,7 @@ class Query {
             const query = `
             SELECT 
                 *
-            FROM job_post_responsibilities
+            FROM job_post_benefits
             WHERE job_post_id = $1
             ORDER BY order_index ASC;
             `;

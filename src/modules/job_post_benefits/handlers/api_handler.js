@@ -6,50 +6,50 @@ const validator = require("../../../helpers/utils/validator");
 const { sendResponse } = require("../../../helpers/utils/response");
 
 // query
-const getAllJobPostRequirementsByJobPostId = async (req, res) => {
+const getAllJobPostBenefitsByJobPostId = async (req, res) => {
     const payload = {job_post_id: req.params.job_post_id};
-    const validatePayload = validator.isValidPayload(payload, queryModel.getAllJobPostRequirementsParam);
+    const validatePayload = validator.isValidPayload(payload, queryModel.getAllJobPostBenefitsParam);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);
     }
-    const result = await queryHandler.getAllJobPostRequirementsByJobPostId(validatePayload.data);
+    const result = await queryHandler.getAllJobPostBenefitsByJobPostId(validatePayload.data);
     return sendResponse(result,res);
 }
 
 // command
-const insertJobPostRequirements = async (req, res) => {
+const insertJobPostBenefit = async (req, res) => {
     const payload = {...req.body, job_post_id: req.params.job_post_id, recruiter_id: req.userMeta.recruiter_id };
-    const validatePayload = validator.isValidPayload(payload, commandModel.addJobPostRequirementParamType);
+    const validatePayload = validator.isValidPayload(payload, commandModel.addJobPostBenefitParamType);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);
     }
-    const result = await commandHandler.insertJobPostRequirements(validatePayload.data);
+    const result = await commandHandler.insertJobPostBenefit(validatePayload.data);
     return sendResponse(result,res);
 }
 
-const updateJobPostRequirements = async (req, res) => {
+const updateJobPostBenefit = async (req, res) => {
     const payload = {...req.body, job_post_id: req.params.job_post_id, recruiter_id: req.userMeta.recruiter_id};
-    const validatePayload = validator.isValidPayload(payload, commandModel.updateJobPostRequirementParamType);
+    const validatePayload = validator.isValidPayload(payload, commandModel.updateJobPostBenefitParamType);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);
     }
-    const result = await commandHandler.updateJobPostRequirements(validatePayload.data);
+    const result = await commandHandler.updateJobPostBenefit(validatePayload.data);
     return sendResponse(result,res);
 }
 
-const deleteJobPostRequirements = async (req, res) => {
+const deleteJobPostBenefit = async (req, res) => {
     const payload = {...req.body, job_post_id: req.params.job_post_id, recruiter_id: req.userMeta.recruiter_id };
-    const validatePayload = validator.isValidPayload(payload, commandModel.deleteJobPostRequirementParamType);
+    const validatePayload = validator.isValidPayload(payload, commandModel.deleteJobPostBenefitParamType);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);
     }
-    const result = await commandHandler.deleteJobPostRequirements(validatePayload.data);
+    const result = await commandHandler.deleteJobPostBenefit(validatePayload.data);
     return sendResponse(result,res);
 }
 
 module.exports = {
-    getAllJobPostRequirementsByJobPostId,
-    insertJobPostRequirements,
-    updateJobPostRequirements,
-    deleteJobPostRequirements
+    getAllJobPostBenefitsByJobPostId,
+    insertJobPostBenefit,
+    updateJobPostBenefit,
+    deleteJobPostBenefit
 }

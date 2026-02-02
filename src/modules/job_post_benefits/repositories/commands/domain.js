@@ -5,9 +5,9 @@ const wrapper = require("../../../../helpers/utils/wrapper");
 const { v4: uuidv4 } = require("uuid");
 const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError, InternalServerError, BadRequestError, UnauthorizedError } = require("../../../../helpers/errors");
-const ctx = "JobPostResponsibilities-Domain";
+const ctx = "JobPostBenefits-Domain";
 
-class JobPostResponsibilities {
+class JobPostBenefits {
   constructor(db) {
     this.command = new Command(db);
     this.query = new Query(db);
@@ -18,8 +18,8 @@ class JobPostResponsibilities {
     const document = {
       id: uuidv4(),
       job_post_id: payload.job_post_id,
-      requirement: payload.requirement,
-      order_index: payload.order_index, 
+      benefit: payload.requirement,
+      order_index: payload.order_index,
     };
 
     const { recruiter_id } = payload;
@@ -31,10 +31,10 @@ class JobPostResponsibilities {
     
     const result = await this.command.insertOne(document);
     if (result.err) {
-      return wrapper.error(new InternalServerError("Failed to insert JobPostResponsibilities"));
+      return wrapper.error(new InternalServerError("Failed to insert JobPostBenefits"));
     }
 
-    return wrapper.data({ id: result.data.id }, "Success insert JobPostResponsibilities", 201);
+    return wrapper.data({ id: result.data.id }, "Success insert JobPostBenefits", 201);
   }
 
   async updateOne(payload) {
@@ -42,20 +42,20 @@ class JobPostResponsibilities {
 
     const existing = await this.query.findOne({ id }, { id: 1 });
     if (existing.err) {
-      return wrapper.error(new NotFoundError("JobPostResponsibilities not found"));
+      return wrapper.error(new NotFoundError("JobPostBenefits not found"));
     }
 
     const document = {
-      responsibility: payload.responsibility,
+      benefit: payload.benefit,
       order_index: payload.order_index
     };
 
     const result = await this.command.updateOneNew({ id, job_post_id }, document);
     if (result.err) {
-      return wrapper.error(new InternalServerError("Failed to update JobPostResponsibility"));
+      return wrapper.error(new InternalServerError("Failed to update JobPostBenefits"));
     }
 
-    return wrapper.data({ id }, "Success update JobPostResponsibility", 200);
+    return wrapper.data({ id }, "Success update JobPostBenefits", 200);
   }
 
   async deleteOne(payload) {
@@ -63,16 +63,16 @@ class JobPostResponsibilities {
 
     const existing = await this.query.findOne({ id, job_post_id }, { id: 1 });
     if (existing.err) {
-      return wrapper.error(new NotFoundError("JobPostResponsibility not found"));
+      return wrapper.error(new NotFoundError("JobPostBenefits not found"));
     }
 
     const result = await this.command.deleteOne({ id, job_post_id });
     if (result.err) {
-      return wrapper.error(new InternalServerError("Failed to delete JobPostResponsibility"));
+      return wrapper.error(new InternalServerError("Failed to delete JobPostBenefits"));
     }
 
-    return wrapper.data("Successfully deleted", "Success delete JobPostResponsibility", 200);
+    return wrapper.data("Successfully deleted", "Success delete JobPostBenefits", 200);
   }
 }
 
-module.exports = JobPostResponsibilities;
+module.exports = JobPostBenefits;

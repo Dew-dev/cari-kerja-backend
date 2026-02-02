@@ -1,4 +1,4 @@
-const collection = "job_post_requirements"; // nama tabel di database
+const collection = "job_post_benefits"; // nama tabel di database
 
 class Command {
   constructor(db) {
@@ -6,12 +6,7 @@ class Command {
   }
 
   async insertOne(document) {
-    try {
-      return this.db.insertOne(document, collection);
-    } catch (error) {
-      logger.error(ctx, "Inserting failed", "getAllByJobPostId", error);
-      return wrapper.error("Inserting failed");
-    }
+    return this.db.insertOne(document, collection);
   }
 
   async updateOneNew(parameter, document) {

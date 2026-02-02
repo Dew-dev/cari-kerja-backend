@@ -20,6 +20,7 @@ const employmentTypes = require("./employment_types");
 const categories = require('./categories');
 const jobPostRequirements = require('./job_post_requirements');
 const jobPostResponsibilities = require('./job_post_responsibilities');
+const jobPostBenefits = require('./job_post_benefits');
 
 module.exports = (server) => {
   users(server);
@@ -45,4 +46,5 @@ module.exports = (server) => {
   categories(server);
   jobPostRequirements(server);
   jobPostResponsibilities(server);
+  jobPostBenefits(server);
 };

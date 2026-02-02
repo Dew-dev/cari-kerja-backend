@@ -203,9 +203,9 @@ class Jobposts {
     }
 
     if (archive) {
-      conditions.push(` AND archived_at IS NOT NULL`); // Archived
+      conditions.push(` AND j.archived_at IS NOT NULL`); // Archived
     } else {
-      conditions.push(` AND archived_at IS NULL`); // Not archived
+      conditions.push(` AND j.archived_at IS NULL`); // Not archived
     }
 
     if (exclude_id !== undefined && exclude_id !== null && exclude_id !== "") {
@@ -266,6 +266,7 @@ class Jobposts {
     }
 
     logger.info(ctx, "getJobpostById", "Job Post Query", payload);
+    
     return wrapper.data(jobpost.data);
   }
 
