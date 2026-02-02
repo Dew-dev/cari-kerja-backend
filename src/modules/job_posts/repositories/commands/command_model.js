@@ -26,6 +26,33 @@ const createJobPostParamType = joi.object({
   country: joi.string().optional(),
   city: joi.string().optional(),
   category_id: joi.number().required(),
+  requirements: joi
+    .array()
+    .items(
+      joi.object({
+        requirement: joi.string().required(),
+        order_index: joi.number().required(),
+      }),
+    )
+    .optional(),
+  benefits: joi
+    .array()
+    .items(
+      joi.object({
+        benefit: joi.string().required(),
+        order_index: joi.number().required(),
+      }),
+    )
+    .optional(),
+  responsibilities: joi
+    .array()
+    .items(
+      joi.object({
+        responsibility: joi.string().required(),
+        order_index: joi.number().required(),
+      }),
+    )
+    .optional(),
 });
 
 const jobPostQuestionParamType = joi.object({

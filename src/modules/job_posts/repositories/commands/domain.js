@@ -45,10 +45,14 @@ class Jobpost {
       deadline,
       tags,
       category_id,
+      requirements,
+      benefits,
+      responsibilities,
     } = payload;
 
+    const jobPostId = uuidv4();
     const data = {
-      id: uuidv4(),
+      id: jobPostId,
       recruiter_id,
       title,
       description,
@@ -68,6 +72,51 @@ class Jobpost {
     if (result.err) {
       logger.error(ctx, "Create job post", "Job Posts Commands", result.err);
       return wrapper.error(new InternalServerError("Create Job Post Failed"));
+    }
+
+    // Insert requirements if provided
+    if (requirements && Array.isArray(requirements) && requirements.length > 0) {
+      const requirementsData = requirements.map((req) => ({
+        id: uuidv4(),
+        job_post_id: jobPostId,
+        requirement: req.requirement,
+        order_index: req.order_index,
+      }));
+      
+      const reqResult = await this.command.insertMany(requirementsData, "job_post_requirements");
+      if (reqResult.err) {
+        logger.error(ctx, "Create job post requirements", "Job Posts Commands", reqResult.err);
+      }
+    }
+
+    // Insert benefits if provided
+    if (benefits && Array.isArray(benefits) && benefits.length > 0) {
+      const benefitsData = benefits.map((ben) => ({
+        id: uuidv4(),
+        job_post_id: jobPostId,
+        benefit: ben.benefit,
+        order_index: ben.order_index,
+      }));
+      
+      const benResult = await this.command.insertMany(benefitsData, "job_post_benefits");
+      if (benResult.err) {
+        logger.error(ctx, "Create job post benefits", "Job Posts Commands", benResult.err);
+      }
+    }
+
+    // Insert responsibilities if provided
+    if (responsibilities && Array.isArray(responsibilities) && responsibilities.length > 0) {
+      const responsibilitiesData = responsibilities.map((resp) => ({
+        id: uuidv4(),
+        job_post_id: jobPostId,
+        responsibility: resp.responsibility,
+        order_index: resp.order_index,
+      }));
+      
+      const respResult = await this.command.insertMany(responsibilitiesData, "job_post_responsibilities");
+      if (respResult.err) {
+        logger.error(ctx, "Create job post responsibilities", "Job Posts Commands", respResult.err);
+      }
     }
 
     return wrapper.data(data);

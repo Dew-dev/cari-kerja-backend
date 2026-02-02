@@ -273,9 +273,31 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Can not find the job post"));
     }
 
+    // Fetch requirements, benefits, and responsibilities
+    const RequirementsQuery = require("../../../job_post_requirements/repositories/queries/query");
+    const BenefitsQuery = require("../../../job_post_benefits/repositories/queries/query");
+    const ResponsibilitiesQuery = require("../../../job_post_responsibilities/repositories/queries/query");
+    
+    const requirementsQuery = new RequirementsQuery(this.query.db);
+    const benefitsQuery = new BenefitsQuery(this.query.db);
+    const responsibilitiesQuery = new ResponsibilitiesQuery(this.query.db);
+
+    const [requirementsResult, benefitsResult, responsibilitiesResult] = await Promise.all([
+      requirementsQuery.getAllByJobPostId(id),
+      benefitsQuery.getAllByJobPostId(id),
+      responsibilitiesQuery.getAllByJobPostId(id),
+    ]);
+
+    const jobPostData = {
+      ...jobpost.data,
+      requirements: !requirementsResult.err ? requirementsResult.data : [],
+      benefits: !benefitsResult.err ? benefitsResult.data : [],
+      responsibilities: !responsibilitiesResult.err ? responsibilitiesResult.data : [],
+    };
+
     logger.info(ctx, "getJobpostById", "Job Post Query", payload);
     
-    return wrapper.data(jobpost.data);
+    return wrapper.data(jobPostData);
   }
 
   async getAppliedJobposts(payload) {
