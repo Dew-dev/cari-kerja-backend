@@ -404,6 +404,7 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
                 q.job_post_id,
                 q.question_text,
                 qt.name AS question_type,
+                q.question_type_id,
                 q.options,
                 q.is_required,
                 q.order_index,
@@ -596,6 +597,34 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
     );
 
     return wrapper.data(res.rows[0]);
+  }
+
+  async findAnswersByApplicationId({ id }) {
+    try {
+      const query = `
+      SELECT
+        jpa.id,
+        jpa.question_id,
+        jpa.answer,
+        jpa.submitted_at,
+        jpq.question_text,
+        qt.name AS question_type,
+        jpq.options,
+        jpq.is_required,
+        jpq.order_index
+      FROM job_post_answers jpa
+      JOIN job_post_questions jpq ON jpq.id = jpa.question_id
+      JOIN question_types qt ON qt.id = jpq.question_type_id
+      WHERE jpa.job_application_id = $1
+      ORDER BY jpq.order_index ASC;
+    `;
+
+      const result = await this.db.executeQuery(query, [id]);
+      return wrapper.data(result.rows);
+    } catch (error) {
+      logger.error(ctx, "findAnswersByApplicationId", "Query failed", error);
+      return wrapper.error("Failed to fetch answers");
+    }
   }
 }
 

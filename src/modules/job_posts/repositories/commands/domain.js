@@ -48,6 +48,8 @@ class Jobpost {
       requirements,
       benefits,
       responsibilities,
+      job_post_questions,
+      questions,
     } = payload;
 
     const jobPostId = uuidv4();
@@ -119,6 +121,28 @@ class Jobpost {
       }
     }
 
+    const questionPayload = Array.isArray(job_post_questions)
+      ? job_post_questions
+      : Array.isArray(questions)
+        ? questions
+        : null;
+    console.log("questionPayload:", questionPayload);
+    if (questionPayload && questionPayload.length > 0) {
+      const questionResult = await this.createJobPostQuestions(
+        questionPayload,
+        jobPostId,
+        ctx,
+      );
+      if (questionResult.err) {
+        logger.error(
+          ctx,
+          "Create job post questions",
+          "Job Posts Commands",
+          questionResult.err,
+        );
+      }
+    }
+
     return wrapper.data(data);
   }
 
@@ -131,7 +155,7 @@ class Jobpost {
       // Validasi & siapkan data
       const validatedData = payloadArray.map((item, idx) => {
         const validateItem = validator.isValidPayload(
-          item,
+          { ...item, job_post_id: id },
           commandModel.jobPostQuestionParamType,
         );
 
@@ -384,16 +408,50 @@ class Jobpost {
         );
       }
 
-      // insert ke job_post_answers (jika ada)
+      // Fetch job post questions if no answers provided
+      let answerPayload = [];
       if (Array.isArray(answers) && answers.length > 0) {
-        const answerPayload = answers.map((a) => ({
-          id: uuidv4(),
-          job_application_id: data.id,
-          question_id: a.question_id,
-          answer: a.answer,
-          submitted_at: a.submitted_at || new Date(),
-        }));
+        // Use provided answers - convert string answers to JSON objects
+        answerPayload = answers.map((a) => {
+          let answerValue = a.answer;
+          // If answer is a string, wrap it in an object with "text" field
+          if (typeof answerValue === 'string') {
+            answerValue = { text: answerValue };
+          }
+          return {
+            id: uuidv4(),
+            job_application_id: data.id,
+            question_id: a.question_id,
+            answer: answerValue,
+            submitted_at: a.submitted_at || new Date(),
+          };
+        });
+      } else {
+        // Auto-create empty answers for all job post questions
+        const questionsResult = await this.query.findAllByJobPostId({
+          job_post_id,
+          conditions: "",
+          orderColumn: "q.order_index",
+          orderDirection: "ASC",
+          idx: 2,
+          values: [job_post_id],
+          limit: 1000,
+          page: 1,
+        });
 
+        if (!questionsResult.err && questionsResult.data && questionsResult.data.length > 0) {
+          answerPayload = questionsResult.data.map((q) => ({
+            id: uuidv4(),
+            job_application_id: data.id,
+            question_id: q.id,
+            answer: null,
+            submitted_at: new Date(),
+          }));
+        }
+      }
+
+      // insert ke job_post_answers (jika ada)
+      if (answerPayload.length > 0) {
         const resultAnswer = await this.command.insertMany(
           answerPayload,
           "job_post_answers",
@@ -410,7 +468,7 @@ class Jobpost {
 
       return wrapper.data({
         job_application: data,
-        answers: answers || [],
+        answers: answerPayload || [],
       });
     } catch (err) {
       // await client.query("ROLLBACK");
@@ -557,7 +615,7 @@ class Jobpost {
   }
 
   async updateJobPost(payload) {
-    const { id, recruiter_id, user_id, tags, ...jobData } = payload;
+    const { id, recruiter_id, user_id, tags, job_post_questions, questions, ...jobData } = payload;
 
     // 1️⃣ cek job milik recruiter
     const job = await this.query.findOneJobPost({
@@ -593,6 +651,35 @@ class Jobpost {
           job_post_id: id,
           tag_id: tag.id,
         });
+      }
+    }
+
+    // 4️⃣ update questions (replace)
+    const questionPayload = Array.isArray(job_post_questions)
+      ? job_post_questions
+      : Array.isArray(questions)
+        ? questions
+        : null;
+    console.log("questionPayload (update):", questionPayload);
+    if (questionPayload) {
+      // delete existing questions
+      await this.command.deleteJobPostQuestions({ job_post_id: id });
+
+      // insert new questions if any provided
+      if (questionPayload.length > 0) {
+        const questionResult = await this.createJobPostQuestions(
+          questionPayload,
+          id,
+          ctx,
+        );
+        if (questionResult.err) {
+          logger.error(
+            ctx,
+            "Update job post questions",
+            "Job Posts Commands",
+            questionResult.err,
+          );
+        }
       }
     }
 

@@ -109,6 +109,13 @@ class Command {
     );
   }
 
+  async deleteJobPostQuestions({ job_post_id }) {
+    return this.db.executeQuery(
+      "DELETE FROM job_post_questions WHERE job_post_id = $1",
+      [job_post_id],
+    );
+  }
+
   async insertJobPostTag({ job_post_id, tag_id }) {
     return this.db.executeQuery(
       `

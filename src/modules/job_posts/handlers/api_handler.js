@@ -334,6 +334,8 @@ const updateJobPost = async (req, res) => {
     location: req.body.location,
     deadline: req.body.deadline,
     tags: req.body.tags,
+    job_post_questions: req.body.job_post_questions,
+    questions: req.body.questions,
   };
 
   const validatePayload = validator.isValidPayload(

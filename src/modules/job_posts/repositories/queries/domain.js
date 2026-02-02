@@ -282,10 +282,22 @@ class Jobposts {
     const benefitsQuery = new BenefitsQuery(this.query.db);
     const responsibilitiesQuery = new ResponsibilitiesQuery(this.query.db);
 
-    const [requirementsResult, benefitsResult, responsibilitiesResult] = await Promise.all([
+    const questionParams = {
+      job_post_id: id,
+      conditions: "",
+      orderColumn: "q.order_index",
+      orderDirection: "ASC",
+      idx: 2,
+      values: [id],
+      limit: 1000,
+      page: 1,
+    };
+
+    const [requirementsResult, benefitsResult, responsibilitiesResult, questionsResult] = await Promise.all([
       requirementsQuery.getAllByJobPostId(id),
       benefitsQuery.getAllByJobPostId(id),
       responsibilitiesQuery.getAllByJobPostId(id),
+      this.query.findAllByJobPostId(questionParams),
     ]);
 
     const jobPostData = {
@@ -293,6 +305,7 @@ class Jobposts {
       requirements: !requirementsResult.err ? requirementsResult.data : [],
       benefits: !benefitsResult.err ? benefitsResult.data : [],
       responsibilities: !responsibilitiesResult.err ? responsibilitiesResult.data : [],
+      questions: !questionsResult.err ? questionsResult.data : [],
     };
 
     logger.info(ctx, "getJobpostById", "Job Post Query", payload);
@@ -712,8 +725,16 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Worker not found"));
     }
 
+    // 3. Ambil answers untuk application ini
+    const answersResult = await this.query.findAnswersByApplicationId({ id });
+    
+    const workerData = {
+      ...worker.data,
+      answers: !answersResult.err && answersResult.data ? answersResult.data : [],
+    };
+
     logger.info(ctx, "getWorkerByApplication", "Get worker detail", payload);
-    return wrapper.data(worker.data);
+    return wrapper.data(workerData);
   }
 }
 

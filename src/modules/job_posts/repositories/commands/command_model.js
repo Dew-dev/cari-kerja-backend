@@ -1,5 +1,15 @@
 const joi = require("joi");
 
+const jobPostQuestionCreateParamType = joi.object({
+  question_text: joi.string().required(),
+  question_type_id: joi.number().integer().required(),
+  options: joi.object().allow(null).default(null),
+  is_required: joi.boolean().default(true),
+  order_index: joi.number().integer().min(0).default(0),
+  created_at: joi.date().default(() => new Date().toISOString()), // sama dengan now()
+  updated_at: joi.date().default(() => new Date().toISOString()), // sama dengan now()
+});
+
 const createJobPostParamType = joi.object({
   recruiter_id: joi.string().required(),
   title: joi.string().required(),
@@ -53,6 +63,8 @@ const createJobPostParamType = joi.object({
       }),
     )
     .optional(),
+  job_post_questions: joi.array().items(jobPostQuestionCreateParamType).optional(),
+  questions: joi.array().items(jobPostQuestionCreateParamType).optional(),
 });
 
 const jobPostQuestionParamType = joi.object({
@@ -103,15 +115,15 @@ const createJobApplicationParamType = joi.object({
   resume_id: joi.string().uuid().allow(null),
   cover_letter: joi.string().allow(null, ""),
   application_status_id: joi.number().required(),
-  // answers: joi
-  //   .array()
-  //   .items(
-  //     joi.object({
-  //       question_id: joi.string().uuid().required(),
-  //       answer: joi.object().allow(null, "").optional(),
-  //     })
-  //   )
-  //   .optional(), // boleh kosong, misal ga ada pertanyaan
+  answers: joi
+    .array()
+    .items(
+      joi.object({
+        question_id: joi.string().uuid().required(),
+        answer: joi.string().allow(null, "").optional(),
+      })
+    )
+    .optional(), // boleh kosong, misal ga ada pertanyaan
   applied_at: joi.date().default(() => new Date().toISOString()),
   updated_at: joi.date().default(() => new Date().toISOString()),
 });
@@ -168,6 +180,8 @@ const updateJobPostParamType = joi.object({
       }),
     )
     .optional(),
+  job_post_questions: joi.array().items(jobPostQuestionCreateParamType).optional(),
+  questions: joi.array().items(jobPostQuestionCreateParamType).optional(),
 });
 const archiveJobPostParamType = joi.object({
   id: joi.string().uuid().required(),
@@ -177,6 +191,7 @@ const archiveJobPostParamType = joi.object({
 
 module.exports = {
   createJobPostParamType,
+  jobPostQuestionCreateParamType,
   jobPostQuestionParamType,
   jobPostQuestionUpdateParamType,
   createJobPostAnswerParamType,
