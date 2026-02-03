@@ -23,7 +23,11 @@ module.exports = (server) => {
     verifyToken,
     jobpostHandler.updateJobPostStatus,
   );
-  server.get("/api/v1/job-posts", jobpostHandler.getJobposts); //No token needed
+  server.get(
+    "/api/v1/job-posts",
+    optionalVerifyToken,
+    jobpostHandler.getJobposts,
+  ); //No token needed
   server.post("/api/v1/job-posts", verifyToken, jobpostHandler.createJobPost);
   server.post(
     "/api/v1/job-posts/:id/create-questions",

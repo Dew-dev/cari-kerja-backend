@@ -52,6 +52,16 @@ class Query {
                     FROM job_applications ja
                     WHERE ja.job_post_id = j.id
                 ) AS applications,
+                 ${
+                   user_id
+                     ? `(
+        SELECT EXISTS (
+          SELECT id FROM saved_jobs sj
+          WHERE sj.worker_id = '${user_id}' AND sj.job_post_id = j.id
+        )
+      ) AS saved_id,`
+                     : `false AS saved_id,`
+                 }
                 ${
                   user_id
                     ? `(
@@ -61,7 +71,7 @@ class Query {
         )
       ) AS applied`
                     : `false AS applied`
-                } 
+                }
             FROM job_posts j
             JOIN recruiters r ON r.id = j.recruiter_id
             JOIN users u ON u.id = r.user_id
