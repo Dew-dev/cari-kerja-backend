@@ -54,6 +54,7 @@ class Query {
       FROM categories c
       LEFT JOIN job_posts j
         ON j.category_id = c.id
+        WHERE j.archived_at IS NULL AND j.status_id < 3
       GROUP BY c.id
       ORDER BY job_count DESC;
       `;
