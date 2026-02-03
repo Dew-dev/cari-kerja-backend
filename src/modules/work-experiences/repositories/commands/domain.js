@@ -24,7 +24,7 @@ class WorkExperience {
       company_name: payload.company_name,
       job_title: payload.job_title,
       start_date: payload.start_date,
-      end_date: payload.end_date || null,
+      end_date: payload.end_date || (payload.is_current ? null : payload.end_date),
       is_current: payload.is_current || false,
       description: payload.description || null,
     };

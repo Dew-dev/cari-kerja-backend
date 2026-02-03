@@ -118,9 +118,12 @@ class Query {
                 w.current_salary,
                 w.expected_salary,
                 w.created_at AS worker_created_at,
-                w.updated_at AS worker_updated_at
+                w.updated_at AS worker_updated_at,
+                rec.company_name AS company_name,
+                rec.avatar_url AS recruiter_avatar_url
             FROM ${collection} sj
             JOIN job_posts j ON j.id = sj.job_post_id
+            JOIN recruiters rec ON rec.id = j.recruiter_id
             JOIN employment_types et ON et.id = j.employment_type_id
             JOIN currencies c ON c.id = j.currency_id
             JOIN job_post_statuses jps ON jps.id = j.status_id
@@ -194,7 +197,9 @@ class Query {
                 w.current_salary,
                 w.expected_salary,
                 w.created_at AS worker_created_at,
-                w.updated_at AS worker_updated_at
+                w.updated_at AS worker_updated_at,
+                rec.avatar_url AS recruiter_avatar_url,
+                rec.company_name AS recruiter_company_name
               FROM ${collection} sj
               JOIN job_posts j ON j.id = sj.job_post_id
               JOIN employment_types et ON et.id = j.employment_type_id

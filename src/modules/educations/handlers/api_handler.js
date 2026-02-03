@@ -39,7 +39,8 @@ const insertEducations = async (req, res) => {
 
 const updateEducations = async (req, res) => {
     const payload = {...req.body, worker_id: req.userMeta.worker_id, ...req.params};
-    const validatePayload = validator.isValidPayload(payload, commandModel.updateEducationsParamType);
+    const {created_at,updated_at, ...payloadWithoutCreatedAt} = payload;
+    const validatePayload = validator.isValidPayload(payloadWithoutCreatedAt, commandModel.updateEducationsParamType);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);
     }

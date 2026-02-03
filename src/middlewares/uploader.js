@@ -62,11 +62,12 @@ const uploadAvatarWorker = createUploader(
 );
 
 // Resume → PDF only, max 5MB
-const uploadResume = createUploader("resumes", ["application/pdf"], 5);
+const uploadResume = createUploader("resumes", "resume", ["application/pdf"], 5);
 
 // Portfolio → PDF, ZIP, Image (buat portofolio design)
 const uploadPortfolio = createUploader(
   "portfolios",
+  "portfolio",
   [
     "application/pdf",
     "application/zip",

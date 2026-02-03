@@ -28,7 +28,8 @@ const getAllCertifications = async (req, res) => {
 
 const addCertification = async (req, res) => {
   const payload = { worker_id: req.userMeta.worker_id, ...req.body };
-  const validatePayload = validator.isValidPayload(payload, commandModel.addCertification);
+  const {created_at, updated_at, ...payloadWithoutTimestamps} = payload;
+  const validatePayload = validator.isValidPayload(payloadWithoutTimestamps, commandModel.addCertification);
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
@@ -38,7 +39,8 @@ const addCertification = async (req, res) => {
 
 const updateCertification = async (req, res) => {
   const payload = { id: req.params.id, worker_id: req.userMeta.worker_id, ...req.body };
-  const validatePayload = validator.isValidPayload(payload, commandModel.updateCertification);
+  const { created_at, updated_at,isSaved, ...payloadWithoutTimestamps } = payload;
+  const validatePayload = validator.isValidPayload(payloadWithoutTimestamps, commandModel.updateCertification);
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }

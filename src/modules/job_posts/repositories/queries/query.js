@@ -277,8 +277,8 @@ class Query {
     FROM job_post_tags jpt
     JOIN job_tags t ON t.id = jpt.tag_id
     WHERE jpt.job_post_id = j.id
-  ) AS tags
-
+  ) AS tags,
+      r.avatar_url
 FROM job_applications ja
 JOIN job_posts j ON j.id = ja.job_post_id
 
