@@ -31,7 +31,6 @@ class JobPostRequirements {
     
     const result = await this.command.insertOne(document);
     if (result.err) {
-      console.log("============================ERROR DI INSERT ONE============================\n",result.err);
       return wrapper.error(new InternalServerError("Failed to insert JobPostRequirements"));
     }
 
