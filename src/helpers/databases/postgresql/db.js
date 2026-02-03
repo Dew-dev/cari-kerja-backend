@@ -52,7 +52,7 @@ class DB {
         LIMIT 1;
       `;
       const values = parameterKey.map((key) => parameter[key]);
-      //console.log("Query FindOne : " + query);
+      console.log("Query FindOne : " + query,values);
       const result = await this.executeQuery(query, values);
       if (!result || result.rows.length === 0) {
         return wrapper.error(errorEmptyMessage);

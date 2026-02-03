@@ -11,6 +11,7 @@ const {
   sendResponse,
   paginationResponse,
 } = require("../../../../helpers/utils/response");
+const { NotFoundError } = require("../../../../helpers/errors");
 
 class SavedJobs {
   constructor(db) {
@@ -42,7 +43,7 @@ class SavedJobs {
   async deleteSavedJob(payload) {
     const { id } = payload;
 
-    const savedJob = await this.query.findOne({ id }, { id: 1, job_post_id: 1, worker_id: 1, created_at: 1 });
+    const savedJob = await this.query.findOne({ job_post_id: id }, { id: 1, job_post_id: 1, worker_id: 1, created_at: 1 });
     if (savedJob.err) {
       return wrapper.error(new NotFoundError("Saved Job not found"));
     }
