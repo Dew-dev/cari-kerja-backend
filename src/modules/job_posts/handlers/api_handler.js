@@ -117,8 +117,8 @@ const getJobpostQuestions = async (req, res) => {
 
 const getJobposts = async (req, res) => {
   let payload = { ...req.query };
-  console.log("req.userMeta", req.userMeta);
-  if (req.userMeta !== undefined && req.userMeta.worker_id && req.userMeta.worker_id !== undefined) {
+  // console.log("req.userMeta", req.userMeta);
+  if (req.userMeta?.worker_id) {
     payload = { ...payload, user_id: req.userMeta.worker_id };
     console.log("ini payload ", payload);
   }
