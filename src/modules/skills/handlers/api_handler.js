@@ -28,7 +28,7 @@ const getAllSkills = async (req, res) => {
     payload,
     queryModel.getAllSkillType
   );
-  //console.log(validatePayload);
+  ////console.log(validatePayload);
 
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);

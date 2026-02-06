@@ -38,7 +38,7 @@ class ExperienceLevels {
     );
     const count = await this.query.countAllExperienceLevels(search);
 
-    //console.log(experienceLevels);
+    ////console.log(experienceLevels);
 
     if (experienceLevels.err) {
       logger.error(

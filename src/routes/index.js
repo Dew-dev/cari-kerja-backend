@@ -21,6 +21,7 @@ const categories = require('./categories');
 const jobPostRequirements = require('./job_post_requirements');
 const jobPostResponsibilities = require('./job_post_responsibilities');
 const jobPostBenefits = require('./job_post_benefits');
+const contact_us = require('./contact_us');
 
 module.exports = (server) => {
   users(server);
@@ -47,4 +48,5 @@ module.exports = (server) => {
   jobPostRequirements(server);
   jobPostResponsibilities(server);
   jobPostBenefits(server);
+  contact_us(server);
 };

@@ -244,7 +244,7 @@ class Jobpost {
         throw new Error("Payload harus berupa object");
       }
       payload = { ...payload, id: id };
-      //console.log("payload status: ", payload);
+      ////console.log("payload status: ", payload);
       const validateItem = validator.isValidPayload(
         payload,
         commandModel.jobPostStatusUpdateParamType,
@@ -439,8 +439,8 @@ class Jobpost {
     // }
 
     const app = await this.query.findApplicationWithRecruiter(application_id);
-    console.log("app:", app.data);
-    console.log("recruiter_id:", recruiter_id);
+    //console.log("app:", app.data);
+    //console.log("recruiter_id:", recruiter_id);
 
     if (app.err || !app.data) {
       return wrapper.error(new NotFoundError("Application not found"));
@@ -465,8 +465,8 @@ class Jobpost {
 
   async getApplicationNotes({ application_id, recruiter_id }) {
     const app = await this.query.findApplicationWithRecruiter(application_id);
-    console.log("app notes:", app.data);
-    console.log("recruiter_id:", recruiter_id);
+    //console.log("app notes:", app.data);
+    //console.log("recruiter_id:", recruiter_id);
     if (app.err || !app.data) {
       return wrapper.error(new NotFoundError("Application not found"));
     }

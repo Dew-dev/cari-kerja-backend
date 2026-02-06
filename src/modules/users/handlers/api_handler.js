@@ -134,8 +134,8 @@ const deleteUser = async (req, res) => {
 
 const refreshToken = async (req, res) => {
   const payload = { token: req.cookies.refreshToken };
-  //console.log("req.cookies.refreshToken \n", req.cookies);
-  //console.log("payload \n", payload);
+  ////console.log("req.cookies.refreshToken \n", req.cookies);
+  ////console.log("payload \n", payload);
   const validatePayload = validator.isValidPayload(
     payload,
     commandModel.refreshTokenParamType
@@ -144,7 +144,7 @@ const refreshToken = async (req, res) => {
     return sendResponse(validatePayload, res);
   }
   const result = await commandHandler.refreshToken(validatePayload.data);
-  //console.log("result \n", result);
+  ////console.log("result \n", result);
   storeCookie(res, "refreshToken", result?.data?.refreshToken);
   return sendResponse(result, res);
 };

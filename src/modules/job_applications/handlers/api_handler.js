@@ -182,7 +182,7 @@ const getJobposts = async (req, res) => {
 
 const getJobpostsSelf = async (req, res) => {
   const payload = { ...req.query, recruiter_id: req.userMeta.recruiter_id,self:true };
-  console.log("payload self", payload);
+  //console.log("payload self", payload);
 
   const validatePayload = validator.isValidPayload(
     payload,

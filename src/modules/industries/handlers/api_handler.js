@@ -24,12 +24,12 @@ const getIndustry = async (req, res) => {
 
 const getAllIndustries = async (req, res) => {
   const payload = { ...req.query };
-  //console.log("sebenernya masuk");
+  ////console.log("sebenernya masuk");
   const validatePayload = validator.isValidPayload(
     payload,
     queryModel.getAllIndustriesType
   );
-  //console.log(validatePayload);
+  ////console.log(validatePayload);
 
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);

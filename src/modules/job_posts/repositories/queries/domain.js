@@ -236,7 +236,7 @@ class Jobposts {
     const conditionsString = conditions.join("\n");
 
     const count = await this.query.countAllJobPosts(conditionsString, values);
-    // console.log(count);
+    // //console.log(count);
     const totalData = count.data.rowCount;
 
     const data = {
@@ -628,7 +628,7 @@ class Jobposts {
   }
   async getCurrencyByCode(payload, ctx) {
     const { code } = payload ?? "";
-    //console.log("code", code);
+    ////console.log("code", code);
 
     // if (!code) {
     // }
@@ -637,7 +637,7 @@ class Jobposts {
       { code },
       { id: 1, code: 1, name: 1, symbol: 1 },
     );
-    //console.log("currency", currency);
+    ////console.log("currency", currency);
 
     if (currency.err) {
       const list = await this.query.findCurrency(
@@ -660,7 +660,7 @@ class Jobposts {
 
   async getCategoriesByName(payload) {
     const { name } = payload ?? "";
-    console.log(name);
+    //console.log(name);
     const jobtag = await this.query.findCategories(
       { name },
       { id: 1, name: 1 },

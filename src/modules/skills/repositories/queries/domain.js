@@ -29,7 +29,7 @@ class Skill {
     const skills = await this.query.findAllSkills(page, limit, search);
     const count = await this.query.countAllSkills(search);
 
-    //console.log(skills);
+    ////console.log(skills);
 
     if (skills.err) {
       logger.error(ctx, "getAllSkills", "Can not find skills", skills.err);

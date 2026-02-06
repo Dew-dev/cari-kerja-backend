@@ -29,7 +29,7 @@ const getAllEmploymentTypes = async (req, res) => {
     payload,
     queryModel.getAllEmploymentTypesType
   );
-  console.log(validatePayload);
+  //console.log(validatePayload);
 
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);

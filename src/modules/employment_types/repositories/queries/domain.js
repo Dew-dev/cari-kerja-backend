@@ -26,7 +26,7 @@ class EmploymentTypes {
     const employmentTypes = await this.query.findAllEmploymentTypes(page, limit, search);
     const count = await this.query.countAllEmploymentTypes(search);
 
-    console.log(employmentTypes);
+    //console.log(employmentTypes);
 
     if (employmentTypes.err) {
       logger.error(ctx, "getAllEmploymentTypes", "Can not find EmploymentTypes", employmentTypes.err);

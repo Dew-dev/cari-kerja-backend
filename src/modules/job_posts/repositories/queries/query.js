@@ -71,7 +71,12 @@ class Query {
         )
       ) AS applied`
                     : `false AS applied`
-                }
+                },
+                (SELECT json_agg(json_build_object('id', s.id, 'skill_name', s.skill_name))
+                FROM job_post_skills jps_sk
+                JOIN skills s ON s.id = jps_sk.skill_id
+                WHERE jps_sk.job_post_id = j.id
+              ) AS skills
             FROM job_posts j
             JOIN recruiters r ON r.id = j.recruiter_id
             JOIN users u ON u.id = r.user_id
@@ -167,7 +172,12 @@ class Query {
                 FROM job_post_tags jpt
                 JOIN job_tags t ON t.id = jpt.tag_id
                 WHERE jpt.job_post_id = j.id
-              ) AS tags
+              ) AS tags,
+                (SELECT json_agg(json_build_object('id', s.id, 'skill_name', s.skill_name))
+                FROM job_post_skills jps_sk
+                JOIN skills s ON s.id = jps_sk.skill_id
+                WHERE jps_sk.job_post_id = j.id
+              ) AS skills
      
               FROM job_posts j
               JOIN recruiters r ON r.id = j.recruiter_id
@@ -197,7 +207,7 @@ class Query {
 
       values.push(parseInt(limit, 10));
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
-      // console.log("ini query", jobpostsQuery);
+      // //console.log("ini query", jobpostsQuery);
       const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
 
       // if (!jobpostsResult || jobpostsResult.rows.length === 0) {
@@ -207,6 +217,7 @@ class Query {
       const result = jobpostsResult.rows.map((row) => ({
         ...row,
         tags: row.tags || [], // Pastikan tags selalu berupa array
+        skills: row.skills || [], // Pastikan skills selalu berupa array
       }));
       const pagination = {
         page: parseInt(page, 10),
@@ -278,6 +289,14 @@ class Query {
     JOIN job_tags t ON t.id = jpt.tag_id
     WHERE jpt.job_post_id = j.id
   ) AS tags,
+  
+  -- Skills
+  (
+    SELECT json_agg(json_build_object('id', s.id, 'skill_name', s.skill_name))
+    FROM job_post_skills jps_sk
+    JOIN skills s ON s.id = jps_sk.skill_id
+    WHERE jps_sk.job_post_id = j.id
+  ) AS skills,
       r.avatar_url
 FROM job_applications ja
 JOIN job_posts j ON j.id = ja.job_post_id
@@ -300,7 +319,7 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
 
       values.push(parseInt(limit, 10));
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
-      console.log("ini query", jobpostsQuery);
+      //console.log("ini query", jobpostsQuery);
       const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
 
       // if (!jobpostsResult || jobpostsResult.rows.length === 0) {
@@ -310,6 +329,7 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       const result = jobpostsResult.rows.map((row) => ({
         ...row,
         tags: row.tags || [], // Pastikan tags selalu berupa array
+        skills: row.skills || [], // Pastikan skills selalu berupa array
       }));
       const pagination = {
         page: parseInt(page, 10),
@@ -353,9 +373,9 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       WHERE ja.job_post_id = $1
       ORDER BY ja.applied_at DESC;
     `;
-      console.log("Executing query to find job applicants:", query, [
-        job_post_id,
-      ]);
+      // console.log("Executing query to find job applicants:", query, [
+      //   job_post_id,
+      // ]);
       const result = await this.db.executeQuery(query, [job_post_id]);
 
       return wrapper.data(result.rows);
@@ -531,9 +551,9 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       WHERE ja.id = $1
       LIMIT 1;
     `;
-      console.log("Executing query to find worker by application ID:", query, [
-        id,
-      ]);
+      // console.log("Executing query to find worker by application ID:", query, [
+      //   id,
+      // ]);
       const result = await this.db.executeQuery(query, [id]);
 
       return wrapper.data(result.rows[0]);

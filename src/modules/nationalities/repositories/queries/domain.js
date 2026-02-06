@@ -38,7 +38,7 @@ class Nationality {
     );
     const count = await this.query.countAllNationalities(search);
 
-    //console.log(nationalities);
+    ////console.log(nationalities);
 
     if (nationalities.err) {
       logger.error(

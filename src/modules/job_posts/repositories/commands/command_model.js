@@ -33,6 +33,20 @@ const createJobPostParamType = joi.object({
       }),
     )
     .optional(),
+  skills: joi
+    .array()
+    .items(
+      joi.alternatives().try(
+        joi.string().uuid(),
+        joi.object({
+          id: joi.string().uuid().optional(),
+          name: joi.string().optional(),
+          skill_id: joi.string().uuid().required(),
+          skill_name: joi.string().optional(),
+        }),
+      ),
+    )
+    .optional(),
   country: joi.string().optional(),
   city: joi.string().optional(),
   category_id: joi.number().required(),
@@ -180,7 +194,24 @@ const updateJobPostParamType = joi.object({
       }),
     )
     .optional(),
-  job_post_questions: joi.array().items(jobPostQuestionCreateParamType).optional(),
+  skills: joi
+    .array()
+    .items(
+      joi.alternatives().try(
+        joi.string().uuid(),
+        joi.object({
+          id: joi.string().uuid().optional(),
+          name: joi.string().optional(),
+          skill_id: joi.string().uuid().required(),
+          skill_name: joi.string().optional(),
+        }),
+      ),
+    )
+    .optional(),
+  job_post_questions: joi
+    .array()
+    .items(jobPostQuestionCreateParamType)
+    .optional(),
   questions: joi.array().items(jobPostQuestionCreateParamType).optional(),
 });
 const archiveJobPostParamType = joi.object({

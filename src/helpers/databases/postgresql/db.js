@@ -52,7 +52,7 @@ class DB {
         LIMIT 1;
       `;
       const values = parameterKey.map((key) => parameter[key]);
-      console.log("Query FindOne : " + query,values);
+      //console.log("Query FindOne : " + query,values);
       const result = await this.executeQuery(query, values);
       if (!result || result.rows.length === 0) {
         return wrapper.error(errorEmptyMessage);
@@ -111,8 +111,8 @@ class DB {
 
       // Buat field list untuk query
       const projectionPlaceholders = keys.map((key) => `"${key}"`).join(", ");
-      //console.log("Projection :  " + projectionPlaceholders);
-      //console.log("Value :  " + valuePlaceholders);
+      ////console.log("Projection :  " + projectionPlaceholders);
+      ////console.log("Value :  " + valuePlaceholders);
       // Query final
       const query = `
         INSERT INTO "${collectionName}" (${projectionPlaceholders})
@@ -120,7 +120,7 @@ class DB {
         RETURNING *;
       `;
 
-      //console.log("query :  " + query);
+      ////console.log("query :  " + query);
       // Eksekusi query
       const result = await this.executeQuery(query, values);
 
@@ -180,7 +180,7 @@ class DB {
         WHERE ${parameterPlaceholders}
         RETURNING *;
       `;
-      //console.log("Update Query :  " + query);
+      ////console.log("Update Query :  " + query);
       const updateQueryValues = updateQueryKey.map((key) => updateQuery[key]);
       const parameterValues = parameterKey.map((key) => parameter[key]);
       const values = [...updateQueryValues, ...parameterValues];
@@ -366,19 +366,19 @@ class DB {
 
       // --------------------------------------------------------------
       // DEBUG LOGGING
-      //console.log("========= QUERY DEBUG START =========");
-      //console.log("SQL QUERY:");
-      //console.log(query);
-      //console.log("VALUES:");
-      //console.log(values);
-      //console.log("=====================================");
+      ////console.log("========= QUERY DEBUG START =========");
+      ////console.log("SQL QUERY:");
+      ////console.log(query);
+      ////console.log("VALUES:");
+      ////console.log(values);
+      ////console.log("=====================================");
 
       const result = await this.executeQuery(query, values);
 
-      //console.log("========= QUERY RESULT =========");
-      //console.log("Row Count:", result?.rows?.length || 0);
-      //console.log("Rows:", result?.rows || []);
-      //console.log("================================");
+      ////console.log("========= QUERY RESULT =========");
+      ////console.log("Row Count:", result?.rows?.length || 0);
+      ////console.log("Rows:", result?.rows || []);
+      ////console.log("================================");
 
       if (!result || result.rows.length === 0) {
         return wrapper.error(errorEmptyMessage);
@@ -430,12 +430,12 @@ class DB {
         LIMIT ${limit} OFFSET ${offset};
       `;
 
-      //console.log("========= QUERY DEBUG START =========");
-      //console.log("SQL QUERY:");
-      //console.log(query);
-      //console.log("VALUES:");
-      //console.log(values);
-      //console.log("=====================================");
+      ////console.log("========= QUERY DEBUG START =========");
+      ////console.log("SQL QUERY:");
+      ////console.log(query);
+      ////console.log("VALUES:");
+      ////console.log(values);
+      ////console.log("=====================================");
       const result = await this.executeQuery(query);
       if (!result || result.rows.length === 0) {
         return wrapper.error(errorEmptyMessage);

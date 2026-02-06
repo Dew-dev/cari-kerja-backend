@@ -38,10 +38,10 @@ class Recruiter {
         updateData[field] = payload[field];
       }
     }
-    // //console.log("update data", updateData);
+    // ////console.log("update data", updateData);
     const updateResult = await this.command.updateOneNew({ id }, updateData);
     if (updateResult.err) {
-      //console.log("update err", updateResult.err);
+      ////console.log("update err", updateResult.err);
       logger.error(
         ctx,
         "Failed to update",

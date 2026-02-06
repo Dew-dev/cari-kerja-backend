@@ -50,6 +50,7 @@ class Jobpost {
       responsibilities,
       job_post_questions,
       questions,
+      skills,
     } = payload;
 
     const jobPostId = uuidv4();
@@ -121,12 +122,29 @@ class Jobpost {
       }
     }
 
+    // Insert skills if provided
+    if (skills && Array.isArray(skills) && skills.length > 0) {
+      const skillsData = skills.map((skill) => ({
+        id: uuidv4(),
+        job_post_id: jobPostId,
+        // Handle both UUID string and object format
+        skill_id: typeof skill === 'string' ? skill : skill.skill_id,
+        created_at: new Date(),
+      }));
+      
+      const skillResult = await this.command.insertMany(skillsData, "job_post_skills");
+      //console.log("skillResult:", skillResult);
+      if (skillResult.err) {
+        logger.error(ctx, "Create job post skills", "Job Posts Commands", skillResult.err);
+      }
+    }
+
     const questionPayload = Array.isArray(job_post_questions)
       ? job_post_questions
       : Array.isArray(questions)
         ? questions
         : null;
-    console.log("questionPayload:", questionPayload);
+    //console.log("questionPayload:", questionPayload);
     if (questionPayload && questionPayload.length > 0) {
       const questionResult = await this.createJobPostQuestions(
         questionPayload,
@@ -319,7 +337,7 @@ class Jobpost {
         throw new Error("Payload harus berupa object");
       }
       payload = { ...payload, id: id };
-      //console.log("payload status: ", payload);
+      ////console.log("payload status: ", payload);
       const validateItem = validator.isValidPayload(
         payload,
         commandModel.jobPostStatusUpdateParamType,
@@ -615,7 +633,9 @@ class Jobpost {
   }
 
   async updateJobPost(payload) {
-    const { id, recruiter_id, user_id, tags, job_post_questions, questions, ...jobData } = payload;
+    
+    console.log("skillResult (update):", payload);
+    const { id, recruiter_id, user_id, tags, job_post_questions, questions, skills, ...jobData } = payload;
 
     // 1️⃣ cek job milik recruiter
     const job = await this.query.findOneJobPost({
@@ -654,13 +674,36 @@ class Jobpost {
       }
     }
 
+    // 3.5️⃣ update skills (replace)
+    if (skills !== undefined) {
+      // hapus existing skills
+      await this.command.deleteMany({ job_post_id: id }, "job_post_skills");
+
+      // insert ulang jika ada skills baru
+      if (Array.isArray(skills) && skills.length > 0) {
+        const skillsData = skills.map((skill) => ({
+          id: uuidv4(),
+          job_post_id: id,
+          // Handle both UUID string and object format
+          skill_id: typeof skill === 'string' ? skill : skill.skill_id,
+          created_at: new Date(),
+        }));
+        
+        const skillResult = await this.command.insertMany(skillsData, "job_post_skills");
+        // console.log("skillResult (update):", skillResult);
+        if (skillResult.err) {
+          logger.error(ctx, "Update job post skills", "Job Posts Commands", skillResult.err);
+        }
+      }
+    }
+
     // 4️⃣ update questions (replace)
     const questionPayload = Array.isArray(job_post_questions)
       ? job_post_questions
       : Array.isArray(questions)
         ? questions
         : null;
-    console.log("questionPayload (update):", questionPayload);
+    //console.log("questionPayload (update):", questionPayload);
     if (questionPayload) {
       // delete existing questions
       await this.command.deleteJobPostQuestions({ job_post_id: id });
@@ -721,7 +764,7 @@ class Jobpost {
     });
 
     if (newJob.err) {
-      console.log("ini newJob.err", newJob.err);
+      //console.log("ini newJob.err", newJob.err);
       logger.error(ctx, "duplicateJobPost", "Insert job failed", newJob.err);
       return wrapper.error(new InternalServerError("Failed to duplicate job"));
     }

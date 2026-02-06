@@ -388,7 +388,7 @@ class User {
       }
     }
 
-    //console.log(updateData);
+    ////console.log(updateData);
 
     const updateResult = await this.command.updateOneNew({ id }, updateData);
     if (updateResult.err) {
@@ -529,7 +529,7 @@ class User {
     }
 
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${token}`;
-    console.log(user.data);
+    //console.log(user.data);
     // TODO: send email
     try {
       await sendMail({
@@ -566,7 +566,7 @@ class User {
       user_id: reset.data.user_id,
       password: hashedPassword,
     });
-    // console.log("updateUser", updateUser)
+    // //console.log("updateUser", updateUser)
     if (updateUser.err) {
       logger.error(
         ctx,
@@ -586,7 +586,7 @@ class User {
     const { user_id, id, current_password, new_password } = payload;
 
     const user = await this.query.findUserById(user_id);
-    console.log("user", payload);
+    //console.log("user", payload);
     if (user.err || !user.data) {
       return wrapper.error("Unauthorized");
     }
@@ -607,7 +607,7 @@ class User {
       user_id,
       password: hashedPassword,
     });
-    console.log("update", update);
+    //console.log("update", update);
     if (update.err) {
       logger.error(ctx, "changePassword", "Update password failed", update.err);
       return wrapper.error(

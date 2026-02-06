@@ -29,7 +29,7 @@ class Categories {
     const categories = await this.query.findAllCategories(page, limit, search);
     const count = await this.query.countAllCategories(search);
 
-    //console.log(industries);
+    ////console.log(industries);
 
     if (categories.err) {
       logger.error(

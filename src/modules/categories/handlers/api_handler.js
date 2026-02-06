@@ -24,12 +24,12 @@ const getCategory = async (req, res) => {
 
 const getAllCategories = async (req, res) => {
   const payload = { ...req.query };
-  //console.log("sebenernya masuk");
+  ////console.log("sebenernya masuk");
   const validatePayload = validator.isValidPayload(
     payload,
     queryModel.getAllCategoriesType
   );
-  //console.log(validatePayload);
+  ////console.log(validatePayload);
 
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);

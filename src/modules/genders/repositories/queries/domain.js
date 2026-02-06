@@ -26,7 +26,7 @@ class Genders {
     const genders = await this.query.findAllGenders(page, limit, search);
     const count = await this.query.countAllGenders(search);
 
-    //console.log(genders);
+    ////console.log(genders);
 
     if (genders.err) {
       logger.error(ctx, "getAllGenders", "Can not find Genders", genders.err);

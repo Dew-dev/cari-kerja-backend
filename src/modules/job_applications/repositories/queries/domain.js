@@ -459,7 +459,7 @@ class Jobposts {
   }
   async getCurrencyByCode(payload, ctx) {
     const { code } = payload ?? "";
-    //console.log("code", code);
+    ////console.log("code", code);
 
     // if (!code) {
     // }
@@ -468,7 +468,7 @@ class Jobposts {
       { code },
       { id: 1, code: 1, name: 1, symbol: 1 }
     );
-    //console.log("currency", currency);
+    ////console.log("currency", currency);
 
     if (currency.err) {
       const list = await this.query.findCurrency(

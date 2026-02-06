@@ -29,7 +29,7 @@ class Industry {
     const industries = await this.query.findAllIndustries(page, limit, search);
     const count = await this.query.countAllIndustries(search);
 
-    //console.log(industries);
+    ////console.log(industries);
 
     if (industries.err) {
       logger.error(

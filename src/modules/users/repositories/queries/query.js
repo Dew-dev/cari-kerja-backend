@@ -112,7 +112,7 @@ class Query {
       `,
         [id],
       );
-      console.log("res", id, res);
+      //console.log("res", id, res);
       return wrapper.data(res.rows[0]);
     } catch (e) {
       return wrapper.error(e);

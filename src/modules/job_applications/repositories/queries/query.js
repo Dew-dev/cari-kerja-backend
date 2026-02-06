@@ -125,7 +125,7 @@ class Query {
             LEFT JOIN job_applications ja ON ja.job_post_id = j.id
             WHERE j.id = $1;
             `;
-      // //console.log("query find one", jobpostQuery);
+      // ////console.log("query find one", jobpostQuery);
       const jobpostResult = await this.db.executeQuery(jobpostQuery, [id]);
 
       if (!jobpostResult || jobpostResult.rows.length === 0) {
@@ -197,7 +197,7 @@ class Query {
 
       values.push(parseInt(limit, 10));
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
-      //console.log(jobpostsQuery);
+      ////console.log(jobpostsQuery);
       const jobpostsResult = await this.db.executeQuery(jobpostsQuery, values);
       if (!jobpostsResult || jobpostsResult.rows.length === 0) {
         return wrapper.error("Job posts Not Found");

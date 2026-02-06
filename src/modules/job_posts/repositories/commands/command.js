@@ -22,6 +22,18 @@ class Command {
     return this.db.deleteOne(parameter, table);
   }
 
+  async deleteMany(parameter, table = collection) {
+    // Build WHERE clause from parameter object
+    const conditions = Object.keys(parameter)
+      .map((key, idx) => `${key} = $${idx + 1}`)
+      .join(' AND ');
+    
+    const values = Object.values(parameter);
+    const query = `DELETE FROM ${table} WHERE ${conditions} RETURNING id;`;
+    
+    return this.db.executeQuery(query, values);
+  }
+
   async deleteAppliedJobpost({ job_post_id, worker_id }) {
     const query = `
     DELETE FROM job_applications

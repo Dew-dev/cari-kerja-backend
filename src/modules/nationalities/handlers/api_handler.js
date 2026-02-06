@@ -28,7 +28,7 @@ const getAllNationalities = async (req, res) => {
     payload,
     queryModel.getAllNationalitiesType
   );
-  //console.log(validatePayload);
+  ////console.log(validatePayload);
 
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
