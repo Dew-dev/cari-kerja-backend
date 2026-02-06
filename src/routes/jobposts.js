@@ -109,6 +109,11 @@ module.exports = (server) => {
     verifyToken,
     jobpostHandler.restoreJobPost,
   );
+  server.delete(
+    "/api/v1/job-posts/:id",
+    verifyToken,
+    jobpostHandler.deleteJobPost,
+  );
 
   server.get(
     "/api/v1/job-applications/:id/notes",

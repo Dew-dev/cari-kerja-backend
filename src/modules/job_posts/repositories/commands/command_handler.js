@@ -53,6 +53,10 @@ const restoreJobPost = async (payload) => {
   return domain.restoreJobPost(payload);
 };
 
+const deleteJobPost = async (payload) => {
+  return domain.deleteJobPost(payload);
+};
+
 module.exports = {
   createJobPost,
   createJobPostQuestions,
@@ -66,4 +70,5 @@ module.exports = {
   duplicateJobPost,
   archiveJobPost,
   restoreJobPost,
+  deleteJobPost,
 };

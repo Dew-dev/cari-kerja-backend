@@ -219,6 +219,10 @@ const archiveJobPostParamType = joi.object({
   recruiter_id: joi.string().uuid().required(),
 });
 
+const deleteJobPostParamType = joi.object({
+  id: joi.string().uuid().required(),
+  recruiter_id: joi.string().uuid().required(),
+});
 
 module.exports = {
   createJobPostParamType,
@@ -235,4 +239,5 @@ module.exports = {
   updateJobPostParamType,
   duplicateJobPostParamType,
   archiveJobPostParamType,
+  deleteJobPostParamType,
 };

@@ -668,7 +668,14 @@ class User {
     await this.command.markEmailVerified(record.data.user_id);
     await this.command.invalidateEmailVerifications(record.data.user_id);
 
-    return wrapper.data("Email verified successfully");
+    // Fetch user to get role information
+    const user = await this.query.findUserById(record.data.user_id);
+    const role = user.data?.role_id === 2 ? "recruiter" : "user";
+
+    return wrapper.data({
+      message: "Email verified successfully",
+      role: role,
+    });
   }
   async resendVerifyEmail({ email }) {
     const user = await this.query.findUserByEmail(email);

@@ -206,6 +206,13 @@ class Command {
       [id],
     );
   }
+
+  async deleteJobPost(id) {
+    return this.db.executeQuery(
+      `DELETE FROM job_posts WHERE id = $1`,
+      [id],
+    );
+  }
 }
 
 module.exports = Command;

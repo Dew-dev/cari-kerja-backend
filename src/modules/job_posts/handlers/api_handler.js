@@ -408,6 +408,25 @@ const restoreJobPost = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const deleteJobPost = async (req, res) => {
+  const payload = {
+    id: req.params.id,
+    recruiter_id: req.userMeta.recruiter_id,
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.deleteJobPostParamType,
+  );
+
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.deleteJobPost(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 
 module.exports = {
   getJobpostsByRecruiterId,
@@ -432,4 +451,5 @@ module.exports = {
   duplicateJobPost,
   restoreJobPost,
   archiveJobPost,
+  deleteJobPost,
 };

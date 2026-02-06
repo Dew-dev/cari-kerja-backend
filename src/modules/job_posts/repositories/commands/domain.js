@@ -873,6 +873,19 @@ class Jobpost {
     await this.command.restoreJobPost(id);
     return wrapper.data("Job restored");
   }
+
+  async deleteJobPost({ id, recruiter_id }) {
+    const job = await this.query.findOneJobPost({ id, recruiter_id });
+
+    if (job.err || !job.data) {
+      return wrapper.error(
+        new NotFoundError("Job not found or not owned by recruiter"),
+      );
+    }
+
+    await this.command.deleteJobPost(id);
+    return wrapper.data("Job deleted successfully");
+  }
 }   
 
 module.exports = Jobpost;
