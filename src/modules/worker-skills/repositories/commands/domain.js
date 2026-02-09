@@ -22,7 +22,7 @@ class WorkerSkills {
         if (result.err) {
           return wrapper.error(new InternalServerError("Failed to insert worker skill"));
         }
-        return wrapper.data({ skill_id: result.data.skill_id});
+        return wrapper.data({ skill_id: result.data.skill_id, worker_id: result.data.worker_id, skill_name: result.data.skill_name });
     }
 
     // DELETE one worker skill

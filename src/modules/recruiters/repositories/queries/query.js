@@ -30,7 +30,7 @@ class Query {
                     recruiters.description,
                     recruiters.created_at,
                     recruiters.updated_at FROM recruiters 
-                    JOIN industries ON industries.id = recruiters.industry_id
+                    LEFT JOIN industries ON industries.id = recruiters.industry_id
                     WHERE recruiters.user_id=$1 OR recruiters.id=$1;
             `;
       const jobpostsQuery = `
@@ -48,9 +48,9 @@ class Query {
                     job_post_statuses.name AS status,
                     job_posts.created_at,
                     job_posts.updated_at FROM job_posts
-                    JOIN employment_types ON employment_types.id = job_posts.employment_type_id
-                    JOIN currencies ON currencies.id = job_posts.currency_id
-                    JOIN job_post_statuses ON job_post_statuses.id = job_posts.status_id
+                    LEFT JOIN employment_types ON employment_types.id = job_posts.employment_type_id
+                    LEFT JOIN currencies ON currencies.id = job_posts.currency_id
+                    LEFT JOIN job_post_statuses ON job_post_statuses.id = job_posts.status_id
                     WHERE job_posts.recruiter_id = $1;
             `;
 
