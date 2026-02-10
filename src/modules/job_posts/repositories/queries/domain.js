@@ -212,9 +212,9 @@ class Jobposts {
       conditions.push(` AND j.archived_at IS NULL`); // Not archived
     }
 
-    if (!self) {
-      conditions.push(` AND j.status_id < 3`); // Only open-closed job posts
-    }
+    // if (!self) {
+    //   conditions.push(` AND j.status_id < 3`); // Only open-closed job posts
+    // }
 
     if (exclude_id !== undefined && exclude_id !== null && exclude_id !== "") {
       conditions.push(` AND j.id <> $${idx}`);
@@ -253,6 +253,7 @@ class Jobposts {
     if (user_id !== undefined && user_id !== null && user_id !== "") {
       finalData = { ...data, user_id };
     }
+    console.log("finalData", finalData)
     const jobposts = await this.query.findAll(finalData);
 
     if (jobposts.err) {
@@ -260,7 +261,7 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Can not find jobposts"));
     }
 
-    logger.info(ctx, "getJobposts", "Get Jobposts", data);
+    logger.info(ctx, "getJobposts", "Get Jobposts", finalData);
     return wrapper.paginationData(jobposts.data, jobposts.meta);
   }
 

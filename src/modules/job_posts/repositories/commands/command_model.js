@@ -19,8 +19,19 @@ const createJobPostParamType = joi.object({
   salary_type_id: joi.number().required(),
   job_post_status_id: joi.number().required(),
   location: joi.string().required(),
-  salary_min: joi.number().required(),
-  salary_max: joi.number().required(),
+  salary_min: joi.number().required(),salary_max: joi
+      .number()
+      .optional()
+      .custom((value, helpers) => {
+        const { salary_min } = helpers.state.ancestors[0];
+        if (value < salary_min) {
+          return helpers.error("any.invalid");
+        }
+        return value;
+      })
+      .messages({
+        "any.invalid": "salary_max must be greater than salary_min",
+      }),
   currency_id: joi.number().required(),
   status_id: joi.number().default(3),
   deadline: joi.string().optional().allow(""),
@@ -179,7 +190,19 @@ const updateJobPostParamType = joi.object({
   salary_type_id: joi.number().required(),
 
   salary_min: joi.number().required(),
-  salary_max: joi.number().required(),
+  salary_max: joi
+      .number()
+      .optional()
+      .custom((value, helpers) => {
+        const { salary_min } = helpers.state.ancestors[0];
+        if (value < salary_min) {
+          return helpers.error("any.invalid");
+        }
+        return value;
+      })
+      .messages({
+        "any.invalid": "salary_max must be greater than salary_min",
+      }),
   currency_id: joi.number().required(),
 
   location: joi.string().required(),

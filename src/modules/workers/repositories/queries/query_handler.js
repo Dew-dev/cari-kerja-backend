@@ -8,6 +8,16 @@ const getWorkerByUserId = async (payload) => {
   return domain.getWorkerByUserId(payload);
 };
 
+const getWorkerById = async (payload) => {
+  return domain.getWorkerById(payload);
+};
+
+const getWorkers = async (payload) => {
+  return domain.getWorkers(payload);
+};
+
 module.exports = {
   getWorkerByUserId,
+  getWorkerById,
+  getWorkers,
 };

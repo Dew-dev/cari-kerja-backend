@@ -15,7 +15,7 @@ const createJobPostParamType = joi.object({
   salary_min: joi.number().required(),
   salary_max: joi
     .number()
-    .required()
+    .optional()
     .custom((value, helpers) => {
       const { salary_min } = helpers.state.ancestors[0];
       if (value < salary_min) {

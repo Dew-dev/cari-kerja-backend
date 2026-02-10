@@ -4,6 +4,14 @@ const { uploadAvatarWorker } = require("../middlewares/uploader");
 
 module.exports = (server) => {
   server.get(
+    "/api/v1/workers",
+    workerHandler.getWorkers
+  );
+  server.get(
+    "/api/v1/workers/:id",
+    workerHandler.getWorkerById
+  );
+  server.get(
     "/api/v1/users/workers/me",
     verifyToken,
     workerHandler.getWorkerByUserId

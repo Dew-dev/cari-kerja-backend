@@ -13,8 +13,13 @@ const addWorkerParamType = joi.object({
   address: joi.string().optional(),
   profile_summary: joi.string().optional(),
   current_salary: joi.number().optional(),
+  current_salary_currency_id: joi.number().optional(),
   expected_salary: joi.number().optional(),
-});
+  expected_salary_currency_id: joi.number().optional(),
+}).with('current_salary', 'current_salary_currency_id')
+  .with('current_salary_currency_id', 'current_salary')
+  .with('expected_salary', 'expected_salary_currency_id')
+  .with('expected_salary_currency_id', 'expected_salary');
 
 const updateWorkerParamType = joi.object({
   id: joi.string().required(),
@@ -30,8 +35,13 @@ const updateWorkerParamType = joi.object({
   address: joi.string().optional(),
   profile_summary: joi.string().required(),
   current_salary: joi.number().optional(),
+  current_salary_currency_id: joi.number().optional(),
   expected_salary: joi.number().optional(),
-});
+  expected_salary_currency_id: joi.number().optional(),
+}).with('current_salary', 'current_salary_currency_id')
+  .with('current_salary_currency_id', 'current_salary')
+  .with('expected_salary', 'expected_salary_currency_id')
+  .with('expected_salary_currency_id', 'expected_salary');
 
 module.exports = {
   addWorkerParamType,

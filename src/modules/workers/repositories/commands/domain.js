@@ -32,6 +32,8 @@ class Worker {
       "profile_summary",
       "current_salary",
       "expected_salary",
+      "expected_salary_currency_id",
+      "current_salary_currency_id",
     ];
 
     const updateData = {};

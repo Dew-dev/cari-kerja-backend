@@ -177,7 +177,18 @@ class Query {
                 FROM job_post_skills jps_sk
                 JOIN skills s ON s.id = jps_sk.skill_id
                 WHERE jps_sk.job_post_id = j.id
-              ) AS skills
+              ) AS skills,
+              ${
+                user_id
+                  ? `COALESCE(
+                (SELECT COUNT(*)
+                FROM job_post_skills jps_match
+                JOIN worker_skills ws ON ws.skill_id = jps_match.skill_id
+                WHERE jps_match.job_post_id = j.id AND ws.worker_id = '${user_id}'),
+                0
+              ) AS skill_match_count`
+                  : `0 AS skill_match_count`
+              }
      
               FROM job_posts j
               JOIN recruiters r ON r.id = j.recruiter_id
@@ -200,7 +211,7 @@ class Query {
     c.id,
     cat.id,
     jps.id
-              ORDER BY ${orderColumn} ${orderDirection}
+              ORDER BY ${user_id ? 'skill_match_count DESC,' : ''} ${orderColumn} ${orderDirection}
               LIMIT $${idx}
               OFFSET $${idx + 1};
             `;
