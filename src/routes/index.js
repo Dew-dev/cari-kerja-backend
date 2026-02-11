@@ -27,15 +27,14 @@ module.exports = (server) => {
   users(server);
   recruiters(server);
   jobposts(server);
+  resume(server);
   workers(server);
   workExperience(server);
-  workers(server);
   certifications(server);
   workerSkills(server);
   skills(server);
   education(server);
   language(server);
-  resume(server);
   portfolio(server);
   jobtags(server);
   industries(server);

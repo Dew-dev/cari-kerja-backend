@@ -1,7 +1,7 @@
 const joi = require("joi");
 
 const getResumeType = joi.object({
-  id: joi.string().required(),
+  // id: joi.string().required(),
   worker_id: joi.string().required(),
 });
 
