@@ -2,11 +2,13 @@ const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError } = require("../../../../helpers/errors");
+const WorkerSkillsQuery = require("../../../worker-skills/repositories/queries/query");
 const ctx = "Jobposts-Query-Domain";
 
 class Jobposts {
   constructor(db) {
     this.query = new Query(db);
+    this.workerSkillsQuery = new WorkerSkillsQuery(db);
   }
 
   async getJobPostsLogic(payload) {
@@ -17,6 +19,8 @@ class Jobposts {
       experience_level,
       salary_type,
       location,
+      province, // 🌍 Province name filter
+      city, // 🌍 City name filter
       salary_min,
       salary_max,
       currency,
@@ -33,6 +37,7 @@ class Jobposts {
       archive = null,
       exclude_id,
       self = false,
+      recommendations = false, // 🎯 Enable/disable skill-based recommendations (default: true)
     } = payload;
 
     const conditions = [];
@@ -106,8 +111,22 @@ class Jobposts {
     }
 
     if (location !== undefined && location !== null && location !== "") {
-      conditions.push(` AND j.location ILIKE $${idx}`);
+      conditions.push(` AND j.location ILIKE '%' || $${idx} || '%'`);
       values.push(location);
+      idx += 1;
+    }
+
+    // 🌍 Filter by province name
+    if (province !== undefined && province !== null && province !== "") {
+      conditions.push(` AND j.province ILIKE $${idx}`);
+      values.push(province);
+      idx += 1;
+    }
+
+    // 🌍 Filter by city name
+    if (city !== undefined && city !== null && city !== "") {
+      conditions.push(` AND j.city ILIKE $${idx}`);
+      values.push(city);
       idx += 1;
     }
 
@@ -222,6 +241,35 @@ class Jobposts {
       idx += 1;
     }
 
+    // 🎯 Filter jobs by matching skills (Recommendations) when worker has skills
+    // Only apply if recommendations flag is true (default) and user_id is provided
+    if (recommendations !== false && user_id !== undefined && user_id !== null && user_id !== "") {
+      try {
+        const workerSkillsResult = await this.workerSkillsQuery.getAllByWorkerId(user_id);
+        
+        if (!workerSkillsResult.err && workerSkillsResult.data && workerSkillsResult.data.length > 0) {
+          // Worker has skills, so filter to only show jobs that have at least one matching skill
+          const skillIds = workerSkillsResult.data.map(skill => skill.skill_id);
+          
+          // Build condition to show only jobs that have at least one skill match
+          conditions.push(` AND EXISTS (
+            SELECT 1 FROM job_post_skills jps_filter
+            WHERE jps_filter.job_post_id = j.id 
+            AND jps_filter.skill_id = ANY($${idx}::uuid[])
+          )`);
+          values.push(skillIds);
+          idx += 1;
+          
+          logger.info(ctx, "getJobPostsLogic", `Worker ${user_id} has ${skillIds.length} skills - filtering recommendations`);
+        }
+      } catch (error) {
+        logger.error(ctx, "getJobPostsLogic", "Error fetching worker skills", error);
+        // Continue without skill filtering if there's an error
+      }
+    } else if (recommendations === false && user_id) {
+      logger.info(ctx, "getJobPostsLogic", `Worker ${user_id} disabled recommendations - showing all jobs`);
+    }
+
     const sortableColumns = {
       title: "j.title",
       location: "j.location",
@@ -322,6 +370,8 @@ class Jobposts {
       experience_level,
       salary_type,
       location,
+      province, // 🌍 Province name filter
+      city, // 🌍 City name filter
       salary_min,
       salary_max,
       currency,
@@ -375,8 +425,22 @@ class Jobposts {
     }
 
     if (location !== undefined && location !== null && location !== "") {
-      conditions.push(` AND j.location ILIKE $${idx}`);
+      conditions.push(` AND j.location ILIKE '%' || $${idx} || '%'`);
       values.push(location);
+      idx += 1;
+    }
+
+    // 🌍 Filter by province name
+    if (province !== undefined && province !== null && province !== "") {
+      conditions.push(` AND j.province ILIKE $${idx}`);
+      values.push(province);
+      idx += 1;
+    }
+
+    // 🌍 Filter by city name
+    if (city !== undefined && city !== null && city !== "") {
+      conditions.push(` AND j.city ILIKE $${idx}`);
+      values.push(city);
       idx += 1;
     }
 

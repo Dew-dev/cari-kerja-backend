@@ -6,6 +6,8 @@ const getJobpostsByRecruiterIdParamType = joi.object({
   employment_type: joi.string().optional(),
   experience_level: joi.string().optional(),
   location: joi.string().optional(),
+   province: joi.string().optional(),
+  city: joi.string().optional(),
   salary_min: joi.number().optional(),
   salary_max: joi.number().optional(),
   currency: joi.string().optional(),
@@ -23,6 +25,8 @@ const getJobpostsParamType = joi.object({
   employment_type: joi.string().optional(),
   experience_level: joi.string().optional(),
   location: joi.string().optional(),
+  province: joi.string().optional(),
+  city: joi.string().optional(),
   salary_min: joi.number().optional(),
   salary_max: joi.number().optional(),
   currency: joi.string().optional(),
@@ -37,6 +41,7 @@ const getJobpostsParamType = joi.object({
   limit: joi.number().optional(),
   user_id: joi.string().optional(),
   exclude_id: joi.string().uuid().optional(),
+  recommendations: joi.boolean().optional(),
 });
 
 const getJobpostsSelfParamType = joi.object({
@@ -45,6 +50,8 @@ const getJobpostsSelfParamType = joi.object({
   employment_type: joi.string().optional(),
   experience_level: joi.string().optional(),
   location: joi.string().optional(),
+  province: joi.string().optional(),
+  city: joi.string().optional(),
   salary_min: joi.number().optional(),
   salary_max: joi.number().optional(),
   currency: joi.string().optional(),
@@ -66,6 +73,8 @@ const getAppliedJobpostsParamType = joi.object({
   employment_type: joi.string().optional(),
   experience_level: joi.string().optional(),
   location: joi.string().optional(),
+  province: joi.string().optional(),
+  city: joi.string().optional(),
   salary_min: joi.number().optional(),
   salary_max: joi.number().optional(),
   currency: joi.string().optional(),

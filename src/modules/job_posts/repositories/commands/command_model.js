@@ -18,7 +18,15 @@ const createJobPostParamType = joi.object({
   experience_level_id: joi.number().required(),
   salary_type_id: joi.number().required(),
   job_post_status_id: joi.number().required(),
-  location: joi.string().required(),
+  location: joi.string().optional(),
+  province: joi.string().when('city', {
+    is: joi.exist(),
+    then: joi.string().required().messages({
+      'any.required': 'province is required when city is provided'
+    }),
+    otherwise: joi.string().optional()
+  }),
+  city: joi.string().optional(),
   salary_min: joi.number().required(),salary_max: joi
       .number()
       .optional()
@@ -59,7 +67,6 @@ const createJobPostParamType = joi.object({
     )
     .optional(),
   country: joi.string().optional(),
-  city: joi.string().optional(),
   category_id: joi.number().required(),
   requirements: joi
     .array()
@@ -206,6 +213,14 @@ const updateJobPostParamType = joi.object({
   currency_id: joi.number().required(),
 
   location: joi.string().required(),
+  province: joi.string().when('city', {
+    is: joi.exist(),
+    then: joi.string().required().messages({
+      'any.required': 'province is required when city is provided'
+    }),
+    otherwise: joi.string().optional()
+  }),
+  city: joi.string().optional(),
   deadline: joi.string().optional().allow(""),
 
   tags: joi
