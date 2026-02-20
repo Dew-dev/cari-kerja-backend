@@ -41,10 +41,23 @@ const searchLocations = async (req, res) => {
   return sendResponse(result, res);
 };
 
+// GET /api/v1/locations/provinces/:province_id/cities/search
+// Query params: search (required)
+const searchCitiesByProvince = async (req, res) => {
+  const payload = {
+    search: req.query.search,
+    type: "cities",
+    province_id: req.params.province_id,
+  };
+  const result = await queryHandler.searchLocations(payload);
+  return sendResponse(result, res);
+};
+
 module.exports = {
   getAllProvinces,
   getProvinceById,
   getAllCities,
   getCityById,
   searchLocations,
+  searchCitiesByProvince,
 };

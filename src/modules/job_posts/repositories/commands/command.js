@@ -77,6 +77,8 @@ class Command {
     currency_id,
     location,
     deadline,
+    province,
+    city,
   }) {
     const query = `
       UPDATE job_posts
@@ -91,6 +93,8 @@ class Command {
         currency_id = $9,
         location = $10,
         deadline = $11,
+        province = $12,
+        city = $13,
         updated_at = NOW()
       WHERE id = $1
       RETURNING id;
@@ -108,6 +112,8 @@ class Command {
       currency_id,
       location,
       deadline,
+      province,
+      city,
     ];
 
     const result = await this.db.executeQuery(query, values);
@@ -151,6 +157,8 @@ class Command {
     deadline,
     status_id,
     category_id,
+    province,
+    city,
   }) {
     const query = `
       INSERT INTO job_posts (
@@ -166,9 +174,11 @@ class Command {
         location,
         deadline,
         status_id,
-        category_id
+        category_id,
+        province,
+        city
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
       )
       RETURNING id;
     `;
@@ -187,6 +197,8 @@ class Command {
       deadline,
       status_id,
       category_id,
+      province,
+      city,
     ];
 
     const result = await this.db.executeQuery(query, values);

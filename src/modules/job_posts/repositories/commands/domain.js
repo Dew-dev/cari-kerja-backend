@@ -51,11 +51,12 @@ class Jobpost {
       job_post_questions,
       questions,
       skills,
+      province,
+      city,
     } = payload;
 
     const jobPostId = uuidv4();
     const data = {
-      id: jobPostId,
       recruiter_id,
       title,
       description,
@@ -69,19 +70,23 @@ class Jobpost {
       status_id,
       deadline,
       category_id,
+      province,
+      city,
     };
 
-    const result = await this.command.insertOne(data);
-    if (result.err) {
-      logger.error(ctx, "Create job post", "Job Posts Commands", result.err);
+    const result = await this.command.insertJobPost(data);
+    if (!result || result.err) {
+      logger.error(ctx, "Create job post", "Job Posts Commands", result?.err);
       return wrapper.error(new InternalServerError("Create Job Post Failed"));
     }
+
+    const actualJobPostId = result.id || jobPostId;
 
     // Insert requirements if provided
     if (requirements && Array.isArray(requirements) && requirements.length > 0) {
       const requirementsData = requirements.map((req) => ({
         id: uuidv4(),
-        job_post_id: jobPostId,
+        job_post_id: actualJobPostId,
         requirement: req.requirement,
         order_index: req.order_index,
       }));
@@ -96,7 +101,7 @@ class Jobpost {
     if (benefits && Array.isArray(benefits) && benefits.length > 0) {
       const benefitsData = benefits.map((ben) => ({
         id: uuidv4(),
-        job_post_id: jobPostId,
+        job_post_id: actualJobPostId,
         benefit: ben.benefit,
         order_index: ben.order_index,
       }));
@@ -111,7 +116,7 @@ class Jobpost {
     if (responsibilities && Array.isArray(responsibilities) && responsibilities.length > 0) {
       const responsibilitiesData = responsibilities.map((resp) => ({
         id: uuidv4(),
-        job_post_id: jobPostId,
+        job_post_id: actualJobPostId,
         responsibility: resp.responsibility,
         order_index: resp.order_index,
       }));
@@ -126,7 +131,7 @@ class Jobpost {
     if (skills && Array.isArray(skills) && skills.length > 0) {
       const skillsData = skills.map((skill) => ({
         id: uuidv4(),
-        job_post_id: jobPostId,
+        job_post_id: actualJobPostId,
         // Handle both UUID string and object format
         skill_id: typeof skill === 'string' ? skill : skill.skill_id,
         created_at: new Date(),
@@ -148,7 +153,7 @@ class Jobpost {
     if (questionPayload && questionPayload.length > 0) {
       const questionResult = await this.createJobPostQuestions(
         questionPayload,
-        jobPostId,
+        actualJobPostId,
         ctx,
       );
       if (questionResult.err) {
@@ -635,7 +640,7 @@ class Jobpost {
   async updateJobPost(payload) {
     
     console.log("skillResult (update):", payload);
-    const { id, recruiter_id, user_id, tags, job_post_questions, questions, skills, ...jobData } = payload;
+    const { id, recruiter_id, user_id, tags, job_post_questions, questions, skills, province, city, ...jobData } = payload;
 
     // 1️⃣ cek job milik recruiter
     const job = await this.query.findOneJobPost({
@@ -649,14 +654,17 @@ class Jobpost {
       );
     }
 
-    // 2️⃣ update job_posts
+    // 2️⃣ update job_posts - preserve existing values for fields not provided
     const updateResult = await this.command.updateJobPost({
       id,
       ...jobData,
+      location: jobData.location ?? job.data.location,
+      province: province ?? job.data.province,
+      city: city ?? job.data.city,
     });
 
-    if (updateResult.err) {
-      logger.error(ctx, "updateJobPost", "Update job failed", updateResult.err);
+    if (!updateResult) {
+      logger.error(ctx, "updateJobPost", "Update job failed", updateResult);
       return wrapper.error(new InternalServerError("Failed to update job"));
     }
 

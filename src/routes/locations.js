@@ -15,4 +15,10 @@ module.exports = (server) => {
 
   // Search locations
   server.get("/api/v1/locations/search", locationHandler.searchLocations);
+
+  // Search cities by province
+  server.get(
+    "/api/v1/locations/provinces/:province_id/cities/search",
+    locationHandler.searchCitiesByProvince,
+  );
 };

@@ -211,8 +211,7 @@ const updateJobPostParamType = joi.object({
         "any.invalid": "salary_max must be greater than salary_min",
       }),
   currency_id: joi.number().required(),
-
-  location: joi.string().required(),
+  location: joi.string().optional(),
   province: joi.string().when('city', {
     is: joi.exist(),
     then: joi.string().required().messages({

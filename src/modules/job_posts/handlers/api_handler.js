@@ -120,8 +120,8 @@ const getJobposts = async (req, res) => {
   // //console.log("req.userMeta", req.userMeta);
   if (req.userMeta?.worker_id) {
     payload = { ...payload, user_id: req.userMeta.worker_id };
-    //console.log("ini payload ", payload);
   }
+  //console.log("ini payload ", payload);
   const validatePayload = validator.isValidPayload(
     payload,
     queryModel.getJobpostsParamType
@@ -337,6 +337,8 @@ const updateJobPost = async (req, res) => {
     job_post_questions: req.body.job_post_questions,
     questions: req.body.questions,
     skills: req.body.skills,
+    province: req.body.province,
+    city: req.body.city,
   };
 
   const validatePayload = validator.isValidPayload(

@@ -19,8 +19,8 @@ class Jobposts {
       experience_level,
       salary_type,
       location,
-      province, // 🌍 Province name filter
-      city, // 🌍 City name filter
+      province_name, // 🌍 Province name filter
+      cities_name, // 🌍 City name filter
       salary_min,
       salary_max,
       currency,
@@ -117,16 +117,16 @@ class Jobposts {
     }
 
     // 🌍 Filter by province name
-    if (province !== undefined && province !== null && province !== "") {
+    if (province_name !== undefined && province_name !== null && province_name !== "") {
       conditions.push(` AND j.province ILIKE $${idx}`);
-      values.push(province);
+      values.push(province_name);
       idx += 1;
     }
 
     // 🌍 Filter by city name
-    if (city !== undefined && city !== null && city !== "") {
+    if (cities_name !== undefined && cities_name !== null && cities_name !== "") {
       conditions.push(` AND j.city ILIKE $${idx}`);
-      values.push(city);
+      values.push(cities_name);
       idx += 1;
     }
 

@@ -17,7 +17,7 @@ class Query {
           id,
           name
         FROM provinces
-        ORDER BY name ASC;
+        ORDER BY id ASC;
       `;
 
       const result = await this.db.executeQuery(query, []);
@@ -65,9 +65,14 @@ class Query {
           c.id,
           c.name,
           c.province_id,
-          p.name AS province_name
+          p.name AS province_name,
+          COUNT(j.id)::int AS jobs_count
         FROM cities c
         JOIN provinces p ON p.id = c.province_id
+        LEFT JOIN job_posts j
+          ON LOWER(TRIM(j.city)) = LOWER(TRIM(c.name))
+          AND LOWER(TRIM(j.province)) = LOWER(TRIM(p.name))
+        GROUP BY c.id, c.name, c.province_id, p.name
         ORDER BY p.name ASC, c.name ASC;
       `;
 
@@ -92,10 +97,15 @@ class Query {
           c.id,
           c.name,
           c.province_id,
-          p.name AS province_name
+          p.name AS province_name,
+          COUNT(j.id)::int AS jobs_count
         FROM cities c
         JOIN provinces p ON p.id = c.province_id
+        LEFT JOIN job_posts j
+          ON LOWER(TRIM(j.city)) = LOWER(TRIM(c.name))
+          AND LOWER(TRIM(j.province)) = LOWER(TRIM(p.name))
         WHERE c.province_id = $1
+        GROUP BY c.id, c.name, c.province_id, p.name
         ORDER BY c.name ASC;
       `;
 
@@ -120,10 +130,16 @@ class Query {
           c.id,
           c.name,
           c.province_id,
-          p.name AS province_name
+          p.name AS province_name,
+          COUNT(j.id)::int AS jobs_count
         FROM cities c
         JOIN provinces p ON p.id = c.province_id
-        WHERE c.id = $1;
+        LEFT JOIN job_posts j
+          ON LOWER(TRIM(j.city)) = LOWER(TRIM(c.name))
+          AND LOWER(TRIM(j.province)) = LOWER(TRIM(p.name))
+        WHERE c.id = $1
+        GROUP BY c.id, c.name, c.province_id, p.name
+        ORDER BY c.name ASC;
       `;
 
       const result = await this.db.executeQuery(query, [id]);
@@ -172,9 +188,13 @@ class Query {
           c.id,
           c.name,
           c.province_id,
-          p.name AS province_name
+          p.name AS province_name,
+          COUNT(j.id)::int AS jobs_count
         FROM cities c
         JOIN provinces p ON p.id = c.province_id
+        LEFT JOIN job_posts j
+          ON LOWER(TRIM(j.city)) = LOWER(TRIM(c.name))
+          AND LOWER(TRIM(j.province)) = LOWER(TRIM(p.name))
         WHERE LOWER(c.name) ILIKE '%' || LOWER($1) || '%'
       `;
 
@@ -185,7 +205,7 @@ class Query {
         params.push(province_id);
       }
 
-      query += ` ORDER BY c.name ASC;`;
+      query += ` GROUP BY c.id, c.name, c.province_id, p.name ORDER BY c.name ASC;`;
 
       const result = await this.db.executeQuery(query, params);
 
