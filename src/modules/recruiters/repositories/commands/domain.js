@@ -58,6 +58,36 @@ class Recruiter {
     );
     return wrapper.data({ id });
   }
+
+  async updateRecruiterVip(payload) {
+    const { id, user_id, is_vip, vip_start_at, vip_end_at } = payload;
+
+    const recruiter = await this.query.findOne({ id, user_id }, { id: 1 });
+
+    if (recruiter.err || !recruiter.data) {
+      return wrapper.error(new NotFoundError("Recruiter Not Found!"));
+    }
+
+    const now = new Date();
+    const updateData = {
+      is_vip,
+      vip_start_at: is_vip ? (vip_start_at ?? now) : null,
+      vip_end_at: is_vip ? (vip_end_at ?? null) : null,
+    };
+
+    const updateResult = await this.command.updateOneNew({ id }, updateData);
+
+    if (updateResult.err) {
+      logger.error(ctx, "Failed to update recruiter VIP", "Domain recruiter", updateResult.err);
+      return wrapper.error(new InternalServerError("Update Recruiter VIP Failed"));
+    }
+
+    logger.info(ctx, "Update recruiter VIP succeed", "Domain Recruiter", wrapper.data({ id }));
+    return wrapper.data({
+      id,
+      ...updateData,
+    });
+  }
 }
 
 module.exports = Recruiter;

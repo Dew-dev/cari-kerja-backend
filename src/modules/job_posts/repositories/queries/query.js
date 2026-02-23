@@ -31,6 +31,9 @@ class Query {
                 j.location,
                 j.province,
                 j.city,
+                j.is_vip,
+                j.vip_start_at,
+                j.vip_end_at,
                 et.name AS employment_type,
                 el.name AS experience_level,
                 st.name AS salary_type,
@@ -129,6 +132,9 @@ class Query {
                 j.location,
                 j.province,
                 j.city,
+                j.is_vip,
+                j.vip_start_at,
+                j.vip_end_at,
                 et.name AS employment_type,
                 el.name AS experience_level,
                 st.name AS salary_type,
@@ -274,6 +280,9 @@ class Query {
   j.location,
   j.province,
   j.city,
+  j.is_vip,
+  j.vip_start_at,
+  j.vip_end_at,
 
   et.name AS employment_type,
   el.name AS experience_level,
@@ -583,7 +592,7 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
   async findOneJobPost({ id, recruiter_id }) {
     try {
       const query = `
-      SELECT id
+      SELECT id, location, province, city, is_vip, vip_start_at, vip_end_at
       FROM job_posts
       WHERE id = $1
         AND recruiter_id = $2

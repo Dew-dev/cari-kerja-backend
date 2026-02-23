@@ -79,6 +79,9 @@ class Command {
     deadline,
     province,
     city,
+    is_vip,
+    vip_start_at,
+    vip_end_at,
   }) {
     const query = `
       UPDATE job_posts
@@ -95,6 +98,9 @@ class Command {
         deadline = $11,
         province = $12,
         city = $13,
+        is_vip = $14,
+        vip_start_at = $15,
+        vip_end_at = $16,
         updated_at = NOW()
       WHERE id = $1
       RETURNING id;
@@ -114,6 +120,9 @@ class Command {
       deadline,
       province,
       city,
+      is_vip,
+      vip_start_at,
+      vip_end_at,
     ];
 
     const result = await this.db.executeQuery(query, values);
@@ -159,6 +168,9 @@ class Command {
     category_id,
     province,
     city,
+    is_vip,
+    vip_start_at,
+    vip_end_at,
   }) {
     const query = `
       INSERT INTO job_posts (
@@ -176,9 +188,12 @@ class Command {
         status_id,
         category_id,
         province,
-        city
+        city,
+        is_vip,
+        vip_start_at,
+        vip_end_at
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
       )
       RETURNING id;
     `;
@@ -199,6 +214,9 @@ class Command {
       category_id,
       province,
       city,
+      is_vip,
+      vip_start_at,
+      vip_end_at,
     ];
 
     const result = await this.db.executeQuery(query, values);

@@ -8,6 +8,11 @@ const getRecruiterByUserId = async (payload) => {
   return domain.getRecruiterByUserId(payload);
 };
 
+const getAllRecruitersByIndustry = async () => {
+  return domain.getAllRecruitersByIndustry();
+};
+
 module.exports = {
   getRecruiterByUserId,
+  getAllRecruitersByIndustry,
 };

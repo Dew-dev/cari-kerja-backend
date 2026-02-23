@@ -19,6 +19,20 @@ const getRecruiterByUserId = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const getAllRecruitersByIndustry = async (req, res) => {
+  const payload = {};
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getAllRecruitersByIndustryParamType
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await queryHandler.getAllRecruitersByIndustry();
+  return sendResponse(result, res);
+};
+
 const updateOneRecruiter = async (req, res) => {
   const payload = { ...req.body, ...req.params };
   const validatePayload = validator.isValidPayload(
@@ -53,8 +67,32 @@ const updateOneRecruiterSelf = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const updateRecruiterVipSelf = async (req, res) => {
+  const payload = {
+    user_id: req.userMeta.id,
+    id: req.userMeta.recruiter_id,
+    is_vip: req.body.is_vip,
+    vip_start_at: req.body.vip_start_at,
+    vip_end_at: req.body.vip_end_at,
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.updateRecruiterVipParamType
+  );
+
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.updateRecruiterVip(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 module.exports = {
   getRecruiterByUserId,
+  getAllRecruitersByIndustry,
   updateOneRecruiter,
   updateOneRecruiterSelf,
+  updateRecruiterVipSelf,
 };

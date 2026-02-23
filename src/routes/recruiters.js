@@ -4,6 +4,11 @@ const { uploadAvatarRecruiter } = require("../middlewares/uploader");
 
 module.exports = (server) => {
   server.get(
+    "/api/v1/recruiters/grouped-by-industry",
+    recruiterHandler.getAllRecruitersByIndustry
+  );
+
+  server.get(
     "/api/v1/users/:user_id/recruiters",
     recruiterHandler.getRecruiterByUserId
   );
@@ -17,5 +22,11 @@ module.exports = (server) => {
     verifyToken,
     uploadAvatarRecruiter.single("avatar"),
     recruiterHandler.updateOneRecruiterSelf
+  );
+
+  server.patch(
+    "/api/v1/users/recruiters/vip",
+    verifyToken,
+    recruiterHandler.updateRecruiterVipSelf
   );
 };

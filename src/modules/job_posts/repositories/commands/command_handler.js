@@ -42,6 +42,10 @@ const updateJobPost = async (payload) => {
   return domain.updateJobPost(payload);
 };
 
+const updateJobPostVip = async (payload) => {
+  return domain.updateJobPostVip(payload);
+};
+
 const duplicateJobPost = async (payload) => {
   return domain.duplicateJobPost(payload);
 };
@@ -67,6 +71,7 @@ module.exports = {
   deleteAppliedJobpost,
   updateApplicationStatus,
   updateJobPost,
+  updateJobPostVip,
   duplicateJobPost,
   archiveJobPost,
   restoreJobPost,

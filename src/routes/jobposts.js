@@ -94,6 +94,11 @@ module.exports = (server) => {
     verifyToken,
     jobpostHandler.updateJobPost,
   );
+  server.patch(
+    "/api/v1/job-posts/:id/vip",
+    verifyToken,
+    jobpostHandler.updateJobPostVip,
+  );
   server.post(
     "/api/v1/job-posts/:id/duplicate",
     verifyToken,

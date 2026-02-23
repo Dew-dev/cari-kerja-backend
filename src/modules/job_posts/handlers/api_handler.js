@@ -339,6 +339,9 @@ const updateJobPost = async (req, res) => {
     skills: req.body.skills,
     province: req.body.province,
     city: req.body.city,
+    is_vip: req.body.is_vip,
+    vip_start_at: req.body.vip_start_at,
+    vip_end_at: req.body.vip_end_at,
   };
 
   const validatePayload = validator.isValidPayload(
@@ -351,6 +354,28 @@ const updateJobPost = async (req, res) => {
   }
 
   const result = await commandHandler.updateJobPost(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const updateJobPostVip = async (req, res) => {
+  const payload = {
+    id: req.params.id,
+    recruiter_id: req.userMeta.recruiter_id,
+    is_vip: req.body.is_vip,
+    vip_start_at: req.body.vip_start_at,
+    vip_end_at: req.body.vip_end_at,
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.updateJobPostVipParamType,
+  );
+
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.updateJobPostVip(validatePayload.data);
   return sendResponse(result, res);
 };
 
@@ -450,6 +475,7 @@ module.exports = {
   updateApplicationStatus,
   getWorkerByApplication,
   updateJobPost,
+  updateJobPostVip,
   duplicateJobPost,
   restoreJobPost,
   archiveJobPost,

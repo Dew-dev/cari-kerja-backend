@@ -42,6 +42,9 @@ const createJobPostParamType = joi.object({
       }),
   currency_id: joi.number().required(),
   status_id: joi.number().default(3),
+  is_vip: joi.boolean().optional().default(false),
+  vip_start_at: joi.date().optional().allow(null),
+  vip_end_at: joi.date().optional().allow(null),
   deadline: joi.string().optional().allow(""),
   tags: joi
     .array()
@@ -220,6 +223,9 @@ const updateJobPostParamType = joi.object({
     otherwise: joi.string().optional()
   }),
   city: joi.string().optional(),
+  is_vip: joi.boolean().optional(),
+  vip_start_at: joi.date().optional().allow(null),
+  vip_end_at: joi.date().optional().allow(null),
   deadline: joi.string().optional().allow(""),
 
   tags: joi
@@ -256,6 +262,14 @@ const archiveJobPostParamType = joi.object({
   recruiter_id: joi.string().uuid().required(),
 });
 
+const updateJobPostVipParamType = joi.object({
+  id: joi.string().uuid().required(),
+  recruiter_id: joi.string().uuid().required(),
+  is_vip: joi.boolean().required(),
+  vip_start_at: joi.date().optional().allow(null),
+  vip_end_at: joi.date().optional().allow(null),
+});
+
 const deleteJobPostParamType = joi.object({
   id: joi.string().uuid().required(),
   recruiter_id: joi.string().uuid().required(),
@@ -274,6 +288,7 @@ module.exports = {
   deleteAppliedJobpostParamType,
   updateApplicationStatusParamType,
   updateJobPostParamType,
+  updateJobPostVipParamType,
   duplicateJobPostParamType,
   archiveJobPostParamType,
   deleteJobPostParamType,

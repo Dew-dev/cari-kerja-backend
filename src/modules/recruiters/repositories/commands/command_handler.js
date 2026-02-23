@@ -9,6 +9,11 @@ const updateOneRecruiter = async (payload) => {
     return domain.updateOneRecruiter(payload);
 };
 
+const updateRecruiterVip = async (payload) => {
+    return domain.updateRecruiterVip(payload);
+};
+
 module.exports = {
     updateOneRecruiter,
+    updateRecruiterVip,
 }

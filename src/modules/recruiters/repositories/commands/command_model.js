@@ -25,7 +25,16 @@ const updateRecruiterParamType = joi.object({
     description: joi.string().optional(),
 });
 
+const updateRecruiterVipParamType = joi.object({
+    id: joi.string().required(),
+    user_id: joi.string().required(),
+    is_vip: joi.boolean().required(),
+    vip_start_at: joi.date().optional().allow(null),
+    vip_end_at: joi.date().optional().allow(null),
+});
+
 module.exports = {
     addRecruiterParamType,
     updateRecruiterParamType,
+    updateRecruiterVipParamType,
 };
