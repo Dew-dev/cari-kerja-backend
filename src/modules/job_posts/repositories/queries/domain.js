@@ -22,6 +22,7 @@ class Jobposts {
       province_name, // 🌍 Province name filter
       cities_name, // 🌍 City name filter
       is_vip,
+      is_remote,
       salary_min,
       salary_max,
       currency,
@@ -120,6 +121,12 @@ class Jobposts {
     if (is_vip !== undefined && is_vip !== null && is_vip !== "") {
       conditions.push(` AND j.is_vip = $${idx}`);
       values.push(is_vip);
+      idx += 1;
+    }
+
+    if (is_remote !== undefined && is_remote !== null && is_remote !== "") {
+      conditions.push(` AND j.is_remote = $${idx}`);
+      values.push(is_remote);
       idx += 1;
     }
 
@@ -380,6 +387,7 @@ class Jobposts {
       province, // 🌍 Province name filter
       city, // 🌍 City name filter
       is_vip,
+      is_remote,
       salary_min,
       salary_max,
       currency,
@@ -441,6 +449,12 @@ class Jobposts {
     if (is_vip !== undefined && is_vip !== null && is_vip !== "") {
       conditions.push(` AND j.is_vip = $${idx}`);
       values.push(is_vip);
+      idx += 1;
+    }
+
+    if (is_remote !== undefined && is_remote !== null && is_remote !== "") {
+      conditions.push(` AND j.is_remote = $${idx}`);
+      values.push(is_remote);
       idx += 1;
     }
 

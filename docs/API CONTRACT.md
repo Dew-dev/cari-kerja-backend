@@ -2210,7 +2210,9 @@ Returned when the authenticated user does not have permission to access the requ
     "salary_min": 120000,
     "salary_max": 180000,
     "currency_id": 1,
-    "status_id": 2
+    "status_id": 2,
+    "is_vip": false,
+    "is_remote": true
   }
 **201 Created Response Example**:
   {
@@ -2224,6 +2226,8 @@ Returned when the authenticated user does not have permission to access the requ
     "salary_max": 180000,
     "currency_id": 1,
     "status_id": 2,
+    "is_vip": false,
+    "is_remote": true,
     "published_at": "2025-03-10T15:30:00Z", 
     "created_at": "2025-03-10T15:30:00Z",
     "updated_at": "2025-03-10T15:30:00Z"
@@ -2329,7 +2333,9 @@ Returned when the authenticated user does not have permission to access the requ
     "salary_min": 80000,
     "salary_max": 120000,
     "currency_id": 1,
-    "status_id": 2
+    "status_id": 2,
+    "is_vip": false,
+    "is_remote": true
   }
 **SQL UPDATE Statement**:
   UPDATE job_posts
@@ -2364,6 +2370,8 @@ Returned when the authenticated user does not have permission to access the requ
       "avatar_url": "https://example.com/avatars/techcorp.jpg",
       "status_id": 2,
       "status": "Active",
+      "is_vip": false,
+      "is_remote": true,
       "published_at": "2025-03-10T10:00:00Z", 
       "created_at": "2025-03-10T10:00:00Z",
       "updated_at": "2025-03-10T14:30:00Z"

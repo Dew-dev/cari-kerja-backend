@@ -45,6 +45,7 @@ const createJobPostParamType = joi.object({
   is_vip: joi.boolean().optional().default(false),
   vip_start_at: joi.date().optional().allow(null),
   vip_end_at: joi.date().optional().allow(null),
+  is_remote: joi.boolean().optional().default(false),
   deadline: joi.string().optional().allow(""),
   tags: joi
     .array()
@@ -226,6 +227,7 @@ const updateJobPostParamType = joi.object({
   is_vip: joi.boolean().optional(),
   vip_start_at: joi.date().optional().allow(null),
   vip_end_at: joi.date().optional().allow(null),
+  is_remote: joi.boolean().optional(),
   deadline: joi.string().optional().allow(""),
 
   tags: joi

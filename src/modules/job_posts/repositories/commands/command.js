@@ -82,6 +82,7 @@ class Command {
     is_vip,
     vip_start_at,
     vip_end_at,
+    is_remote,
   }) {
     const query = `
       UPDATE job_posts
@@ -101,6 +102,7 @@ class Command {
         is_vip = $14,
         vip_start_at = $15,
         vip_end_at = $16,
+        is_remote = $17,
         updated_at = NOW()
       WHERE id = $1
       RETURNING id;
@@ -123,6 +125,7 @@ class Command {
       is_vip,
       vip_start_at,
       vip_end_at,
+      is_remote,
     ];
 
     const result = await this.db.executeQuery(query, values);
@@ -171,6 +174,7 @@ class Command {
     is_vip,
     vip_start_at,
     vip_end_at,
+    is_remote,
   }) {
     const query = `
       INSERT INTO job_posts (
@@ -191,9 +195,10 @@ class Command {
         city,
         is_vip,
         vip_start_at,
-        vip_end_at
+        vip_end_at,
+        is_remote
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19
       )
       RETURNING id;
     `;
@@ -217,6 +222,7 @@ class Command {
       is_vip,
       vip_start_at,
       vip_end_at,
+      is_remote,
     ];
 
     const result = await this.db.executeQuery(query, values);

@@ -56,6 +56,7 @@ class Jobpost {
       is_vip,
       vip_start_at,
       vip_end_at,
+      is_remote,
     } = payload;
 
     const jobPostId = uuidv4();
@@ -78,6 +79,7 @@ class Jobpost {
       is_vip: is_vip ?? false,
       vip_start_at: is_vip ? (vip_start_at ?? new Date()) : null,
       vip_end_at: is_vip ? (vip_end_at ?? null) : null,
+      is_remote: is_remote ?? false,
     };
 
     const result = await this.command.insertJobPost(data);
@@ -646,7 +648,7 @@ class Jobpost {
   async updateJobPost(payload) {
     
     console.log("skillResult (update):", payload);
-    const { id, recruiter_id, user_id, tags, job_post_questions, questions, skills, province, city, is_vip, vip_start_at, vip_end_at, ...jobData } = payload;
+    const { id, recruiter_id, user_id, tags, job_post_questions, questions, skills, province, city, is_vip, vip_start_at, vip_end_at, is_remote, ...jobData } = payload;
 
     // 1️⃣ cek job milik recruiter
     const job = await this.query.findOneJobPost({
@@ -670,6 +672,7 @@ class Jobpost {
       is_vip: is_vip ?? job.data.is_vip,
       vip_start_at: is_vip === undefined ? job.data.vip_start_at : (is_vip ? (vip_start_at ?? new Date()) : null),
       vip_end_at: is_vip === undefined ? job.data.vip_end_at : (is_vip ? (vip_end_at ?? null) : null),
+      is_remote: is_remote ?? job.data.is_remote,
     });
 
     if (!updateResult) {

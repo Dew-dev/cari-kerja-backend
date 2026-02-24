@@ -632,6 +632,7 @@
         is_vip BOOLEAN NOT NULL DEFAULT FALSE,
         vip_start_at TIMESTAMP WITH TIME ZONE,
         vip_end_at TIMESTAMP WITH TIME ZONE,
+        is_remote BOOLEAN NOT NULL DEFAULT FALSE,
         status_id INT NOT NULL REFERENCES job_post_statuses(id),
         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
