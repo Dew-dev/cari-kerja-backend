@@ -69,6 +69,34 @@ class Recruiter {
     logger.info(ctx, "getAllRecruitersByIndustry", "Get recruiters grouped by industry");
     return wrapper.data(grouped);
   }
+
+  async getAllCompanies(payload) {
+    const { search, page = 1, limit = 10 } = payload;
+
+    const companies = await this.query.findAllCompanies({ search, page, limit });
+    if (companies.err) {
+      logger.error(ctx, "getAllCompanies", "Cannot find companies", companies.err);
+      return wrapper.error(new NotFoundError("Cannot find companies"));
+    }
+
+    const total = await this.query.countAll({ search });
+    if (total.err) {
+      logger.error(ctx, "getAllCompanies", "Cannot count companies", total.err);
+      return wrapper.error(new NotFoundError("Cannot count companies"));
+    }
+
+    const totalData = Number(total.data || 0);
+    const totalPage = Math.ceil(totalData / Number(limit || 10));
+    const pagination = {
+      page: Number(page),
+      limit: Number(limit),
+      total: totalData,
+      totalPage,
+    };
+
+    logger.info(ctx, "getAllCompanies", "Get all companies", payload);
+    return wrapper.paginationData(companies.data, pagination);
+  }
 }
 
 module.exports = Recruiter;

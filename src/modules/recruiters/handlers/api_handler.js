@@ -3,7 +3,7 @@ const queryModel = require("../repositories/queries/query_model");
 const commandHandler = require("../repositories/commands/command_handler");
 const commandModel = require("../repositories/commands/command_model");
 const validator = require("../../../helpers/utils/validator");
-const { sendResponse } = require("../../../helpers/utils/response");
+const { sendResponse, paginationResponse } = require("../../../helpers/utils/response");
 
 // query
 const getRecruiterByUserId = async (req, res) => {
@@ -31,6 +31,20 @@ const getAllRecruitersByIndustry = async (req, res) => {
 
   const result = await queryHandler.getAllRecruitersByIndustry();
   return sendResponse(result, res);
+};
+
+const getAllCompanies = async (req, res) => {
+  const payload = { ...req.query };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getAllCompaniesParamType
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await queryHandler.getAllCompanies(validatePayload.data);
+  return paginationResponse(result, res);
 };
 
 const updateOneRecruiter = async (req, res) => {
@@ -92,6 +106,7 @@ const updateRecruiterVipSelf = async (req, res) => {
 module.exports = {
   getRecruiterByUserId,
   getAllRecruitersByIndustry,
+  getAllCompanies,
   updateOneRecruiter,
   updateOneRecruiterSelf,
   updateRecruiterVipSelf,

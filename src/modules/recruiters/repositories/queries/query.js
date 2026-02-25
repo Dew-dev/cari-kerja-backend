@@ -156,6 +156,132 @@ class Query {
       return wrapper.error(errorQueryMessage);
     }
   }
+
+  async findAllCompanies({ search, page = 1, limit = 10 }) {
+    try {
+      const conditions = [];
+      const values = [];
+      let idx = 1;
+
+      if (search !== undefined && search !== null && String(search).trim() !== "") {
+        conditions.push(`
+          AND (
+            LOWER(r.company_name) ILIKE '%' || LOWER($${idx}) || '%'
+            OR LOWER(i.name) ILIKE '%' || LOWER($${idx}) || '%'
+          )
+        `);
+        values.push(search);
+        idx += 1;
+      }
+
+      const query = `
+        SELECT
+          r.id,
+          r.user_id,
+          r.company_name,
+          r.avatar_url,
+          r.company_website,
+          r.contact_name,
+          r.contact_phone,
+          r.address,
+          r.industry_id,
+          i.name AS industry_name,
+          r.description,
+          r.is_vip,
+          r.vip_start_at,
+          r.vip_end_at,
+          COUNT(
+            CASE
+              WHEN jp.archived_at IS NULL
+                AND LOWER(COALESCE(jps_count.name, '')) <> 'draft'
+              THEN 1
+              ELSE NULL
+            END
+          )::int AS job_count,
+          r.created_at,
+          r.updated_at
+        FROM recruiters r
+        LEFT JOIN industries i ON i.id = r.industry_id
+        LEFT JOIN job_posts jp ON jp.recruiter_id = r.id
+        LEFT JOIN job_post_statuses jps_count ON jps_count.id = jp.status_id
+        WHERE 1=1 ${conditions.join("\n")}
+        GROUP BY
+          r.id,
+          r.user_id,
+          r.company_name,
+          r.avatar_url,
+          r.company_website,
+          r.contact_name,
+          r.contact_phone,
+          r.address,
+          r.industry_id,
+          i.name,
+          r.description,
+          r.is_vip,
+          r.vip_start_at,
+          r.vip_end_at,
+          r.created_at,
+          r.updated_at
+        ORDER BY r.created_at DESC
+        LIMIT $${idx} OFFSET $${idx + 1};
+      `;
+
+      values.push(parseInt(limit, 10));
+      values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
+
+      const result = await this.db.executeQuery(query, values);
+
+      if (!result) {
+        return wrapper.error(errorQueryMessage);
+      }
+
+      return wrapper.data(result.rows);
+    } catch (error) {
+      logger.error(ctx, errorQueryMessage, "findAllCompanies", error);
+      return wrapper.error(errorQueryMessage);
+    }
+  }
+
+  async countAllCompanies({ search }) {
+    try {
+      const conditions = [];
+      const values = [];
+      let idx = 1;
+
+      if (search !== undefined && search !== null && String(search).trim() !== "") {
+        conditions.push(`
+          AND (
+            LOWER(r.company_name) ILIKE '%' || LOWER($${idx}) || '%'
+            OR LOWER(i.name) ILIKE '%' || LOWER($${idx}) || '%'
+          )
+        `);
+        values.push(search);
+        idx += 1;
+      }
+
+      const query = `
+        SELECT COUNT(DISTINCT r.id)::int AS total
+        FROM recruiters r
+        LEFT JOIN industries i ON i.id = r.industry_id
+        WHERE 1=1 ${conditions.join("\n")};
+      `;
+
+      const result = await this.db.executeQuery(query, values);
+
+      if (!result || result.rows.length === 0) {
+        return wrapper.error(errorQueryMessage);
+      }
+
+      return wrapper.data(result.rows[0].total);
+    } catch (error) {
+      logger.error(ctx, errorQueryMessage, "countAllCompanies", error);
+      return wrapper.error(errorQueryMessage);
+    }
+  }
+
+  async countAll(payload = {}) {
+    return this.countAllCompanies(payload);
+  }
 }
 
 module.exports = Query;

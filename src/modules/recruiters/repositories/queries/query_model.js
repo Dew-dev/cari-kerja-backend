@@ -6,7 +6,14 @@ const getRecruiterByUserIdParamType = joi.object({
 
 const getAllRecruitersByIndustryParamType = joi.object({});
 
+const getAllCompaniesParamType = joi.object({
+    search: joi.string().optional(),
+    page: joi.number().default(1).optional(),
+    limit: joi.number().default(10).optional(),
+});
+
 module.exports = {
     getRecruiterByUserIdParamType,
     getAllRecruitersByIndustryParamType,
+    getAllCompaniesParamType,
 }

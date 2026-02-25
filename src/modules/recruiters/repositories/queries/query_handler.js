@@ -12,7 +12,12 @@ const getAllRecruitersByIndustry = async () => {
   return domain.getAllRecruitersByIndustry();
 };
 
+const getAllCompanies = async (payload) => {
+  return domain.getAllCompanies(payload);
+};
+
 module.exports = {
   getRecruiterByUserId,
   getAllRecruitersByIndustry,
+  getAllCompanies,
 };
