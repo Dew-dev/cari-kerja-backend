@@ -16,8 +16,12 @@ class AppServer {
       credentials: true
     }));
     // this.port = config.get("/port");
+
+    // 🔥 TARO DI SINI
+    console.log("PORT ENV:", process.env.PORT);
     this.port = process.env.PORT;
     console.log("PORT:", this.port);
+    console.log("PORT YANG DIPAKAI:", this.port);
     // this.port = process.env.PORT || 5000;
     this._middlewares();
     this._routes();
@@ -33,7 +37,7 @@ class AppServer {
 
 
   _middlewares() {
-    this.server.use(cors);
+    // this.server.use(cors());
     ////console.log("CORS middleware applied", cors);
     // this.server.options("*", cors);
     this.server.use(express.json());
