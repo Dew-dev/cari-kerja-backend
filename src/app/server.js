@@ -11,6 +11,8 @@ class AppServer {
   constructor() {
     this.server = express();
     this.port = config.get("/port");
+    console.log("PORT:", this.port);
+    // this.port = process.env.PORT || 5000;
     this._middlewares();
     this._routes();
     this.server.use(express.urlencoded({ extended: true }));
