@@ -11,6 +11,10 @@ const pgConnectionPool = require("../helpers/databases/postgresql/connection");
 class AppServer {
   constructor() {
     this.server = express();
+    this.server.use(cors({
+      origin: "https://job-portal.egiresources.com",
+      credentials: true
+    }));
     this.port = config.get("/port");
     console.log("PORT:", this.port);
     // this.port = process.env.PORT || 5000;
@@ -23,10 +27,6 @@ class AppServer {
       express.static(path.join(__dirname, "../uploads"))
     );
 
-    this.server.use(cors({
-      origin: "https://job-portal.egiresources.com",
-      credentials: true
-    }));
     pgConnectionPool.init(pgConfig);
   }
 
