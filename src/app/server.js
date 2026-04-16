@@ -16,7 +16,7 @@ class AppServer {
       credentials: true
     }));
     // this.port = config.get("/port");
-    this.port = process.env.PORT;
+    this.port = process.env.PORT || 3000;
     console.log("PORT:", this.port);
     // this.port = process.env.PORT || 5000;
     this._middlewares();
