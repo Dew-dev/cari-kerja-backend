@@ -15,7 +15,8 @@ class AppServer {
       origin: "https://job-portal.egiresources.com",
       credentials: true
     }));
-    this.port = config.get("/port");
+    // this.port = config.get("/port");
+    this.port = process.env.PORT;
     console.log("PORT:", this.port);
     // this.port = process.env.PORT || 5000;
     this._middlewares();
