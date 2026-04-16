@@ -1,4 +1,5 @@
-const cors = require("./cors");
+// const cors = require("./cors");
+const cors = require("cors");
 const path = require("path");
 const express = require("express");
 const routes = require("../routes");
@@ -21,8 +22,14 @@ class AppServer {
       "/uploads",
       express.static(path.join(__dirname, "../uploads"))
     );
+
+    this.server.use(cors({
+      origin: "https://job-portal.egiresources.com",
+      credentials: true
+    }));
     pgConnectionPool.init(pgConfig);
   }
+
 
   _middlewares() {
     this.server.use(cors);
