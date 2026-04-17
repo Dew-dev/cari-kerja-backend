@@ -1,5 +1,5 @@
 // const cors = require("./cors");
-const cors = require("cors");
+const cors = require("./cors");
 const path = require("path");
 const express = require("express");
 const routes = require("../routes");
@@ -11,18 +11,10 @@ const pgConnectionPool = require("../helpers/databases/postgresql/connection");
 class AppServer {
   constructor() {
     this.server = express();
-    this.server.use(cors({
-      origin: "https://job-portal.egiresources.com",
-      credentials: true
-    }));
+    this.server.use(cors);
     // this.port = config.get("/port");
 
-    // 🔥 TARO DI SINI
-    console.log("PORT ENV:", process.env.PORT);
-    this.port = process.env.PORT;
-    console.log("PORT:", this.port);
-    console.log("PORT YANG DIPAKAI:", this.port);
-    // this.port = process.env.PORT || 5000;
+    this.port = process.env.PORT || process.env.APP_PORT || 5000;
     this._middlewares();
     this._routes();
     this.server.use(express.urlencoded({ extended: true }));
@@ -59,8 +51,8 @@ class AppServer {
 
   listen() {
     this.server.listen(this.port, () => {
-      ////console.log("\n", __dirname);
-      ////console.log(`🚀 Server running at http://localhost:${this.port}\n\n`);
+      console.log("\n", __dirname);
+      console.log(`🚀 Server running at http://localhost:${this.port}\n\n`);
     });
   }
 }
