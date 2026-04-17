@@ -3,8 +3,17 @@ const jwt = require("jsonwebtoken");
 const wrapper = require("../utils/wrapper");
 const config = require("../../config/global_config");
 
-const signOptions = JSON.parse(config.get("/jwt/accessSign"));
-const refreshOptions = JSON.parse(config.get("/jwt/refreshSign"));
+const parseJsonOption = (val) => {
+  if (!val) return {};
+  try {
+    return JSON.parse(val.replace(/^'|'$/g, ""));
+  } catch {
+    return {};
+  }
+};
+
+const signOptions = parseJsonOption(config.get("/jwt/accessSign"));
+const refreshOptions = parseJsonOption(config.get("/jwt/refreshSign"));
 const accessSecret = config.get("/jwt/accessTokenSecret");
 const refreshSecret = config.get("/jwt/refreshTokenSecret");
 
