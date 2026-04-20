@@ -51,7 +51,7 @@ const uploadAvatarRecruiter = createUploader(
   "avatars/recruiter/avatars",
   "recruiter",
   ["image/jpeg", "image/png", "image/jpg"],
-  2,
+  0.5,
 );
 
 const uploadAvatarWorker = createUploader(

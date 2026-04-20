@@ -31,6 +31,9 @@ class Recruiter {
       "address",
       "industry_id",
       "description",
+      "employee_count",
+      "instagram_url",
+      "tiktok_url",
     ];
     let updateData = {};
     for (const field of updatableFields) {
