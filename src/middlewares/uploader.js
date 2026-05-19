@@ -9,7 +9,8 @@ function createUploader(
   allowedMimeTypes,
   maxSizeMB = 2,
 ) {
-  const uploadPath = path.join(__dirname, "../uploads", subPath);
+  // const uploadPath = path.join(__dirname, "../uploads", subPath);
+  const uploadPath = path.join("/var/www/uploads", subPath);
 
   // pastikan folder ada
   if (!fs.existsSync(uploadPath)) {
@@ -48,14 +49,14 @@ function createUploader(
 
 // Avatar → JPG/PNG only
 const uploadAvatarRecruiter = createUploader(
-  "avatars/recruiter/avatars",
+  "avatars/recruiter",
   "recruiter",
   ["image/jpeg", "image/png", "image/jpg"],
-  0.5,
+  2,
 );
 
 const uploadAvatarWorker = createUploader(
-  "avatars/worker/avatars",
+  "avatars/worker",
   "worker",
   ["image/jpeg", "image/png", "image/jpg"],
   2,
