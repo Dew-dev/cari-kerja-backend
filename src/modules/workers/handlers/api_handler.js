@@ -69,7 +69,7 @@ const updateSelfWorker = async (req, res) => {
     user_id: req.userMeta.id,
   };
   if (req.file) {
-    payload.avatar_url = `/uploads/avatars/worker/avatars/${req.file.filename}`;
+    payload.avatar_url = `/uploads/avatars/worker/${req.file.filename}`;
   }
   const validatePayload = validator.isValidPayload(
     payload,
