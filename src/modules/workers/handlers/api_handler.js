@@ -53,7 +53,7 @@ const updateOneWorker = async (req, res) => {
     commandModel.updateWorkerParamType
   );
   if (req.file) {
-    payload.avatar_url = `/uploads/avatars/worker/avatars/${req.file.filename}`;
+    payload.avatar_url = `/uploads/avatars/worker/${req.file.filename}`;
   }
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
