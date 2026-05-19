@@ -53,7 +53,7 @@ const updateOneWorker = async (req, res) => {
     commandModel.updateWorkerParamType
   );
   if (req.file) {
-    payload.avatar_url = `/uploads/${req.file.filename}`;
+    payload.avatar_url = `/uploads/avatars/worker/${req.file.filename}`;
   }
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
@@ -69,7 +69,7 @@ const updateSelfWorker = async (req, res) => {
     user_id: req.userMeta.id,
   };
   if (req.file) {
-    payload.avatar_url = `/uploads/${req.file.filename}`;
+    payload.avatar_url = `/uploads/avatars/worker/${req.file.filename}`;
   }
   const validatePayload = validator.isValidPayload(
     payload,
