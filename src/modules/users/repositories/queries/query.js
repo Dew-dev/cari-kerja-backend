@@ -120,11 +120,16 @@ class Query {
   }
 
   async findUserById(id) {
-    const res = await this.db.executeQuery(
-      `SELECT id, email, name, email_verified_at FROM users WHERE id=$1 LIMIT 1`,
-      [id],
-    );
-    return wrapper.data(res.rows[0]);
+    try {
+      const res = await this.db.executeQuery(
+        `SELECT id, email, name, email_verified_at FROM users WHERE id=$1 LIMIT 1`,
+        [id],
+      );
+      if (!res) return wrapper.error(new Error("Database query failed"));
+      return wrapper.data(res.rows[0]);
+    } catch (e) {
+      return wrapper.error(e);
+    }
   }
 
   async findValidEmailVerification(token) {

@@ -670,6 +670,9 @@ class User {
 
     // Fetch user to get role information
     const user = await this.query.findUserById(record.data.user_id);
+    if (user.err) {
+      return wrapper.error(new InternalServerError("Failed to fetch user"));
+    }
     const role = user.data?.role_id === 2 ? "recruiter" : "user";
 
     return wrapper.data({
