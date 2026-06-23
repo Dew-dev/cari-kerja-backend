@@ -121,11 +121,13 @@ class Query {
   }
 
   async findUserByIds(id) {
+    console.log("findUserByIds", id);
     try {
       const res = await this.db.executeQuery(
         `SELECT id, email, role_id, email_verified_at FROM users WHERE id=$1 LIMIT 1`,
         [id],
       );
+      console.log("res", res);  
       if (!res) return wrapper.error(new Error("Database query failed"));
       return wrapper.data(res.rows[0]);
     } catch (e) {
