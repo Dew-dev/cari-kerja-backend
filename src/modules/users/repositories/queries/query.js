@@ -119,7 +119,7 @@ class Query {
     }
   }
 
-  async findUserById(id) {
+  async findUserByIds(id) {
     try {
       const res = await this.db.executeQuery(
         `SELECT id, email, name, email_verified_at FROM users WHERE id=$1 LIMIT 1`,

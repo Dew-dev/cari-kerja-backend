@@ -669,7 +669,7 @@ class User {
     await this.command.invalidateEmailVerifications(record.data.user_id);
 
     // Fetch user to get role information
-    const user = await this.query.findUserById(record.data.user_id);
+    const user = await this.query.findUserByIds(record.data.user_id);
     if (user.err) {
       return wrapper.error(new InternalServerError("Failed to fetch user"));
     }
