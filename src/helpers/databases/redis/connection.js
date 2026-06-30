@@ -18,7 +18,7 @@ const init = () => {
   });
 
   redisClient.on("error", (err) => {
-    logger.error("redis connection", "connection error", "redis", err.message);
+    logger.error("redis connection", "connection error", "redis", err.message || err);
   });
 
   return redisClient;
