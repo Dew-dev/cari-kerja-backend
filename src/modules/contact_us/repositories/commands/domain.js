@@ -6,7 +6,7 @@ const {
   InternalServerError,
   BadRequestError,
 } = require("../../../../helpers/errors");
-const { sendMail } = require("../../../../helpers/utils/mailer");
+const { addEmailJob } = require("../../../../helpers/queues/email.queue");
 const ctx = "ContactUs-Command-Domain";
 
 class ContactUsDomain {
@@ -59,7 +59,7 @@ class ContactUsDomain {
         <p>${message.replace(/\n/g, "<br>")}</p>
       `;
 
-      await sendMail({
+      await addEmailJob({
         to: process.env.MAIL_USER,
         subject: `[Contact Us] ${subject}`,
         html: emailHtml,

@@ -7,6 +7,8 @@ const config = require("../config/global_config");
 const cookieParser = require("cookie-parser");
 const pgConfig = config.get("/postgresqlUrl");
 const pgConnectionPool = require("../helpers/databases/postgresql/connection");
+const redisConnection = require("../helpers/databases/redis/connection");
+const emailWorker = require("../helpers/queues/email.worker");
 
 class AppServer {
   constructor() {
@@ -25,6 +27,8 @@ class AppServer {
     );
 
     pgConnectionPool.init(pgConfig);
+    redisConnection.init();
+    emailWorker.start();
   }
 
 

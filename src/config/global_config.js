@@ -31,6 +31,7 @@ const config = {
     secS3User: process.env.R2_SECRET_S3_USER,
     bucketName: process.env.R2_BUCKET_NAME,
   },
+  redisUrl: process.env.REDIS_URL || "redis://localhost:6379",
 };
 
 const store = new confidence.Store(config);

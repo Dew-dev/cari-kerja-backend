@@ -20,8 +20,8 @@ const {
 const jobPostQuestionParamType = require("./command_model.js");
 // const commandModel = require("../../job_tags/repositories/commands/command_model");
 const tagsModel = require("../../../job_tags/repositories/commands/command_model.js");
-const { sendMail } = require("../../../../helpers/utils/mailer");
-const   statusEmailTemplate = require("../../../../helpers/utils/statusEmailTemplate");
+const statusEmailTemplate = require("../../../../helpers/utils/statusEmailTemplate");
+const { addEmailJob } = require("../../../../helpers/queues/email.queue");
 
 class Jobpost {
   constructor(db) {
@@ -626,7 +626,7 @@ class Jobpost {
 
     // kirim email (NON-BLOCKING OPTIONAL)
     try {
-      await sendMail({
+      await addEmailJob({
         to: app.data.email,
         subject: `Application status updated — ${app.data.job_title}`,
         html: statusEmailTemplate({
