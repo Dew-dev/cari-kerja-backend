@@ -588,7 +588,7 @@ INSERT INTO job_post_skills (job_post_id, skill_id) VALUES
   (gen_random_uuid(), 'dddddddd-dddd-dddd-dddd-000000000002', 'cccccccc-cccc-cccc-cccc-000000000001'), -- JavaScript
   (gen_random_uuid(), 'dddddddd-dddd-dddd-dddd-000000000002', 'cccccccc-cccc-cccc-cccc-000000000002'), -- TypeScript
   (gen_random_uuid(), 'dddddddd-dddd-dddd-dddd-000000000002', 'cccccccc-cccc-cccc-cccc-000000000003'), -- React
-  (gen_random_uuid(), 'dddddddd-dddd-dddd-dddd-000000000002', 'cccccccc-cccc-cccc-cccc-000000000025'); -- Next.js
+  (gen_random_uuid(), 'dddddddd-dddd-dddd-dddd-000000000002', 'cccccccc-cccc-cccc-cccc-000000000025'), -- Next.js
   -- JP3: Data Engineer
   (gen_random_uuid(), 'dddddddd-dddd-dddd-dddd-000000000003', 'cccccccc-cccc-cccc-cccc-000000000006'), -- Python
   (gen_random_uuid(), 'dddddddd-dddd-dddd-dddd-000000000003', 'cccccccc-cccc-cccc-cccc-000000000022'), -- SQL
