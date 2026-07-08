@@ -52,3 +52,5 @@ main().catch((err) => {
   console.error("Fatal error:", err);
   process.exit(1);
 });
+
+// Note: This script is for manual testing purposes only. In a production environment, you would typically have a separate worker process running continuously to handle jobs from the queue.
