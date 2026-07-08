@@ -1,8 +1,9 @@
-# Aturan Ruang Kerja (Workspace Rules)
+# Git Workflow Rule
 
-## 1. Git Workflow
+## Deskripsi
 Aturan ini mewajibkan setiap perubahan kode atau penambahan fitur agar mematuhi standar Git Workflow untuk menjaga kerapian histori repositori.
 
+## Aturan
 1. **Selalu Buat Branch Baru**: Sebelum menulis atau mengubah kode, pastikan untuk selalu membuat branch baru dari branch utama (`main` / `master` / `develop`) menggunakan format yang jelas.
    - Contoh format: `feature/nama-fitur`, `fix/nama-perbaikan`, `chore/nama-task`.
 2. **Commit Granular**: Lakukan commit secara berkala (granular) untuk setiap perubahan fungsional yang sudah selesai, bukan satu commit raksasa di akhir.
@@ -15,8 +16,11 @@ Aturan ini mewajibkan setiap perubahan kode atau penambahan fitur agar mematuhi 
    - `chore:` untuk pembaruan pada proses build atau alat bantu lainnya.
 4. **Tidak Mendorong Langsung ke Main**: Agen tidak boleh melakukan push langsung ke branch utama (`main` atau `master`). Push hanya dilakukan pada branch fitur, kemudian berikan instruksi kepada user (atau buatkan pull request jika diinstruksikan) untuk melakukan merge/review.
 
-## 2. Akses Lintas Repositori (Cross-Repository Access)
-Aturan ini mencegah agen melakukan modifikasi pada repositori yang bukan merupakan fokus utamanya, demi menghindari kerusakan atau perubahan yang tidak disengaja.
+# Pembagian Tugas Backend & Frontend
 
-1. **Akses Read-Only Frontend ke Backend**: Agen frontend hanya memiliki akses baca (*read-only*) ke repositori backend (`C:\Users\Hakim\Documents\Freelance\job-portal\cari-kerja-backend`). Dilarang keras melakukan penulisan atau modifikasi file backend dari percakapan frontend. Jika diperlukan perubahan, buatlah rencana implementasi (*implementation plan*) untuk dieksekusi oleh agen backend.
-2. **Akses Read-Only Backend ke Frontend**: Agen backend hanya memiliki akses baca (*read-only*) ke repositori frontend (`C:\Users\Hakim\Documents\Freelance\job-portal\cari-kerja-frontend`). Dilarang keras melakukan penulisan atau modifikasi file frontend dari percakapan backend. Jika diperlukan perubahan, buatlah rencana implementasi (*implementation plan*) untuk dieksekusi oleh agen frontend.
+## Deskripsi
+Aturan ini menetapkan batasan ruang lingkup kerja agen terkait perubahan frontend. Karena pengguna memiliki agen terpisah untuk menangani frontend.
+
+## Aturan
+1. **Hanya Fokus pada Backend**: Agen tidak diperbolehkan mengubah kode atau file apapun yang berada di direktori frontend. Terhadap direktori `C:\Users\mybook\Documents\Project-Webside\job-portal\cari-kerja-frontend`, agen hanya diberikan akses **Read-Only** (hanya untuk membaca dan memahami konteks), tanpa izin untuk menambah, memodifikasi, atau menghapus file apa pun.
+2. **Berikan Instruksi Khusus**: Jika ada perubahan fitur yang memerlukan penyesuaian di frontend, agen harus mendeskripsikan secara spesifik apa saja yang perlu dilakukan pada sisi frontend, dan menyerahkannya sebagai **Instruksi untuk Agen Frontend** yang dapat disalin oleh pengguna.
