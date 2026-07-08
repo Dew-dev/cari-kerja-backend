@@ -19,13 +19,67 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Categories"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
+          }
+        ]
       },
       "post": {
         "description": "",
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Categories"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -37,7 +91,41 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Categories"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
+          }
+        ]
       }
     },
     "/api/v1/categories/{id}": {
@@ -57,7 +145,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Categories"
+        ]
       },
       "put": {
         "description": "",
@@ -74,6 +165,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Categories"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       },
@@ -93,7 +204,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Categories"
+        ]
       }
     },
     "/api/v1/workers/cert/{id}": {
@@ -120,7 +234,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       },
       "put": {
         "description": "",
@@ -144,6 +261,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Workers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       },
@@ -170,7 +307,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       }
     },
     "/api/v1/workers/cert": {
@@ -183,13 +323,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       },
       "post": {
         "description": "",
@@ -205,6 +377,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Workers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -236,10 +428,16 @@
                     "example": "any"
                   }
                 }
+              },
+              "example": {
+                "note": "Auto-generated example payload from format-swagger.js."
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Contact-us"
+        ]
       },
       "get": {
         "description": "",
@@ -270,7 +468,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Contact-us"
+        ]
       }
     },
     "/api/v1/contact-us/{id}": {
@@ -290,7 +491,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Contact-us"
+        ]
       },
       "delete": {
         "description": "",
@@ -308,7 +512,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Contact-us"
+        ]
       }
     },
     "/api/v1/workers/educations": {
@@ -321,13 +528,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       },
       "post": {
         "description": "",
@@ -343,6 +582,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Workers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -371,7 +630,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       },
       "put": {
         "description": "",
@@ -395,6 +657,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Workers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       },
@@ -421,7 +703,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       }
     },
     "/api/v1/employment_types": {
@@ -431,13 +716,67 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Employment types"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
+          }
+        ]
       },
       "post": {
         "description": "",
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Employment types"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -459,7 +798,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Employment types"
+        ]
       },
       "put": {
         "description": "",
@@ -476,6 +818,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Employment types"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       },
@@ -495,7 +857,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Employment types"
+        ]
       }
     },
     "/api/v1/experience_levels": {
@@ -505,13 +870,67 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Experience levels"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
+          }
+        ]
       },
       "post": {
         "description": "",
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Experience levels"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -533,7 +952,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Experience levels"
+        ]
       },
       "put": {
         "description": "",
@@ -550,6 +972,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Experience levels"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       },
@@ -569,7 +1011,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Experience levels"
+        ]
       }
     },
     "/api/v1/genders": {
@@ -579,13 +1024,67 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Genders"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
+          }
+        ]
       },
       "post": {
         "description": "",
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Genders"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -607,7 +1106,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Genders"
+        ]
       },
       "put": {
         "description": "",
@@ -624,6 +1126,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Genders"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       },
@@ -643,7 +1165,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Genders"
+        ]
       }
     },
     "/api/v1/industries": {
@@ -653,13 +1178,67 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Industries"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
+          }
+        ]
       },
       "post": {
         "description": "",
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Industries"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -681,7 +1260,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Industries"
+        ]
       },
       "put": {
         "description": "",
@@ -698,6 +1280,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Industries"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       },
@@ -717,7 +1319,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Industries"
+        ]
       }
     },
     "/api/v1/recruiters/job-posts/self": {
@@ -730,13 +1335,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Recruiters"
+        ]
       }
     },
     "/api/v1/job-posts/{id}": {
@@ -763,7 +1400,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-posts"
+        ]
       },
       "put": {
         "description": "",
@@ -853,10 +1493,16 @@
                     "example": "any"
                   }
                 }
+              },
+              "example": {
+                "note": "Auto-generated example payload from format-swagger.js."
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Job-posts"
+        ]
       },
       "delete": {
         "description": "",
@@ -881,7 +1527,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-posts"
+        ]
       }
     },
     "/api/v1/recruiters/{recruiter_id}/job-posts": {
@@ -895,13 +1544,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Recruiters"
+        ]
       }
     },
     "/api/v1/job-posts/status/{id}": {
@@ -928,6 +1609,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Job-posts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       }
     },
@@ -941,13 +1642,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-posts"
+        ]
       },
       "post": {
         "description": "",
@@ -963,6 +1696,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Job-posts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -991,6 +1744,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Job-posts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       }
     },
@@ -1017,6 +1790,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Job-posts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -1052,7 +1845,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-posts"
+        ]
       }
     },
     "/api/v1/job-posts/{job_post_id}/create-answers": {
@@ -1078,6 +1874,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Job-posts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -1106,6 +1922,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Job-posts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       }
     },
@@ -1119,13 +1955,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-posts"
+        ]
       }
     },
     "/api/v1/job-applications/{job_post_id}": {
@@ -1152,7 +2020,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-applications"
+        ]
       }
     },
     "/api/v1/currencies/{code}": {
@@ -1166,13 +2037,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Currencies"
+        ]
       }
     },
     "/api/v1/categories/name/{name}": {
@@ -1186,13 +2089,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Categories"
+        ]
       }
     },
     "/api/v1/job-posts/{job_post_id}/applicants": {
@@ -1213,13 +2148,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-posts"
+        ]
       }
     },
     "/api/v1/job-applications/{id}/status": {
@@ -1257,10 +2224,16 @@
                     "example": "any"
                   }
                 }
+              },
+              "example": {
+                "note": "Auto-generated example payload from format-swagger.js."
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Job-applications"
+        ]
       }
     },
     "/api/v1/job-applications/{id}/worker": {
@@ -1287,7 +2260,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-applications"
+        ]
       }
     },
     "/api/v1/job-posts/{id}/vip": {
@@ -1331,10 +2307,16 @@
                     "example": "any"
                   }
                 }
+              },
+              "example": {
+                "note": "Auto-generated example payload from format-swagger.js."
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Job-posts"
+        ]
       }
     },
     "/api/v1/job-posts/{id}/duplicate": {
@@ -1360,6 +2342,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Job-posts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -1388,6 +2390,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Job-posts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       }
     },
@@ -1414,6 +2436,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Job-posts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -1442,7 +2484,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-applications"
+        ]
       },
       "post": {
         "description": "",
@@ -1478,10 +2523,16 @@
                     "example": "any"
                   }
                 }
+              },
+              "example": {
+                "note": "Auto-generated example payload from format-swagger.js."
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Job-applications"
+        ]
       }
     },
     "/api/v1/job-posts/job-post-benefits/{job_post_id}": {
@@ -1495,13 +2546,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-posts"
+        ]
       },
       "post": {
         "description": "",
@@ -1525,6 +2608,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Job-posts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       },
@@ -1551,6 +2654,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Job-posts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       },
       "delete": {
@@ -1576,7 +2699,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-posts"
+        ]
       }
     },
     "/api/v1/job-posts/job-post-requirements/{job_post_id}": {
@@ -1590,13 +2716,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-posts"
+        ]
       },
       "post": {
         "description": "",
@@ -1620,6 +2778,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Job-posts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       },
@@ -1646,6 +2824,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Job-posts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       },
       "delete": {
@@ -1671,7 +2869,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-posts"
+        ]
       }
     },
     "/api/v1/job-posts/job-post-responsibilities/{job_post_id}": {
@@ -1685,13 +2886,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-posts"
+        ]
       },
       "post": {
         "description": "",
@@ -1715,6 +2948,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Job-posts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       },
@@ -1741,6 +2994,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Job-posts"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       },
       "delete": {
@@ -1766,7 +3039,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-posts"
+        ]
       }
     },
     "/api/v1/job-posts/{job_post_id}/tags": {
@@ -1780,13 +3056,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Job-posts"
+        ]
       }
     },
     "/api/v1/tags/{name}": {
@@ -1800,13 +3108,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Tags"
+        ]
       }
     },
     "/api/v1/tags/all/{name}": {
@@ -1820,13 +3160,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Tags"
+        ]
       }
     },
     "/api/v1/tags/{tag_id}/{job_post_id}": {
@@ -1848,13 +3220,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Tags"
+        ]
       }
     },
     "/api/v1/tags/{job_post_id}": {
@@ -1892,10 +3296,16 @@
                     "example": "any"
                   }
                 }
+              },
+              "example": {
+                "note": "Auto-generated example payload from format-swagger.js."
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Tags"
+        ]
       },
       "delete": {
         "description": "",
@@ -1920,7 +3330,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Tags"
+        ]
       }
     },
     "/api/v1/tags": {
@@ -1950,10 +3363,16 @@
                     "example": "any"
                   }
                 }
+              },
+              "example": {
+                "note": "Auto-generated example payload from format-swagger.js."
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Tags"
+        ]
       }
     },
     "/api/v1/workers/languages": {
@@ -1966,13 +3385,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       },
       "post": {
         "description": "",
@@ -1988,6 +3439,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Workers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -2016,6 +3487,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Workers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       },
       "delete": {
@@ -2041,7 +3532,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       }
     },
     "/api/v1/locations/provinces": {
@@ -2051,7 +3545,41 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Locations"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
+          }
+        ]
       }
     },
     "/api/v1/locations/provinces/{id}": {
@@ -2071,7 +3599,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Locations"
+        ]
       }
     },
     "/api/v1/locations/cities": {
@@ -2084,13 +3615,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Locations"
+        ]
       }
     },
     "/api/v1/locations/cities/{id}": {
@@ -2110,7 +3673,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Locations"
+        ]
       }
     },
     "/api/v1/locations/search": {
@@ -2137,13 +3703,36 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Locations"
+        ]
       }
     },
     "/api/v1/locations/provinces/{province_id}/cities/search": {
@@ -2164,13 +3753,36 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Locations"
+        ]
       }
     },
     "/api/v1/nationalities": {
@@ -2180,13 +3792,67 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Nationalities"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
+          }
+        ]
       },
       "post": {
         "description": "",
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Nationalities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -2208,7 +3874,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Nationalities"
+        ]
       },
       "put": {
         "description": "",
@@ -2225,6 +3894,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Nationalities"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       },
@@ -2244,7 +3933,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Nationalities"
+        ]
       }
     },
     "/api/v1/workers/portfolios": {
@@ -2257,13 +3949,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       },
       "post": {
         "description": "",
@@ -2279,6 +4003,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Workers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -2307,6 +4051,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Workers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       },
       "delete": {
@@ -2332,7 +4096,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       }
     },
     "/api/v1/recruiters/companies": {
@@ -2342,7 +4109,41 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Recruiters"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
+          }
+        ]
       }
     },
     "/api/v1/recruiters/grouped-by-industry": {
@@ -2352,7 +4153,41 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Recruiters"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
+          }
+        ]
       }
     },
     "/api/v1/users/{user_id}/recruiters": {
@@ -2366,13 +4201,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/api/v1/users/{user_id}/recruiters/{id}": {
@@ -2407,6 +4274,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Users"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       }
     },
@@ -2425,6 +4312,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -2462,10 +4369,16 @@
                     "example": "any"
                   }
                 }
+              },
+              "example": {
+                "note": "Auto-generated example payload from format-swagger.js."
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/api/v1/workers/resumes": {
@@ -2478,13 +4391,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       },
       "post": {
         "description": "",
@@ -2500,6 +4445,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Workers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -2528,7 +4493,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       },
       "put": {
         "description": "",
@@ -2553,6 +4521,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Workers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       },
       "delete": {
@@ -2578,7 +4566,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       }
     },
     "/api/v1/workers/saved-jobs/self": {
@@ -2591,13 +4582,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       }
     },
     "/api/v1/saved-jobs/{id}": {
@@ -2617,7 +4640,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Saved-jobs"
+        ]
       },
       "delete": {
         "description": "",
@@ -2642,7 +4668,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Saved-jobs"
+        ]
       }
     },
     "/api/v1/workers/{worker_id}/saved-jobs": {
@@ -2663,13 +4692,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       }
     },
     "/api/v1/saved-jobs": {
@@ -2679,7 +4740,41 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Saved-jobs"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
+          }
+        ]
       }
     },
     "/api/v1/saved-jobs/{job_post_id}": {
@@ -2706,6 +4801,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Saved-jobs"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       }
     },
@@ -2719,13 +4834,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Skills"
+        ]
       },
       "post": {
         "description": "",
@@ -2741,6 +4888,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Skills"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -2769,7 +4936,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Skills"
+        ]
       },
       "put": {
         "description": "",
@@ -2793,6 +4963,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Skills"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       },
@@ -2819,7 +5009,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Skills"
+        ]
       }
     },
     "/api/v1/users/register-worker": {
@@ -2837,6 +5030,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -2856,6 +5069,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -2884,6 +5117,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Users"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       }
     },
@@ -2903,6 +5156,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Users"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       }
     },
@@ -2916,13 +5189,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/api/v1/users/google/callback": {
@@ -2935,13 +5240,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/api/v1/users/logout": {
@@ -2960,7 +5297,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/api/v1/users/refresh-token": {
@@ -2978,6 +5318,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -3006,7 +5366,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       },
       "delete": {
         "description": "",
@@ -3031,7 +5394,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       }
     },
     "/api/v1/auth/forgot-password": {
@@ -3052,10 +5418,16 @@
                     "example": "any"
                   }
                 }
+              },
+              "example": {
+                "note": "Auto-generated example payload from format-swagger.js."
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v1/auth/reset-password": {
@@ -3079,10 +5451,16 @@
                     "example": "any"
                   }
                 }
+              },
+              "example": {
+                "note": "Auto-generated example payload from format-swagger.js."
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v1/auth/change-password": {
@@ -3100,6 +5478,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -3120,6 +5518,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Auth"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       }
     },
@@ -3130,7 +5548,41 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Auth"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
+          }
+        ]
       }
     },
     "/api/v1/auth/verify-email/resend": {
@@ -3151,10 +5603,16 @@
                     "example": "any"
                   }
                 }
+              },
+              "example": {
+                "note": "Auto-generated example payload from format-swagger.js."
               }
             }
           }
-        }
+        },
+        "tags": [
+          "Auth"
+        ]
       }
     },
     "/api/v1/workers": {
@@ -3164,7 +5622,41 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
+          }
+        ]
       }
     },
     "/api/v1/workers/{id}": {
@@ -3184,7 +5676,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       }
     },
     "/api/v1/users/workers/me": {
@@ -3197,13 +5692,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Users"
+        ]
       },
       "put": {
         "description": "",
@@ -3219,6 +5746,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -3255,6 +5802,26 @@
           "default": {
             "description": ""
           }
+        },
+        "tags": [
+          "Users"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
+          }
         }
       }
     },
@@ -3268,13 +5835,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       },
       "post": {
         "description": "",
@@ -3290,6 +5889,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Workers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -3318,7 +5937,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       }
     },
     "/api/v1/workers/work-exp": {
@@ -3331,13 +5953,45 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1
+            },
+            "description": "Page number for pagination"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Number of items per page"
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Search keyword for filtering"
           }
         ],
         "responses": {
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       },
       "post": {
         "description": "",
@@ -3353,6 +6007,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Workers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       }
@@ -3381,7 +6055,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       },
       "put": {
         "description": "",
@@ -3405,6 +6082,26 @@
         "responses": {
           "default": {
             "description": ""
+          }
+        },
+        "tags": [
+          "Workers"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "exampleField": {
+                    "type": "string"
+                  }
+                }
+              },
+              "example": {
+                "note": "Auto-generated example. Replace fields according to actual requirements."
+              }
+            }
           }
         }
       },
@@ -3431,7 +6128,10 @@
           "default": {
             "description": ""
           }
-        }
+        },
+        "tags": [
+          "Workers"
+        ]
       }
     }
   },
