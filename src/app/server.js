@@ -7,6 +7,8 @@ const config = require("../config/global_config");
 const cookieParser = require("cookie-parser");
 const pgConfig = config.get("/postgresqlUrl");
 const pgConnectionPool = require("../helpers/databases/postgresql/connection");
+const swaggerUi = require("swagger-ui-express");
+const fs = require("fs");
 
 class AppServer {
   constructor() {
@@ -45,6 +47,14 @@ class AppServer {
         code: 200,
       });
     });
+
+    // Swagger UI
+    try {
+      const swaggerFile = JSON.parse(fs.readFileSync(path.join(__dirname, "../../swagger_output.json"), 'utf8'));
+      this.server.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerFile));
+    } catch (err) {
+      console.warn("Swagger file not found. Run 'npm run swagger' to generate it.");
+    }
 
     routes(this.server);
   }
