@@ -83,6 +83,8 @@ ON CONFLICT (name) DO NOTHING;
 --   password hash = 'Password123!'
 -- =================================================================
 INSERT INTO users (id, username, email, hashed_password, login_provider, role_id) VALUES
+  -- Super Admin
+  ('33333333-3333-3333-3333-000000000001', 'superadmin', 'admin@carikerja.co.id', '$2b$10$cxMiKT36.YjYIsTOYB0QH.zVwAvpLS0qU1tGKBXveDNclz.kIRnRa', 'local', 3),
   -- Workers
   ('11111111-1111-1111-1111-000000000001', 'budi_santoso',     'budi.santoso@gmail.com',     '$2b$10$cxMiKT36.YjYIsTOYB0QH.zVwAvpLS0qU1tGKBXveDNclz.kIRnRa', 'local', 1),
   ('11111111-1111-1111-1111-000000000002', 'siti_rahayu',      'siti.rahayu@gmail.com',      '$2b$10$cxMiKT36.YjYIsTOYB0QH.zVwAvpLS0qU1tGKBXveDNclz.kIRnRa', 'local', 1),
