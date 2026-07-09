@@ -2,6 +2,10 @@ const joi = require("joi");
 
 const getStatsParamType = joi.object({});
 
+const getDashboardGrowthParamType = joi.object({});
+const getDashboardJobDistributionParamType = joi.object({});
+const getDashboardActivitiesParamType = joi.object({});
+
 const getUsersParamType = joi.object({
   page: joi.number().min(1).default(1),
   limit: joi.number().min(1).max(100).default(10),
@@ -31,5 +35,8 @@ module.exports = {
   getUsersParamType,
   getEmployersParamType,
   getJobsParamType,
-  getApplicationsParamType
+  getApplicationsParamType,
+  getDashboardGrowthParamType,
+  getDashboardJobDistributionParamType,
+  getDashboardActivitiesParamType
 };
