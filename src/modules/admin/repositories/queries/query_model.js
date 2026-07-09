@@ -5,7 +5,6 @@ const getStatsParamType = joi.object({});
 const getDashboardGrowthParamType = joi.object({});
 const getDashboardJobDistributionParamType = joi.object({});
 const getDashboardActivitiesParamType = joi.object({});
-const getSystemSettingsParamType = joi.object({});
 
 
 
@@ -70,5 +69,10 @@ module.exports = {
   getDashboardGrowthParamType,
   getDashboardJobDistributionParamType,
   getDashboardActivitiesParamType,
-  getSystemSettingsParamType
+  getAuditLogsParamType,
+  getUserByIdParamType,
+  getWorkersParamType,
+  getWorkerByIdParamType,
+  getEmployerByIdParamType,
+  getJobByIdParamType
 };
