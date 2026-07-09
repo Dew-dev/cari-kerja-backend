@@ -46,8 +46,8 @@ class SavedJobs {
     addCondition("el.name = ?", experience_level);
     addCondition("st.name = ?", salary_type);
     addCondition("j.location ILIKE ?", location ? `%${location}%` : null);
-    addCondition("j.salary_min >= ?", salary_min);
-    addCondition("j.salary_max <= ?", salary_max);
+    addCondition("j.salary_max >= ?", salary_min);
+    addCondition("j.salary_min <= ?", salary_max);
     addCondition("c.name = ?", currency);
     addCondition("sj.created_at >= ?", created_after);
     addCondition("sj.created_at <= ?", created_before);
@@ -171,13 +171,13 @@ class SavedJobs {
     }
 
     if (salary_min !== undefined && salary_min !== null && salary_min !== "") {
-      conditions.push(` AND j.salary_min >= $${idx}`);
+      conditions.push(` AND j.salary_max >= $${idx}`);
       values.push(salary_min);
       idx += 1;
     }
 
     if (salary_max !== undefined && salary_max !== null && salary_max !== "") {
-      conditions.push(` AND j.salary_max <= $${idx}`);
+      conditions.push(` AND j.salary_min <= $${idx}`);
       values.push(salary_max);
       idx += 1;
     }
@@ -321,13 +321,13 @@ class SavedJobs {
     }
 
     if (salary_min !== undefined && salary_min !== null && salary_min !== "") {
-      conditions.push(` AND j.salary_min >= $${idx}`);
+      conditions.push(` AND j.salary_max >= $${idx}`);
       values.push(salary_min);
       idx += 1;
     }
 
     if (salary_max !== undefined && salary_max !== null && salary_max !== "") {
-      conditions.push(` AND j.salary_max <= $${idx}`);
+      conditions.push(` AND j.salary_min <= $${idx}`);
       values.push(salary_max);
       idx += 1;
     }
