@@ -1,7 +1,7 @@
-const wrapper = require("../../../../../helpers/utils/wrapper");
-const DB = require("../../../../../helpers/databases/postgresql/db");
-const config = require("../../../../../config/global_config");
-const { NotFoundError } = require("../../../../../helpers/errors");
+const wrapper = require("../../../../helpers/utils/wrapper");
+const DB = require("../../../../helpers/databases/postgresql/db");
+const config = require("../../../../config/global_config");
+const { NotFoundError } = require("../../../../helpers/errors");
 
 class AdminCommand {
   constructor() {
