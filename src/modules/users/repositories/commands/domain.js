@@ -98,7 +98,7 @@ class User {
       user.data["name"] = result.data.name;
       user.data["role"] = "user";
       user.data["avatar_url"] = result.data.avatar_url;
-    } else {
+    } else if (user.data.role_id === 2) {
       const result = await this.queryRecruiter.findOne(
         { user_id: user.data.id },
         { id: 1, contact_name: 1, avatar_url: 1, user_id: 1 },
@@ -111,18 +111,25 @@ class User {
       user.data["name"] = result.data.contact_name;
       user.data["avatar_url"] = result.data.avatar_url;
       user.data["role"] = "recruiter";
+    } else if (user.data.role_id === 3 || user.data.role_id === 4) {
+      user.data["user_id"] = user.data.id;
+      user.data["name"] = user.data.username || "Super Admin";
+      user.data["role"] = user.data.role_id === 3 ? "super_admin" : "admin";
+      user.data["avatar_url"] = null;
     }
 
     const userResponse = {
       id:
         user.data.role_id === 1
           ? user.data["worker_id"]
-          : user.data["recruiter_id"],
+          : user.data.role_id === 2
+          ? user.data["recruiter_id"]
+          : user.data.id,
       user_id: user.data["user_id"],
-      name: user.data["name"], // sekarang ada
+      name: user.data["name"],
       email: user.data.email,
       avatar_url: user.data.avatar_url,
-      role: user.data.role_id === 1 ? "user" : "recruiter",
+      role: user.data["role"],
     };
 
     const token = await generateAccessToken(user.data);
@@ -165,7 +172,7 @@ class User {
             new InternalServerError("Sign up worker failed"),
           );
         }
-      } else {
+      } else if (data.role_id == 2) {
         dataRecruiter = {
           id: uuidv4(),
           user_id: data.id,
@@ -193,7 +200,7 @@ class User {
           { id: 1, name: 1 },
         );
         data["worker_id"] = resultWorker.data.id;
-      } else {
+      } else if (data.role_id === 2) {
         const resultRecruiter = await this.queryRecruiter.findOne(
           { user_id: data.id },
           { id: 1, contact_name: 1 },
@@ -460,7 +467,7 @@ class User {
       userData.data["worker_id"] = result.data.id;
       userData.data["name"] = result.data.name;
       userData.data["role"] = "user";
-    } else {
+    } else if (userData.data.role_id === 2) {
       const result = await this.queryRecruiter.findOne(
         { user_id: userData.data.id },
         { id: 1, contact_name: 1, avatar_url: 1, user_id: 1 },
@@ -471,6 +478,9 @@ class User {
       userData.data["recruiter_id"] = result.data.id;
       userData.data["name"] = result.data.contact_name;
       userData.data["role"] = "recruiter";
+    } else if (userData.data.role_id === 3 || userData.data.role_id === 4) {
+      userData.data["name"] = userData.data.username || "Super Admin";
+      userData.data["role"] = userData.data.role_id === 3 ? "super_admin" : "admin";
     }
 
     const accessToken = await generateAccessToken(userData.data);
