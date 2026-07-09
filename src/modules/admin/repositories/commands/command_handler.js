@@ -15,8 +15,14 @@ const updateJobStatus = async (payload) => {
   return await adminCommand.updateJobStatus(payload);
 };
 
+const updateSystemSettings = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.updateSystemSettings(payload);
+};
+
 module.exports = {
   updateUserStatus,
   verifyEmployer,
-  updateJobStatus
+  updateJobStatus,
+  updateSystemSettings
 };

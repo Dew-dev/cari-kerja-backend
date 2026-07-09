@@ -4,12 +4,18 @@ const adminHandler = require("../modules/admin/handlers/api_handler");
 
 // super_admin (3) and admin (4)
 const allowedRoles = [3, 4];
+const superAdminOnly = [3];
 
 module.exports = (server) => {
   server.get("/api/v1/admin/stats", verifyToken, verifyRole(allowedRoles), adminHandler.getDashboardStats);
   server.get("/api/v1/admin/dashboard/growth", verifyToken, verifyRole(allowedRoles), adminHandler.getDashboardGrowth);
   server.get("/api/v1/admin/dashboard/job-distribution", verifyToken, verifyRole(allowedRoles), adminHandler.getDashboardJobDistribution);
   server.get("/api/v1/admin/dashboard/activities", verifyToken, verifyRole(allowedRoles), adminHandler.getDashboardActivities);
+  
+  // Settings endpoints (Super Admin Only)
+  server.get("/api/v1/admin/settings", verifyToken, verifyRole(superAdminOnly), adminHandler.getSystemSettings);
+  server.put("/api/v1/admin/settings", verifyToken, verifyRole(superAdminOnly), adminHandler.updateSystemSettings);
+  
   server.get("/api/v1/admin/users", verifyToken, verifyRole(allowedRoles), adminHandler.getUsers);
   server.put("/api/v1/admin/users/:id/status", verifyToken, verifyRole(allowedRoles), adminHandler.updateUserStatus);
   server.get("/api/v1/admin/employers", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployers);

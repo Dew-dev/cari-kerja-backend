@@ -42,6 +42,15 @@ const getDashboardActivities = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const getSystemSettings = async (req, res) => {
+  const payload = { ...req.query };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getSystemSettingsParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await queryHandler.getSystemSettings();
+  return sendResponse(result, res);
+};
+
 const getUsers = async (req, res) => {
   const payload = { ...req.query };
   const validatePayload = validator.isValidPayload(payload, queryModel.getUsersParamType);
@@ -106,16 +115,27 @@ const updateJobStatus = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const updateSystemSettings = async (req, res) => {
+  const payload = { ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateSystemSettingsParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await commandHandler.updateSystemSettings(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 module.exports = {
   getDashboardStats,
   getDashboardGrowth,
   getDashboardJobDistribution,
   getDashboardActivities,
+  getSystemSettings,
   getUsers,
   getEmployers,
   getJobs,
   getApplications,
   updateUserStatus,
   verifyEmployer,
-  updateJobStatus
+  updateJobStatus,
+  updateSystemSettings
 };

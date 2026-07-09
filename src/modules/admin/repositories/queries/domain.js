@@ -198,6 +198,23 @@ class AdminQuery {
     });
     return wrapper.data(data);
   }
+
+  async getSystemSettings() {
+    const rawQuery = `SELECT setting_key, setting_value FROM system_settings;`;
+    const result = await this.db.executeQuery(rawQuery);
+    
+    let settingsObj = {};
+    for (let row of result.rows) {
+        let val = row.setting_value;
+        if (val === "true") val = true;
+        else if (val === "false") val = false;
+        else if (!isNaN(val)) val = Number(val);
+        
+        settingsObj[row.setting_key] = val;
+    }
+    
+    return wrapper.data(settingsObj);
+  }
 }
 
 module.exports = AdminQuery;

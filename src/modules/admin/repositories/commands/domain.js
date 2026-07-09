@@ -43,6 +43,22 @@ class AdminCommand {
 
     return wrapper.data(result.rows[0]);
   }
+
+  async updateSystemSettings(payload) {
+    const keys = Object.keys(payload);
+    for (const key of keys) {
+      const value = String(payload[key]);
+      const upsertQuery = `
+        INSERT INTO system_settings (setting_key, setting_value)
+        VALUES ($2, $1)
+        ON CONFLICT (setting_key) 
+        DO UPDATE SET setting_value = EXCLUDED.setting_value, updated_at = NOW();
+      `;
+      await this.db.executeQuery(upsertQuery, [value, key]);
+    }
+    
+    return wrapper.data("System settings updated successfully");
+  }
 }
 
 module.exports = AdminCommand;
