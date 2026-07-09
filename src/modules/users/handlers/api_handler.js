@@ -25,7 +25,11 @@ const getUserById = async (req, res) => {
 
 // command
 const login = async (req, res) => {
-  const payload = { ...req.body };
+  const payload = { 
+    ...req.body,
+    ip_address: req.ip || req.connection?.remoteAddress,
+    user_agent: req.headers["user-agent"]
+  };
   const validatePayload = validator.isValidPayload(
     payload,
     commandModel.loginParamType
@@ -44,7 +48,11 @@ const login = async (req, res) => {
 };
 
 const loginWithGoogle = async (req, res) => {
-  const payload = { ...req.user };
+  const payload = { 
+    ...req.user,
+    ip_address: req.ip || req.connection?.remoteAddress,
+    user_agent: req.headers["user-agent"]
+  };
   const validatePayload = validator.isValidPayload(
     payload,
     commandModel.loginWithGoogleParamType
