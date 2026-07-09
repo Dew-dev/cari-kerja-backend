@@ -16,7 +16,7 @@ const corsOptions = {
     }
 
     // Browser origin check
-    if (allowed.includes(origin)) {
+    if (allowed.includes("*") || allowed.includes(origin)) {
       return callback(null, true);
     }
 
