@@ -13,12 +13,14 @@ class AdminQuery {
     const totalRecruiters = await this.db.countData({}, "recruiters");
     const totalJobs = await this.db.countData({}, "job_posts");
     const totalApplications = await this.db.countData({}, "job_applications");
+    const totalWorkers = await this.db.countData({}, "workers");
     
     return wrapper.data({
         users: totalUsers.data || 0,
         recruiters: totalRecruiters.data || 0,
         job_posts: totalJobs.data || 0,
-        job_applications: totalApplications.data || 0
+        job_applications: totalApplications.data || 0,
+        workers: totalWorkers.data || 0
     });
   }
 
@@ -153,6 +155,7 @@ class AdminQuery {
       ORDER BY DATE_TRUNC('month', created_at) ASC;
     `;
     const result = await this.db.executeQuery(rawQuery);
+    if (!result || !result.rows) return wrapper.data([]);
     return wrapper.data(result.rows.map(r => ({ name: r.name, users: parseInt(r.users) })));
   }
 
@@ -164,6 +167,7 @@ class AdminQuery {
       GROUP BY s.name;
     `;
     const result = await this.db.executeQuery(rawQuery);
+    if (!result || !result.rows) return wrapper.data([]);
     return wrapper.data(result.rows.map(r => ({ name: r.name, value: parseInt(r.value) })));
   }
 
@@ -181,6 +185,7 @@ class AdminQuery {
       LIMIT 5
     `;
     const result = await this.db.executeQuery(rawQuery);
+    if (!result || !result.rows) return wrapper.data([]);
     const data = result.rows.map((r, i) => {
       const diff = Math.floor((new Date() - new Date(r.created_at)) / 1000);
       let timeStr = "";
@@ -349,60 +354,7 @@ class AdminQuery {
     });
   }
 
-  async getDashboardGrowth() {
-    const rawQuery = `
-      SELECT TO_CHAR(DATE_TRUNC('month', created_at), 'Mon') AS name, COUNT(*) AS users
-      FROM users
-      WHERE created_at >= NOW() - INTERVAL '6 months'
-      GROUP BY DATE_TRUNC('month', created_at)
-      ORDER BY DATE_TRUNC('month', created_at) ASC;
-    `;
-    const result = await this.db.executeQuery(rawQuery);
-    return wrapper.data(result.rows.map(r => ({ name: r.name, users: parseInt(r.users) })));
-  }
 
-  async getDashboardJobDistribution() {
-    const rawQuery = `
-      SELECT s.name, COUNT(j.id) AS value
-      FROM job_posts j
-      JOIN job_post_statuses s ON j.status_id = s.id
-      GROUP BY s.name;
-    `;
-    const result = await this.db.executeQuery(rawQuery);
-    return wrapper.data(result.rows.map(r => ({ name: r.name, value: parseInt(r.value) })));
-  }
-
-  async getDashboardActivities() {
-    const rawQuery = `
-      SELECT 'USER' as type, 'User ' || username || ' registered' as message, created_at
-      FROM users
-      UNION ALL
-      SELECT 'EMPLOYER' as type, 'Employer ' || company_name || ' registered' as message, created_at
-      FROM recruiters
-      UNION ALL
-      SELECT 'JOB' as type, 'Job ' || title || ' posted' as message, created_at
-      FROM job_posts
-      ORDER BY created_at DESC
-      LIMIT 5
-    `;
-    const result = await this.db.executeQuery(rawQuery);
-    const data = result.rows.map((r, i) => {
-      const diff = Math.floor((new Date() - new Date(r.created_at)) / 1000);
-      let timeStr = "";
-      if (diff < 60) timeStr = diff + " secs ago";
-      else if (diff < 3600) timeStr = Math.floor(diff/60) + " mins ago";
-      else if (diff < 86400) timeStr = Math.floor(diff/3600) + " hours ago";
-      else timeStr = Math.floor(diff/86400) + " days ago";
-
-      return {
-        id: (i + 1).toString(),
-        message: r.message,
-        time: timeStr,
-        type: r.type
-      };
-    });
-    return wrapper.data(data);
-  }
 
   async getAuditLogs(payload) {
     const { page, limit, search } = payload;
