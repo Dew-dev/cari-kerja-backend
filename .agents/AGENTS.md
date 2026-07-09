@@ -14,4 +14,13 @@ Aturan ini mewajibkan setiap perubahan kode atau penambahan fitur agar mematuhi 
    - `style:` untuk perubahan formatting (spasi, titik koma, dsb) yang tidak mengubah logika kode.
    - `refactor:` untuk perubahan kode yang tidak menambah fitur atau memperbaiki bug.
    - `chore:` untuk pembaruan pada proses build atau alat bantu lainnya.
-4. **Tidak Mendorong Langsung ke Main**: Agen tidak boleh melakukan push langsung ke branch utama (`main` atau `master`). Push hanya dilakukan pada branch fitur, kemudian berikan instruksi kepada user (atau buatkan pull request jika diinstruksikan) untuk melakukan merge/review.
+4. **Tidak Mendorong Langsung ke Develop**: Agen tidak boleh melakukan push langsung ke branch utama (`develop`). Push hanya dilakukan pada branch fitur, kemudian berikan instruksi kepada user (atau buatkan pull request jika diinstruksikan) untuk melakukan merge/review ke branch `develop`.
+
+# Pembagian Tugas Backend & Frontend
+
+## Deskripsi
+Aturan ini menetapkan batasan ruang lingkup kerja agen terkait perubahan frontend. Karena pengguna memiliki agen terpisah untuk menangani frontend.
+
+## Aturan
+1. **Hanya Fokus pada Backend**: Agen tidak diperbolehkan mengubah kode atau file apapun yang berada di direktori frontend. Terhadap direktori `C:\Users\Hakim\Documents\Freelance\job-portal\cari-kerja-frontend`, agen hanya diberikan akses **Read-Only** (hanya untuk membaca dan memahami konteks), tanpa izin untuk menambah, memodifikasi, atau menghapus file apa pun.
+2. **Berikan Instruksi Khusus**: Jika ada perubahan fitur yang memerlukan penyesuaian di frontend, agen harus mendeskripsikan secara spesifik apa saja yang perlu dilakukan pada sisi frontend, dan menyerahkannya sebagai **Instruksi untuk Agen Frontend** yang dapat disalin oleh pengguna.

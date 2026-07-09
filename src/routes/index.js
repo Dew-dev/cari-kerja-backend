@@ -23,6 +23,7 @@ const jobPostResponsibilities = require('./job_post_responsibilities');
 const jobPostBenefits = require('./job_post_benefits');
 const contact_us = require('./contact_us');
 const locations = require('./locations');
+const admin = require('./admin');
 
 module.exports = (server) => {
   users(server);
@@ -50,4 +51,5 @@ module.exports = (server) => {
   jobPostBenefits(server);
   contact_us(server);
   locations(server);
+  admin(server);
 };
