@@ -60,12 +60,39 @@ const getUsers = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const getUserById = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getUserByIdParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await queryHandler.getUserById(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const getWorkerById = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getWorkerByIdParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await queryHandler.getWorkerById(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 const getEmployers = async (req, res) => {
   const payload = { ...req.query };
   const validatePayload = validator.isValidPayload(payload, queryModel.getEmployersParamType);
   if (validatePayload.err) return sendResponse(validatePayload, res);
   
   const result = await queryHandler.getEmployers(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const getEmployerById = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getEmployerByIdParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await queryHandler.getEmployerById(validatePayload.data);
   return sendResponse(result, res);
 };
 
@@ -78,12 +105,39 @@ const getJobs = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const getJobById = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getJobByIdParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await queryHandler.getJobById(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 const getApplications = async (req, res) => {
   const payload = { ...req.query };
   const validatePayload = validator.isValidPayload(payload, queryModel.getApplicationsParamType);
   if (validatePayload.err) return sendResponse(validatePayload, res);
   
   const result = await queryHandler.getApplications(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const getWorkers = async (req, res) => {
+  const payload = { ...req.query };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getWorkersParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await queryHandler.getWorkers(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const getLookupTable = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getLookupTableParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await queryHandler.getLookupTable(validatePayload.data);
   return sendResponse(result, res);
 };
 
@@ -131,9 +185,11 @@ module.exports = {
   getDashboardActivities,
   getSystemSettings,
   getUsers,
+  getUserById,
   getEmployers,
   getJobs,
   getApplications,
+  getLookupTable,
   updateUserStatus,
   verifyEmployer,
   updateJobStatus,

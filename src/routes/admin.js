@@ -17,10 +17,28 @@ module.exports = (server) => {
   server.put("/api/v1/admin/settings", verifyToken, verifyRole(superAdminOnly), adminHandler.updateSystemSettings);
   
   server.get("/api/v1/admin/users", verifyToken, verifyRole(allowedRoles), adminHandler.getUsers);
+  server.get("/api/v1/admin/users/:id", verifyToken, verifyRole(allowedRoles), adminHandler.getUserById);
+  server.post("/api/v1/admin/users", verifyToken, verifyRole(allowedRoles), adminHandler.insertUser);
+  server.put("/api/v1/admin/users/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateUser);
+  server.delete("/api/v1/admin/users/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteUser);
+  
   server.put("/api/v1/admin/users/:id/status", verifyToken, verifyRole(allowedRoles), adminHandler.updateUserStatus);
+  server.get("/api/v1/admin/workers", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkers);
+  server.get("/api/v1/admin/workers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkerById);
+  server.put("/api/v1/admin/workers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateWorker);
+  server.delete("/api/v1/admin/workers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteWorker);
+
   server.get("/api/v1/admin/employers", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployers);
+  server.get("/api/v1/admin/employers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployerById);
+  server.put("/api/v1/admin/employers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateEmployer);
+  server.delete("/api/v1/admin/employers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteEmployer);
   server.put("/api/v1/admin/employers/:id/verify", verifyToken, verifyRole(allowedRoles), adminHandler.verifyEmployer);
+  
   server.get("/api/v1/admin/jobs", verifyToken, verifyRole(allowedRoles), adminHandler.getJobs);
+  server.get("/api/v1/admin/jobs/:id", verifyToken, verifyRole(allowedRoles), adminHandler.getJobById);
+  server.put("/api/v1/admin/jobs/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateJob);
+  server.delete("/api/v1/admin/jobs/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteJob);
   server.put("/api/v1/admin/jobs/:id/status", verifyToken, verifyRole(allowedRoles), adminHandler.updateJobStatus);
+  
   server.get("/api/v1/admin/applications", verifyToken, verifyRole(allowedRoles), adminHandler.getApplications);
 };

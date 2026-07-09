@@ -135,6 +135,14 @@ class User {
     const token = await generateAccessToken(user.data);
     const refreshToken = await generateRefreshToken({ id: user.data.id });
 
+    // Insert Audit Log
+    await this.command.insertAuditLog({
+      user_id: user.data.id,
+      action: "LOGIN",
+      ip_address: payload.ip_address || "Unknown",
+      user_agent: payload.user_agent || "Unknown"
+    });
+
     return wrapper.data({ token, refreshToken, user: userResponse });
   }
 
@@ -211,6 +219,14 @@ class User {
 
     const token = await generateAccessToken(data);
     const refreshToken = await generateRefreshToken({ id: data.id });
+
+    // Insert Audit Log
+    await this.command.insertAuditLog({
+      user_id: data.id,
+      action: "LOGIN_GOOGLE",
+      ip_address: payload.ip_address || "Unknown",
+      user_agent: payload.user_agent || "Unknown"
+    });
 
     logger.info(ctx, "Success login by google", "Users auth", "Success");
     return wrapper.data({ token, refreshToken });
