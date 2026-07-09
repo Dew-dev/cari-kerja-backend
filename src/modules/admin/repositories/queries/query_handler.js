@@ -40,40 +40,9 @@ const getDashboardActivities = async () => {
   return await adminQuery.getDashboardActivities();
 };
 
-
 const getSystemSettings = async () => {
   const adminQuery = new Domain();
   return await adminQuery.getSystemSettings();
-};
-
-const getAuditLogs = async (payload) => {
-  const adminQuery = new Domain();
-  return await adminQuery.getAuditLogs(payload);
-};
-
-const getUserById = async (payload) => {
-  const adminQuery = new Domain();
-  return await adminQuery.getUserById(payload);
-};
-
-const getWorkers = async (payload) => {
-  const adminQuery = new Domain();
-  return await adminQuery.getWorkers(payload);
-};
-
-const getWorkerById = async (payload) => {
-  const adminQuery = new Domain();
-  return await adminQuery.getWorkerById(payload);
-};
-
-const getEmployerById = async (payload) => {
-  const adminQuery = new Domain();
-  return await adminQuery.getEmployerById(payload);
-};
-
-const getJobById = async (payload) => {
-  const adminQuery = new Domain();
-  return await adminQuery.getJobById(payload);
 };
 
 module.exports = {
@@ -85,11 +54,5 @@ module.exports = {
   getDashboardGrowth,
   getDashboardJobDistribution,
   getDashboardActivities,
-  getSystemSettings,
-  getAuditLogs,
-  getUserById,
-  getWorkers,
-  getWorkerById,
-  getEmployerById,
-  getJobById
+  getSystemSettings
 };

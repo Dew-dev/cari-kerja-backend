@@ -1,3 +1,17 @@
+    CREATE TABLE IF NOT EXISTS system_settings (
+        setting_key VARCHAR(50) PRIMARY KEY,
+        setting_value TEXT NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+
+    INSERT INTO system_settings (setting_key, setting_value) VALUES 
+    ('platform_name', 'Cari Kerja'),
+    ('support_email', 'support@carikerja.co.id'),
+    ('maintenance_mode', 'false'),
+    ('max_upload_size_mb', '5'),
+    ('allow_employer_registration', 'true')
+    ON CONFLICT (setting_key) DO NOTHING;
+
     CREATE TABLE IF NOT EXISTS roles (
         id SERIAL PRIMARY KEY,
         name VARCHAR(50) NOT NULL UNIQUE
