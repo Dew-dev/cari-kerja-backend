@@ -25,10 +25,28 @@ const getApplications = async (payload) => {
   return await adminQuery.getApplications(payload);
 };
 
+const getDashboardGrowth = async () => {
+  const adminQuery = new Domain();
+  return await adminQuery.getDashboardGrowth();
+};
+
+const getDashboardJobDistribution = async () => {
+  const adminQuery = new Domain();
+  return await adminQuery.getDashboardJobDistribution();
+};
+
+const getDashboardActivities = async () => {
+  const adminQuery = new Domain();
+  return await adminQuery.getDashboardActivities();
+};
+
 module.exports = {
   getDashboardStats,
   getUsers,
   getEmployers,
   getJobs,
-  getApplications
+  getApplications,
+  getDashboardGrowth,
+  getDashboardJobDistribution,
+  getDashboardActivities
 };

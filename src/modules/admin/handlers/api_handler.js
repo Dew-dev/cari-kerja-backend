@@ -15,6 +15,33 @@ const getDashboardStats = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const getDashboardGrowth = async (req, res) => {
+  const payload = { ...req.query };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getDashboardGrowthParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await queryHandler.getDashboardGrowth();
+  return sendResponse(result, res);
+};
+
+const getDashboardJobDistribution = async (req, res) => {
+  const payload = { ...req.query };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getDashboardJobDistributionParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await queryHandler.getDashboardJobDistribution();
+  return sendResponse(result, res);
+};
+
+const getDashboardActivities = async (req, res) => {
+  const payload = { ...req.query };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getDashboardActivitiesParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await queryHandler.getDashboardActivities();
+  return sendResponse(result, res);
+};
+
 const getUsers = async (req, res) => {
   const payload = { ...req.query };
   const validatePayload = validator.isValidPayload(payload, queryModel.getUsersParamType);
@@ -81,6 +108,9 @@ const updateJobStatus = async (req, res) => {
 
 module.exports = {
   getDashboardStats,
+  getDashboardGrowth,
+  getDashboardJobDistribution,
+  getDashboardActivities,
   getUsers,
   getEmployers,
   getJobs,
