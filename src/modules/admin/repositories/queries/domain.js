@@ -329,9 +329,10 @@ class AdminQuery {
     const offset = limit * (page - 1);
     
     const rawQuery = `
-      SELECT a.id, jp.title as job_title, u.name as worker_name, s.name as status, a.applied_at
+      SELECT a.id, jp.title as job_title, r.company_name as company_name, u.name as worker_name, s.name as status, a.applied_at
       FROM job_applications a
       JOIN job_posts jp ON a.job_post_id = jp.id
+      JOIN recruiters r ON jp.recruiter_id = r.id
       JOIN workers u ON a.worker_id = u.id
       JOIN application_statuses s ON a.application_status_id = s.id
       ${whereQuery}

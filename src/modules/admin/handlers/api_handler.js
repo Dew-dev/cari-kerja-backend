@@ -3,7 +3,7 @@ const commandModel = require("../repositories/commands/command_model");
 const queryHandler = require("../repositories/queries/query_handler");
 const queryModel = require("../repositories/queries/query_model");
 const validator = require("../../../helpers/utils/validator");
-const { sendResponse } = require("../../../helpers/utils/response");
+const { sendResponse, paginationResponse } = require("../../../helpers/utils/response");
 
 // query
 const getDashboardStats = async (req, res) => {
@@ -57,7 +57,7 @@ const getAuditLogs = async (req, res) => {
   if (validatePayload.err) return sendResponse(validatePayload, res);
   
   const result = await queryHandler.getAuditLogs(validatePayload.data);
-  return sendResponse(result, res);
+  return paginationResponse(result, res);
 };
 
 const getUsers = async (req, res) => {
@@ -66,7 +66,7 @@ const getUsers = async (req, res) => {
   if (validatePayload.err) return sendResponse(validatePayload, res);
   
   const result = await queryHandler.getUsers(validatePayload.data);
-  return sendResponse(result, res);
+  return paginationResponse(result, res);
 };
 
 const getUserById = async (req, res) => {
@@ -93,7 +93,7 @@ const getEmployers = async (req, res) => {
   if (validatePayload.err) return sendResponse(validatePayload, res);
   
   const result = await queryHandler.getEmployers(validatePayload.data);
-  return sendResponse(result, res);
+  return paginationResponse(result, res);
 };
 
 const getEmployerById = async (req, res) => {
@@ -111,7 +111,7 @@ const getJobs = async (req, res) => {
   if (validatePayload.err) return sendResponse(validatePayload, res);
   
   const result = await queryHandler.getJobs(validatePayload.data);
-  return sendResponse(result, res);
+  return paginationResponse(result, res);
 };
 
 const getJobById = async (req, res) => {
@@ -129,7 +129,7 @@ const getApplications = async (req, res) => {
   if (validatePayload.err) return sendResponse(validatePayload, res);
   
   const result = await queryHandler.getApplications(validatePayload.data);
-  return sendResponse(result, res);
+  return paginationResponse(result, res);
 };
 
 const getWorkers = async (req, res) => {
@@ -138,7 +138,7 @@ const getWorkers = async (req, res) => {
   if (validatePayload.err) return sendResponse(validatePayload, res);
   
   const result = await queryHandler.getWorkers(validatePayload.data);
-  return sendResponse(result, res);
+  return paginationResponse(result, res);
 };
 
 const getLookupTable = async (req, res) => {
