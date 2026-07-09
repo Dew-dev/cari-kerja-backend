@@ -3,7 +3,7 @@
         name VARCHAR(50) NOT NULL UNIQUE
     );
 
-    INSERT INTO roles (name) VALUES ('worker'), ('recruiter');
+    INSERT INTO roles (name) VALUES ('worker'), ('recruiter'), ('super_admin'), ('admin'), ('moderator');
 
     CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -13,6 +13,7 @@
         login_provider VARCHAR(20) NOT NULL,
         provider_id TEXT, 
         role_id INT NOT NULL REFERENCES roles(id) DEFAULT 1,
+        is_suspended BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
     );
@@ -296,6 +297,7 @@
         is_vip BOOLEAN NOT NULL DEFAULT FALSE,
         vip_start_at TIMESTAMP WITH TIME ZONE,
         vip_end_at TIMESTAMP WITH TIME ZONE,
+        is_verified BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
         updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
         CONSTRAINT fk_recruiter_user
@@ -421,7 +423,7 @@
     );
 
     INSERT INTO job_post_statuses (name)
-    VALUES ('OPEN'), ('CLOSED'), ('DRAFT');
+    VALUES ('OPEN'), ('CLOSED'), ('DRAFT'), ('PENDING'), ('REJECTED'), ('ARCHIVED');
 
     CREATE TABLE IF NOT EXISTS salary_types (
         id SERIAL PRIMARY KEY,
