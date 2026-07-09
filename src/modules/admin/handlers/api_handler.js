@@ -51,6 +51,15 @@ const getSystemSettings = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const getAuditLogs = async (req, res) => {
+  const payload = { ...req.query };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getAuditLogsParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await queryHandler.getAuditLogs(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 const getUsers = async (req, res) => {
   const payload = { ...req.query };
   const validatePayload = validator.isValidPayload(payload, queryModel.getUsersParamType);
@@ -178,12 +187,121 @@ const updateSystemSettings = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const insertLookupTable = async (req, res) => {
+  const payload = { ...req.params, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.insertLookupTableParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await commandHandler.insertLookupTable(validatePayload.data);
+  return sendResponse(result, res, 201);
+};
+
+const updateLookupTable = async (req, res) => {
+  const payload = { ...req.params, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateLookupTableParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await commandHandler.updateLookupTable(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteLookupTable = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteLookupTableParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await commandHandler.deleteLookupTable(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const insertUser = async (req, res) => {
+  const payload = { ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.insertUserParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await commandHandler.insertUser(validatePayload.data);
+  return sendResponse(result, res, 201);
+};
+
+const updateUser = async (req, res) => {
+  const payload = { ...req.params, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateUserParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await commandHandler.updateUser(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteUser = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteUserParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await commandHandler.deleteUser(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const updateWorker = async (req, res) => {
+  const payload = { ...req.params, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateWorkerParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await commandHandler.updateWorker(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteWorker = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteWorkerParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await commandHandler.deleteWorker(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const updateEmployer = async (req, res) => {
+  const payload = { ...req.params, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateEmployerParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await commandHandler.updateEmployer(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteEmployer = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteEmployerParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await commandHandler.deleteEmployer(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const updateJob = async (req, res) => {
+  const payload = { ...req.params, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateJobParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await commandHandler.updateJob(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteJob = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteJobParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await commandHandler.deleteJob(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 module.exports = {
   getDashboardStats,
   getDashboardGrowth,
   getDashboardJobDistribution,
   getDashboardActivities,
   getSystemSettings,
+  getAuditLogs,
   getUsers,
   getUserById,
   getEmployers,
@@ -193,5 +311,21 @@ module.exports = {
   updateUserStatus,
   verifyEmployer,
   updateJobStatus,
-  updateSystemSettings
+  updateSystemSettings,
+  insertLookupTable,
+  updateLookupTable,
+  deleteLookupTable,
+  insertUser,
+  updateUser,
+  deleteUser,
+  getWorkers,
+  getWorkerById,
+  updateWorker,
+  deleteWorker,
+  getEmployerById,
+  updateEmployer,
+  deleteEmployer,
+  getJobById,
+  updateJob,
+  deleteJob
 };

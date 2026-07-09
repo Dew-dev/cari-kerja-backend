@@ -16,6 +16,15 @@ module.exports = (server) => {
   server.get("/api/v1/admin/settings", verifyToken, verifyRole(superAdminOnly), adminHandler.getSystemSettings);
   server.put("/api/v1/admin/settings", verifyToken, verifyRole(superAdminOnly), adminHandler.updateSystemSettings);
   
+  // Audit Logs (Super Admin Only)
+  server.get("/api/v1/admin/audit-logs", verifyToken, verifyRole(superAdminOnly), adminHandler.getAuditLogs);
+
+  // Generic Lookups
+  server.get("/api/v1/admin/lookups/:table", verifyToken, verifyRole(allowedRoles), adminHandler.getLookupTable);
+  server.post("/api/v1/admin/lookups/:table", verifyToken, verifyRole(allowedRoles), adminHandler.insertLookupTable);
+  server.put("/api/v1/admin/lookups/:table/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateLookupTable);
+  server.delete("/api/v1/admin/lookups/:table/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteLookupTable);
+  
   server.get("/api/v1/admin/users", verifyToken, verifyRole(allowedRoles), adminHandler.getUsers);
   server.get("/api/v1/admin/users/:id", verifyToken, verifyRole(allowedRoles), adminHandler.getUserById);
   server.post("/api/v1/admin/users", verifyToken, verifyRole(allowedRoles), adminHandler.insertUser);
