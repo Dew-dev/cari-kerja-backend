@@ -40,6 +40,11 @@ const getDashboardActivities = async () => {
   return await adminQuery.getDashboardActivities();
 };
 
+const getSystemSettings = async () => {
+  const adminQuery = new Domain();
+  return await adminQuery.getSystemSettings();
+};
+
 module.exports = {
   getDashboardStats,
   getUsers,
@@ -48,5 +53,6 @@ module.exports = {
   getApplications,
   getDashboardGrowth,
   getDashboardJobDistribution,
-  getDashboardActivities
+  getDashboardActivities,
+  getSystemSettings
 };
