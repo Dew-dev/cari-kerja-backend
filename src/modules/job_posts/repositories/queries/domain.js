@@ -156,8 +156,8 @@ class Jobposts {
       idx += 1;
     }
 
-    if (currency !== undefined && currency !== null && currency !== "") {
-      conditions.push(` AND c.name = $${idx}`);
+    if (currency !== undefined && currency !== null && currency !== "" && currency !== "ALL") {
+      conditions.push(` AND c.code = $${idx}`);
       values.push(currency);
       idx += 1;
     }
@@ -484,8 +484,8 @@ class Jobposts {
       idx += 1;
     }
 
-    if (currency !== undefined && currency !== null && currency !== "") {
-      conditions.push(` AND c.name = $${idx}`);
+    if (currency !== undefined && currency !== null && currency !== "" && currency !== "ALL") {
+      conditions.push(` AND c.code = $${idx}`);
       values.push(currency);
       idx += 1;
     }
