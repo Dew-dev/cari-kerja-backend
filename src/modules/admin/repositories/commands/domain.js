@@ -140,27 +140,45 @@ class AdminCommand {
   }
 
   async updateUser(payload) {
-    const { id, username, email, role_id } = payload;
+    const { id, username, email, role_id, is_suspended, password } = payload;
+    let updatePassword = "";
+    let values = [username, email, role_id, is_suspended, id];
+    if (password) {
+      const { generateHash } = require("../../../../helpers/utils/hash_helper");
+      const hashedPassword = await generateHash(password);
+      updatePassword = ", hashed_password = $6";
+      values.push(hashedPassword);
+    }
     const updateQuery = `
-      UPDATE users SET username = COALESCE($1, username), email = COALESCE($2, email), role_id = COALESCE($3, role_id), updated_at = NOW()
-      WHERE id = $4 AND deleted_at IS NULL
-      RETURNING id, username, email, role_id, updated_at
+      UPDATE users SET 
+        username = COALESCE($1, username), 
+        email = COALESCE($2, email), 
+        role_id = COALESCE($3, role_id), 
+        is_suspended = COALESCE($4, is_suspended)${updatePassword},
+        updated_at = NOW()
+      WHERE id = $5 AND deleted_at IS NULL
+      RETURNING id, username, email, role_id, is_suspended, updated_at
     `;
-    const result = await this.db.executeQuery(updateQuery, [username, email, role_id, id]);
+    const result = await this.db.executeQuery(updateQuery, values);
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("User not found"));
     return wrapper.data(result.rows[0]);
   }
 
   async deleteUser(payload) {
-    const { id } = payload;
-    const updateQuery = `UPDATE users SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id`;
-    const result = await this.db.executeQuery(updateQuery, [id]);
+    const { id, hard_delete } = payload;
+    let query = "";
+    if (String(hard_delete) === "true") {
+       query = `DELETE FROM users WHERE id = $1 RETURNING id`;
+    } else {
+       query = `UPDATE users SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id`;
+    }
+    const result = await this.db.executeQuery(query, [id]);
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("User not found"));
     return wrapper.data("User deleted successfully");
   }
 
   async updateWorker(payload) {
-    const { id, name, telephone, address, profile_summary, current_salary, expected_salary } = payload;
+    const { id, name, telephone, address, profile_summary, current_salary, expected_salary, gender_id, date_of_birth } = payload;
     const updateQuery = `
       UPDATE workers 
       SET name = COALESCE($1, name), 
@@ -169,25 +187,35 @@ class AdminCommand {
           profile_summary = COALESCE($4, profile_summary), 
           current_salary = COALESCE($5, current_salary), 
           expected_salary = COALESCE($6, expected_salary),
+          gender_id = COALESCE($7, gender_id),
+          date_of_birth = COALESCE($8, date_of_birth),
           updated_at = NOW()
-      WHERE id = $7 AND deleted_at IS NULL
+      WHERE id = $9 AND deleted_at IS NULL
       RETURNING *
     `;
-    const result = await this.db.executeQuery(updateQuery, [name, telephone, address, profile_summary, current_salary, expected_salary, id]);
+    const result = await this.db.executeQuery(updateQuery, [name, telephone, address, profile_summary, current_salary, expected_salary, gender_id, date_of_birth, id]);
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("Worker not found"));
     return wrapper.data(result.rows[0]);
   }
 
   async deleteWorker(payload) {
-    const { id } = payload;
-    const updateQuery = `UPDATE workers SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id`;
-    const result = await this.db.executeQuery(updateQuery, [id]);
+    const { id, hard_delete } = payload;
+    let query = "";
+    if (String(hard_delete) === "true") {
+       query = `DELETE FROM workers WHERE id = $1 RETURNING id`;
+    } else {
+       query = `UPDATE workers SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id`;
+    }
+    const result = await this.db.executeQuery(query, [id]);
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("Worker not found"));
     return wrapper.data("Worker deleted successfully");
   }
 
   async updateEmployer(payload) {
-    const { id, company_name, contact_name, contact_phone, company_email, company_website, company_address, company_description, is_vip, is_verified } = payload;
+    const { id, company_name, contact_name, contact_phone, company_email, company_website, company_address, company_description, is_vip, is_verified, industry_id, website, description } = payload;
+    const finalWebsite = website !== undefined ? website : company_website;
+    const finalDescription = description !== undefined ? description : company_description;
+    
     const updateQuery = `
       UPDATE recruiters 
       SET company_name = COALESCE($1, company_name), 
@@ -199,29 +227,43 @@ class AdminCommand {
           company_description = COALESCE($7, company_description),
           is_vip = COALESCE($8, is_vip),
           is_verified = COALESCE($9, is_verified),
+          industry_id = COALESCE($10, industry_id),
           updated_at = NOW()
-      WHERE id = $10 AND deleted_at IS NULL
+      WHERE id = $11 AND deleted_at IS NULL
       RETURNING *
     `;
     const result = await this.db.executeQuery(updateQuery, [
       company_name, contact_name, contact_phone, company_email, 
-      company_website, company_address, company_description, 
-      is_vip, is_verified, id
+      finalWebsite, company_address, finalDescription, 
+      is_vip, is_verified, industry_id, id
     ]);
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("Employer not found"));
     return wrapper.data(result.rows[0]);
   }
 
   async deleteEmployer(payload) {
-    const { id } = payload;
-    const updateQuery = `UPDATE recruiters SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id`;
-    const result = await this.db.executeQuery(updateQuery, [id]);
+    const { id, hard_delete } = payload;
+    let query = "";
+    if (String(hard_delete) === "true") {
+       query = `DELETE FROM recruiters WHERE id = $1 RETURNING id`;
+    } else {
+       query = `UPDATE recruiters SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id`;
+    }
+    const result = await this.db.executeQuery(query, [id]);
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("Employer not found"));
     return wrapper.data("Employer deleted successfully");
   }
 
   async updateJob(payload) {
-    const { id, title, description, requirements, benefits, location, is_remote, min_salary, max_salary } = payload;
+    const { id, title, description, requirements, benefits, location, is_remote, min_salary, max_salary, status_name, salary } = payload;
+    let finalStatusId = null;
+    if (status_name) {
+      const statusRecord = await this.db.findOne({ name: status_name }, { id: 1 }, "job_post_statuses");
+      if (!statusRecord.err) finalStatusId = statusRecord.data.id;
+    }
+    const finalMinSalary = salary !== undefined ? salary : min_salary;
+    const finalMaxSalary = salary !== undefined ? salary : max_salary;
+    
     const updateQuery = `
       UPDATE job_posts 
       SET title = COALESCE($1, title), 
@@ -232,21 +274,60 @@ class AdminCommand {
           is_remote = COALESCE($6, is_remote),
           min_salary = COALESCE($7, min_salary),
           max_salary = COALESCE($8, max_salary),
+          status_id = COALESCE($9, status_id),
           updated_at = NOW()
-      WHERE id = $9 AND deleted_at IS NULL
+      WHERE id = $10 AND deleted_at IS NULL
       RETURNING *
     `;
-    const result = await this.db.executeQuery(updateQuery, [title, description, requirements, benefits, location, is_remote, min_salary, max_salary, id]);
+    const result = await this.db.executeQuery(updateQuery, [title, description, requirements, benefits, location, is_remote, finalMinSalary, finalMaxSalary, finalStatusId, id]);
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("Job not found"));
     return wrapper.data(result.rows[0]);
   }
 
   async deleteJob(payload) {
-    const { id } = payload;
-    const updateQuery = `UPDATE job_posts SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id`;
-    const result = await this.db.executeQuery(updateQuery, [id]);
+    const { id, hard_delete } = payload;
+    let query = "";
+    if (String(hard_delete) === "true") {
+       query = `DELETE FROM job_posts WHERE id = $1 RETURNING id`;
+    } else {
+       query = `UPDATE job_posts SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id`;
+    }
+    const result = await this.db.executeQuery(query, [id]);
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("Job not found"));
     return wrapper.data("Job deleted successfully");
+  }
+
+  async updateApplication(payload) {
+    const { id, status_name } = payload;
+    let finalStatusId = null;
+    if (status_name) {
+      const statusRecord = await this.db.findOne({ name: status_name }, { id: 1 }, "application_statuses");
+      if (statusRecord.err) return wrapper.error(new NotFoundError("Application status not found"));
+      finalStatusId = statusRecord.data.id;
+    }
+    const updateQuery = `
+      UPDATE job_applications 
+      SET application_status_id = COALESCE($1, application_status_id),
+          updated_at = NOW()
+      WHERE id = $2 AND deleted_at IS NULL
+      RETURNING *
+    `;
+    const result = await this.db.executeQuery(updateQuery, [finalStatusId, id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Application not found"));
+    return wrapper.data(result.rows[0]);
+  }
+
+  async deleteApplication(payload) {
+    const { id, hard_delete } = payload;
+    let query = "";
+    if (String(hard_delete) === "true") {
+       query = `DELETE FROM job_applications WHERE id = $1 RETURNING id`;
+    } else {
+       query = `UPDATE job_applications SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL RETURNING id`;
+    }
+    const result = await this.db.executeQuery(query, [id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Application not found"));
+    return wrapper.data("Application deleted successfully");
   }
 }
 

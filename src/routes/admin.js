@@ -50,4 +50,6 @@ module.exports = (server) => {
   server.put("/api/v1/admin/jobs/:id/status", verifyToken, verifyRole(allowedRoles), adminHandler.updateJobStatus);
   
   server.get("/api/v1/admin/applications", verifyToken, verifyRole(allowedRoles), adminHandler.getApplications);
+  server.put("/api/v1/admin/applications/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateApplication);
+  server.delete("/api/v1/admin/applications/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteApplication);
 };

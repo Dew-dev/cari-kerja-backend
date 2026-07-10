@@ -81,6 +81,16 @@ const deleteJob = async (payload) => {
   return await adminCommand.deleteJob(payload);
 };
 
+const updateApplication = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.updateApplication(payload);
+};
+
+const deleteApplication = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.deleteApplication(payload);
+};
+
 module.exports = {
   updateUserStatus,
   verifyEmployer,
@@ -97,5 +107,7 @@ module.exports = {
   updateEmployer,
   deleteEmployer,
   updateJob,
-  deleteJob
+  deleteJob,
+  updateApplication,
+  deleteApplication
 };

@@ -233,7 +233,7 @@ const updateUser = async (req, res) => {
 };
 
 const deleteUser = async (req, res) => {
-  const payload = { ...req.params };
+  const payload = { ...req.params, ...req.query };
   const validatePayload = validator.isValidPayload(payload, commandModel.deleteUserParamType);
   if (validatePayload.err) return sendResponse(validatePayload, res);
   
@@ -251,7 +251,7 @@ const updateWorker = async (req, res) => {
 };
 
 const deleteWorker = async (req, res) => {
-  const payload = { ...req.params };
+  const payload = { ...req.params, ...req.query };
   const validatePayload = validator.isValidPayload(payload, commandModel.deleteWorkerParamType);
   if (validatePayload.err) return sendResponse(validatePayload, res);
   
@@ -269,7 +269,7 @@ const updateEmployer = async (req, res) => {
 };
 
 const deleteEmployer = async (req, res) => {
-  const payload = { ...req.params };
+  const payload = { ...req.params, ...req.query };
   const validatePayload = validator.isValidPayload(payload, commandModel.deleteEmployerParamType);
   if (validatePayload.err) return sendResponse(validatePayload, res);
   
@@ -287,11 +287,29 @@ const updateJob = async (req, res) => {
 };
 
 const deleteJob = async (req, res) => {
-  const payload = { ...req.params };
+  const payload = { ...req.params, ...req.query };
   const validatePayload = validator.isValidPayload(payload, commandModel.deleteJobParamType);
   if (validatePayload.err) return sendResponse(validatePayload, res);
   
   const result = await commandHandler.deleteJob(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const updateApplication = async (req, res) => {
+  const payload = { ...req.params, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateApplicationParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await commandHandler.updateApplication(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteApplication = async (req, res) => {
+  const payload = { ...req.params, ...req.query };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteApplicationParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  
+  const result = await commandHandler.deleteApplication(validatePayload.data);
   return sendResponse(result, res);
 };
 
@@ -327,5 +345,7 @@ module.exports = {
   deleteEmployer,
   getJobById,
   updateJob,
-  deleteJob
+  deleteJob,
+  updateApplication,
+  deleteApplication
 };
