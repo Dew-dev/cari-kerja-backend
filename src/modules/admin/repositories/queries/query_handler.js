@@ -76,6 +76,11 @@ const getJobById = async (payload) => {
   return await adminQuery.getJobById(payload);
 };
 
+const getLookupTable = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getLookupTable(payload);
+};
+
 module.exports = {
   getDashboardStats,
   getUsers,
@@ -91,5 +96,6 @@ module.exports = {
   getWorkers,
   getWorkerById,
   getEmployerById,
-  getJobById
+  getJobById,
+  getLookupTable
 };
