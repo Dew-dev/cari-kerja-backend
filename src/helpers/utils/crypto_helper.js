@@ -6,6 +6,9 @@ const rawKey = process.env.ENCRYPTION_KEY || "antigravity_default_secret_key_123
 const ENCRYPTION_KEY = crypto.createHash("sha256").update(rawKey).digest(); // Guaranteed to be 32 bytes
 const DET_IV = crypto.createHash("md5").update("cc_backend_iv_16").digest(); // Guaranteed to be 16 bytes
 
+const defaultRawKey = "antigravity_default_secret_key_123456";
+const DEFAULT_ENCRYPTION_KEY = crypto.createHash("sha256").update(defaultRawKey).digest();
+
 const encrypt = (text) => {
   if (text === null || text === undefined || text === "") {
     return text;
@@ -40,8 +43,15 @@ const decrypt = (ciphertext) => {
     decrypted += decipher.final("utf8");
     return decrypted;
   } catch (error) {
-    // If decryption fails, return original value (fallback for unencrypted data)
-    return ciphertext;
+    try {
+      const decipherFallback = crypto.createDecipheriv(algorithm, DEFAULT_ENCRYPTION_KEY, DET_IV);
+      let decryptedFallback = decipherFallback.update(String(ciphertext), "base64", "utf8");
+      decryptedFallback += decipherFallback.final("utf8");
+      return decryptedFallback;
+    } catch (fallbackError) {
+      // If fallback decryption fails, return original value (fallback for unencrypted data)
+      return ciphertext;
+    }
   }
 };
 
