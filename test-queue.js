@@ -30,7 +30,7 @@ async function main() {
 
   console.log("📨 Adding test email job to queue...");
   const job = await addEmailJob({
-    to: "test@example.com",
+    to: "farhanz.nh.13@gmail.com",
     subject: "BullMQ Test Email",
     html: "<h1>Hello from BullMQ!</h1><p>Queue is working correctly.</p>",
   });
