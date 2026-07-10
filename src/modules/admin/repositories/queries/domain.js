@@ -246,7 +246,10 @@ class AdminQuery {
       application_statuses: "name",
       question_types: "name",
       industries: "name",
-      proficiency_levels: "name"
+      proficiency_levels: "name",
+      job_tags: "name",
+      skills: "skill_name",
+      nationalities: "country_name"
     };
 
     if (!LOOKUP_CONFIG[table]) {

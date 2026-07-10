@@ -66,7 +66,8 @@ class AdminCommand {
       genders: "gender_name", marriage_statuses: "status_name", religions: "religion_name",
       employment_types: "type_name", experience_levels: "level_name", salary_types: "type_name",
       job_post_statuses: "name", application_statuses: "name", question_types: "name",
-      industries: "name", proficiency_levels: "name"
+      industries: "name", proficiency_levels: "name",
+      job_tags: "name", skills: "skill_name", nationalities: "country_name"
     };
     if (!LOOKUP_CONFIG[table]) return wrapper.error(new BadRequestError("Invalid lookup table"));
     
@@ -86,7 +87,8 @@ class AdminCommand {
       genders: "gender_name", marriage_statuses: "status_name", religions: "religion_name",
       employment_types: "type_name", experience_levels: "level_name", salary_types: "type_name",
       job_post_statuses: "name", application_statuses: "name", question_types: "name",
-      industries: "name", proficiency_levels: "name"
+      industries: "name", proficiency_levels: "name",
+      job_tags: "name", skills: "skill_name", nationalities: "country_name"
     };
     if (!LOOKUP_CONFIG[table]) return wrapper.error(new BadRequestError("Invalid lookup table"));
     
@@ -107,7 +109,8 @@ class AdminCommand {
       genders: "gender_name", marriage_statuses: "status_name", religions: "religion_name",
       employment_types: "type_name", experience_levels: "level_name", salary_types: "type_name",
       job_post_statuses: "name", application_statuses: "name", question_types: "name",
-      industries: "name", proficiency_levels: "name"
+      industries: "name", proficiency_levels: "name",
+      job_tags: "name", skills: "skill_name", nationalities: "country_name"
     };
     if (!LOOKUP_CONFIG[table]) return wrapper.error(new BadRequestError("Invalid lookup table"));
     
