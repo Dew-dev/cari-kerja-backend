@@ -48,8 +48,9 @@ const login = async (req, res) => {
 };
 
 const loginWithGoogle = async (req, res) => {
+  const { origin, ...userData } = req.user || {};
   const payload = { 
-    ...req.user,
+    ...userData,
     ip_address: req.ip || req.connection?.remoteAddress,
     user_agent: req.headers["user-agent"]
   };
@@ -62,12 +63,22 @@ const loginWithGoogle = async (req, res) => {
   }
   const result = await commandHandler.loginWithGoogle(validatePayload.data);
 
-  storeCookie(res, "refreshToken", result?.data?.refreshToken);
-  storeCookie(res, "accessToken", result?.data?.token);
-  storeCookie(res, "role", result?.data?.role);
-  storeCookie(res, "user", result?.data?.user);
-  storeCookie(res, "jp_session", result?.data?.token);
-  return sendResponse(result, res);
+  if (result.err) {
+    return sendResponse(result, res);
+  }
+
+  const token = result?.data?.token;
+  const refreshToken = result?.data?.refreshToken;
+
+  storeCookie(res, "refreshToken", refreshToken);
+  storeCookie(res, "accessToken", token);
+  storeCookie(res, "role", "user");
+  storeCookie(res, "jp_session", token);
+
+  const config = require("../../../config/global_config");
+  const feUrl = config.get("/frontendUrl");
+  const redirectOrigin = origin || feUrl;
+  return res.redirect(`${redirectOrigin}/auth/callback?token=${token}&refreshToken=${refreshToken}`);
 };
 
 const logout = async (req, res) => {
