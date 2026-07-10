@@ -1,0 +1,53 @@
+const verifyToken = require("../middlewares/verifyToken");
+const verifyRole = require("../middlewares/verifyRole");
+const adminHandler = require("../modules/admin/handlers/api_handler");
+
+// super_admin (3) and admin (4)
+const allowedRoles = [3, 4];
+const superAdminOnly = [3];
+
+module.exports = (server) => {
+  server.get("/api/v1/admin/stats", verifyToken, verifyRole(allowedRoles), adminHandler.getDashboardStats);
+  server.get("/api/v1/admin/dashboard/growth", verifyToken, verifyRole(allowedRoles), adminHandler.getDashboardGrowth);
+  server.get("/api/v1/admin/dashboard/job-distribution", verifyToken, verifyRole(allowedRoles), adminHandler.getDashboardJobDistribution);
+  server.get("/api/v1/admin/dashboard/activities", verifyToken, verifyRole(allowedRoles), adminHandler.getDashboardActivities);
+  
+  // Settings endpoints (Super Admin Only)
+  server.get("/api/v1/admin/settings", verifyToken, verifyRole(superAdminOnly), adminHandler.getSystemSettings);
+  server.put("/api/v1/admin/settings", verifyToken, verifyRole(superAdminOnly), adminHandler.updateSystemSettings);
+  
+  // Audit Logs (Super Admin Only)
+  server.get("/api/v1/admin/audit-logs", verifyToken, verifyRole(superAdminOnly), adminHandler.getAuditLogs);
+
+  // Generic Lookups
+  server.get("/api/v1/admin/lookups/:table", verifyToken, verifyRole(allowedRoles), adminHandler.getLookupTable);
+  server.post("/api/v1/admin/lookups/:table", verifyToken, verifyRole(allowedRoles), adminHandler.insertLookupTable);
+  server.put("/api/v1/admin/lookups/:table/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateLookupTable);
+  server.delete("/api/v1/admin/lookups/:table/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteLookupTable);
+  
+  server.get("/api/v1/admin/users", verifyToken, verifyRole(allowedRoles), adminHandler.getUsers);
+  server.get("/api/v1/admin/users/:id", verifyToken, verifyRole(allowedRoles), adminHandler.getUserById);
+  server.post("/api/v1/admin/users", verifyToken, verifyRole(allowedRoles), adminHandler.insertUser);
+  server.put("/api/v1/admin/users/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateUser);
+  server.delete("/api/v1/admin/users/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteUser);
+  
+  server.put("/api/v1/admin/users/:id/status", verifyToken, verifyRole(allowedRoles), adminHandler.updateUserStatus);
+  server.get("/api/v1/admin/workers", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkers);
+  server.get("/api/v1/admin/workers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkerById);
+  server.put("/api/v1/admin/workers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateWorker);
+  server.delete("/api/v1/admin/workers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteWorker);
+
+  server.get("/api/v1/admin/employers", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployers);
+  server.get("/api/v1/admin/employers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployerById);
+  server.put("/api/v1/admin/employers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateEmployer);
+  server.delete("/api/v1/admin/employers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteEmployer);
+  server.put("/api/v1/admin/employers/:id/verify", verifyToken, verifyRole(allowedRoles), adminHandler.verifyEmployer);
+  
+  server.get("/api/v1/admin/jobs", verifyToken, verifyRole(allowedRoles), adminHandler.getJobs);
+  server.get("/api/v1/admin/jobs/:id", verifyToken, verifyRole(allowedRoles), adminHandler.getJobById);
+  server.put("/api/v1/admin/jobs/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateJob);
+  server.delete("/api/v1/admin/jobs/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteJob);
+  server.put("/api/v1/admin/jobs/:id/status", verifyToken, verifyRole(allowedRoles), adminHandler.updateJobStatus);
+  
+  server.get("/api/v1/admin/applications", verifyToken, verifyRole(allowedRoles), adminHandler.getApplications);
+};

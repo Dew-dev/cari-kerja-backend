@@ -1,0 +1,78 @@
+const joi = require("joi");
+
+const getStatsParamType = joi.object({});
+
+const getDashboardGrowthParamType = joi.object({});
+const getDashboardJobDistributionParamType = joi.object({});
+const getDashboardActivitiesParamType = joi.object({});
+
+
+
+const getAuditLogsParamType = joi.object({
+  page: joi.number().min(1).default(1),
+  limit: joi.number().min(1).max(100).default(10),
+  search: joi.string().allow("").optional()
+});
+
+const getUsersParamType = joi.object({
+  page: joi.number().min(1).default(1),
+  limit: joi.number().min(1).max(100).default(10),
+  search: joi.string().allow("").optional()
+});
+
+const getUserByIdParamType = joi.object({
+  id: joi.string().guid().required()
+});
+
+const getWorkersParamType = joi.object({
+  page: joi.number().min(1).default(1),
+  limit: joi.number().min(1).max(100).default(10),
+  search: joi.string().allow("").optional()
+});
+
+const getWorkerByIdParamType = joi.object({
+  id: joi.string().guid().required()
+});
+
+const getEmployersParamType = joi.object({
+  page: joi.number().min(1).default(1),
+  limit: joi.number().min(1).max(100).default(10),
+  search: joi.string().allow("").optional()
+});
+
+const getEmployerByIdParamType = joi.object({
+  id: joi.string().guid().required()
+});
+
+const getJobsParamType = joi.object({
+  page: joi.number().min(1).default(1),
+  limit: joi.number().min(1).max(100).default(10),
+  search: joi.string().allow("").optional()
+});
+
+const getApplicationsParamType = joi.object({
+  page: joi.number().min(1).default(1),
+  limit: joi.number().min(1).max(100).default(10),
+  search: joi.string().allow("").optional()
+});
+
+const getJobByIdParamType = joi.object({
+  id: joi.string().guid().required()
+});
+
+module.exports = {
+  getStatsParamType,
+  getUsersParamType,
+  getEmployersParamType,
+  getJobsParamType,
+  getApplicationsParamType,
+  getDashboardGrowthParamType,
+  getDashboardJobDistributionParamType,
+  getDashboardActivitiesParamType,
+  getAuditLogsParamType,
+  getUserByIdParamType,
+  getWorkersParamType,
+  getWorkerByIdParamType,
+  getEmployerByIdParamType,
+  getJobByIdParamType
+};

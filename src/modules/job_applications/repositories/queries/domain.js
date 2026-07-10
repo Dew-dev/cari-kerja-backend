@@ -100,13 +100,13 @@ class Jobposts {
     }
 
     if (salary_min !== undefined && salary_min !== null && salary_min !== "") {
-      conditions.push(` AND j.salary_min >= $${idx}`);
+      conditions.push(` AND j.salary_max >= $${idx}`);
       values.push(salary_min);
       idx += 1;
     }
 
     if (salary_max !== undefined && salary_max !== null && salary_max !== "") {
-      conditions.push(` AND j.salary_max <= $${idx}`);
+      conditions.push(` AND j.salary_min <= $${idx}`);
       values.push(salary_max);
       idx += 1;
     }
@@ -250,13 +250,13 @@ class Jobposts {
     }
 
     if (salary_min !== undefined && salary_min !== null && salary_min !== "") {
-      conditions.push(` AND j.salary_min >= $${idx}`);
+      conditions.push(` AND j.salary_max >= $${idx}`);
       values.push(salary_min);
       idx += 1;
     }
 
     if (salary_max !== undefined && salary_max !== null && salary_max !== "") {
-      conditions.push(` AND j.salary_max <= $${idx}`);
+      conditions.push(` AND j.salary_min <= $${idx}`);
       values.push(salary_max);
       idx += 1;
     }

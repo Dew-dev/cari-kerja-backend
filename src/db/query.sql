@@ -1,9 +1,23 @@
+    CREATE TABLE IF NOT EXISTS system_settings (
+        setting_key VARCHAR(50) PRIMARY KEY,
+        setting_value TEXT NOT NULL,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+    );
+
+    INSERT INTO system_settings (setting_key, setting_value) VALUES 
+    ('platform_name', 'Cari Kerja'),
+    ('support_email', 'support@carikerja.co.id'),
+    ('maintenance_mode', 'false'),
+    ('max_upload_size_mb', '5'),
+    ('allow_employer_registration', 'true')
+    ON CONFLICT (setting_key) DO NOTHING;
+
     CREATE TABLE IF NOT EXISTS roles (
         id SERIAL PRIMARY KEY,
         name VARCHAR(50) NOT NULL UNIQUE
     );
 
-    INSERT INTO roles (name) VALUES ('worker'), ('recruiter');
+    INSERT INTO roles (name) VALUES ('worker'), ('recruiter'), ('super_admin'), ('admin'), ('moderator');
 
     CREATE TABLE IF NOT EXISTS users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -13,6 +27,8 @@
         login_provider VARCHAR(20) NOT NULL,
         provider_id TEXT, 
         role_id INT NOT NULL REFERENCES roles(id) DEFAULT 1,
+        is_suspended BOOLEAN DEFAULT FALSE,
+        deleted_at TIMESTAMP WITH TIME ZONE,
         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
     );
@@ -257,6 +273,7 @@
         profile_summary TEXT,
         current_salary DECIMAL(12,2),
         expected_salary DECIMAL(12,2),
+        deleted_at TIMESTAMP WITH TIME ZONE,
         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
     );
@@ -296,6 +313,8 @@
         is_vip BOOLEAN NOT NULL DEFAULT FALSE,
         vip_start_at TIMESTAMP WITH TIME ZONE,
         vip_end_at TIMESTAMP WITH TIME ZONE,
+        is_verified BOOLEAN DEFAULT FALSE,
+        deleted_at TIMESTAMP WITH TIME ZONE,
         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
         updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
         CONSTRAINT fk_recruiter_user
@@ -421,7 +440,7 @@
     );
 
     INSERT INTO job_post_statuses (name)
-    VALUES ('OPEN'), ('CLOSED'), ('DRAFT');
+    VALUES ('OPEN'), ('CLOSED'), ('DRAFT'), ('PENDING'), ('REJECTED'), ('ARCHIVED');
 
     CREATE TABLE IF NOT EXISTS salary_types (
         id SERIAL PRIMARY KEY,
@@ -634,6 +653,7 @@
         vip_end_at TIMESTAMP WITH TIME ZONE,
         is_remote BOOLEAN NOT NULL DEFAULT FALSE,
         status_id INT NOT NULL REFERENCES job_post_statuses(id),
+        deleted_at TIMESTAMP WITH TIME ZONE,
         created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         CONSTRAINT fk_jobpost_recruiter
@@ -788,4 +808,15 @@
 
     -- Job Application → Resume
     CREATE INDEX idx_job_applications_resume_id ON job_applications(resume_id);
+
+    CREATE TABLE IF NOT EXISTS audit_logs (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        user_id UUID,
+        action VARCHAR(255) NOT NULL,
+        ip_address VARCHAR(45),
+        user_agent TEXT,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        CONSTRAINT fk_audit_user
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+    );
 

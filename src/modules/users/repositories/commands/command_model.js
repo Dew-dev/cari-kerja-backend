@@ -62,6 +62,8 @@ const loginParamType = joi.object({
       "string.max": "Password Maximum: {#limit} character",
       "string.pattern.name": "Password must contain at least 1 {#name}",
     }),
+  ip_address: joi.string().optional().allow("", null),
+  user_agent: joi.string().optional().allow("", null),
 });
 
 const loginWithGoogleParamType = joi.object({
@@ -74,6 +76,8 @@ const loginWithGoogleParamType = joi.object({
   name: joi.string().optional(),
   picture: joi.string().optional(),
   role_id: joi.number().required(),
+  ip_address: joi.string().optional().allow("", null),
+  user_agent: joi.string().optional().allow("", null),
 });
 
 const registerParamType = joi.object({

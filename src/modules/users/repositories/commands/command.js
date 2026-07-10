@@ -119,6 +119,16 @@ class Command {
       [user_id],
     );
   }
+
+  async insertAuditLog({ user_id, action, ip_address, user_agent }) {
+    return this.db.executeQuery(
+      `
+      INSERT INTO audit_logs (user_id, action, ip_address, user_agent)
+      VALUES ($1, $2, $3, $4)
+      `,
+      [user_id, action, ip_address, user_agent],
+    );
+  }
 }
 
 module.exports = Command;

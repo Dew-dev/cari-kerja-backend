@@ -37,9 +37,11 @@ class Query {
 
   async findUserByEmail(email) {
     try {
+      const { encrypt } = require("../../../../helpers/utils/crypto_helper");
+      const encryptedEmail = encrypt(email);
       const res = await this.db.executeQuery(
         "SELECT id, email, hashed_password, role_id, email_verified_at FROM users WHERE email = $1 OR username = $1 LIMIT 1",
-        [email],
+        [encryptedEmail],
       );
       return wrapper.data(res.rows[0]);
     } catch (e) {
