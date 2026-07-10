@@ -706,6 +706,7 @@
         cover_letter TEXT,
         application_status_id INT NOT NULL REFERENCES application_statuses(id),
         applied_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+        deleted_at TIMESTAMP WITH TIME ZONE,
         updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
         CONSTRAINT fk_app_jobpost
             FOREIGN KEY (job_post_id) REFERENCES job_posts(id) ON DELETE CASCADE,
