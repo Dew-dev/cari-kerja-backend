@@ -29,9 +29,9 @@ const ctx = "User-Command-Domain";
 const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 
-const { sendMail } = require("../../../../helpers/utils/mailer");
 const resetPasswordEmail = require("../../../../helpers/utils/resetPasswordEmail");
 const verifyEmailTemplate = require("../../../../helpers/utils/verifyEmail");
+const { addEmailJob } = require("../../../../helpers/queues/email.queue");
 const COOLDOWN_SECONDS = 60;
 const MAX_PER_HOUR = 5;
 
@@ -307,7 +307,7 @@ class User {
     const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
 
     try {
-      await sendMail({
+      await addEmailJob({
         to: email,
         subject: "Verify your email",
         html: verifyEmailTemplate({ name, verifyUrl }),
@@ -558,7 +558,7 @@ class User {
     //console.log(user.data);
     // TODO: send email
     try {
-      await sendMail({
+      await addEmailJob({
         to: user.data.email,
         subject: "Reset your password",
         html: resetPasswordEmail({
@@ -673,7 +673,7 @@ class User {
 
     const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
 
-    await sendMail({
+    await addEmailJob({
       to: user.data.email,
       subject: "Verify your email",
       html: verifyEmailTemplate({
@@ -755,7 +755,7 @@ class User {
 
     const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${token}`;
 
-    await sendMail({
+    await addEmailJob({
       to: user.data.email,
       subject: "Verify your email",
       html: verifyEmailTemplate({
