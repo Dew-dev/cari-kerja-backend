@@ -60,6 +60,10 @@ const getJobByIdParamType = joi.object({
   id: joi.string().guid().required()
 });
 
+const getLookupTableParamType = joi.object({
+  table: joi.string().required()
+});
+
 module.exports = {
   getStatsParamType,
   getUsersParamType,
@@ -74,5 +78,6 @@ module.exports = {
   getWorkersParamType,
   getWorkerByIdParamType,
   getEmployerByIdParamType,
-  getJobByIdParamType
+  getJobByIdParamType,
+  getLookupTableParamType
 };

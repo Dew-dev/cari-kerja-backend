@@ -5,7 +5,7 @@ const { NotFoundError, InternalServerError, BadRequestError } = require("../../.
 
 class AdminCommand {
   constructor() {
-    this.db = new DB(config.get("/pgDbUrl"));
+    this.db = new DB(config.get("/postgresqlUrl"));
   }
 
   async updateUserStatus(payload) {

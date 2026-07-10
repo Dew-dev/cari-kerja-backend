@@ -5,7 +5,7 @@ const { NotFoundError } = require("../../../../helpers/errors");
 
 class AdminQuery {
   constructor() {
-    this.db = new DB(config.get("/pgDbUrl"));
+    this.db = new DB(config.get("/postgresqlUrl"));
   }
 
   async getDashboardStats() {
