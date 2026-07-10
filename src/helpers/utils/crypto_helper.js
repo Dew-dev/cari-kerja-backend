@@ -1,4 +1,5 @@
 const crypto = require("crypto");
+const CryptoJS = require("crypto-js");
 
 const algorithm = "aes-256-cbc";
 const rawKey = process.env.ENCRYPTION_KEY || "antigravity_default_secret_key_123456";
@@ -24,6 +25,16 @@ const decrypt = (ciphertext) => {
     return ciphertext;
   }
   try {
+    // Determine if it is a CryptoJS string (Base64 for "Salted__")
+    if (typeof ciphertext === "string" && ciphertext.startsWith("U2FsdGVkX1")) {
+      const bytes = CryptoJS.AES.decrypt(ciphertext, rawKey);
+      const decryptedString = bytes.toString(CryptoJS.enc.Utf8);
+      // If decryption fails, it may return empty string
+      if (decryptedString) {
+        return decryptedString;
+      }
+    }
+
     const decipher = crypto.createDecipheriv(algorithm, ENCRYPTION_KEY, DET_IV);
     let decrypted = decipher.update(String(ciphertext), "base64", "utf8");
     decrypted += decipher.final("utf8");
