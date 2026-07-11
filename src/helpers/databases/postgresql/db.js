@@ -223,10 +223,17 @@ class DB {
       const deleted = isDeleted
         ? `AND "${collectionName}"."deleted_at" IS NULL`
         : "";
+      
+      // LOGIKA PERBAIKAN:
+      let whereClause = "";
+      if (parameterPlaceholders || deleted) {
+        whereClause = `WHERE ${parameterPlaceholders ? parameterPlaceholders + " " + deleted : deleted.replace(/^AND /, "")}`;
+      }
+
       const query = `
         SELECT COUNT(*)
         FROM "${collectionName}"
-        WHERE ${parameterPlaceholders} ${deleted};
+        ${whereClause};
       `;
       const values = parameterKey.map((key) => parameter[key]);
       const result = await this.executeQuery(query, values);
