@@ -57,21 +57,23 @@ class AdminQuery {
     let whereQuery = "";
     let values = [];
     if (search) {
-        whereQuery = "WHERE company_name ILIKE $1 OR contact_name ILIKE $1";
+        whereQuery = "WHERE r.company_name ILIKE $1 OR r.contact_name ILIKE $1";
         values.push(`%${search}%`);
     }
     const offset = limit * (page - 1);
     
     const rawQuery = `
-      SELECT id, user_id, company_name, contact_name, contact_phone, is_vip, is_verified, created_at, updated_at, deleted_at
-      FROM recruiters
+      SELECT r.id, r.user_id, r.company_name, r.contact_name, r.contact_phone, r.is_vip, r.is_verified, r.created_at, r.updated_at, r.deleted_at,
+             u.email as user_email, u.username as user_username
+      FROM recruiters r
+      LEFT JOIN users u ON r.user_id = u.id
       ${whereQuery}
-      ORDER BY created_at DESC
+      ORDER BY r.created_at DESC
       LIMIT ${limit} OFFSET ${offset}
     `;
     const result = await this.db.executeQuery(rawQuery, values);
     
-    const countQuery = `SELECT COUNT(*) FROM recruiters ${whereQuery}`;
+    const countQuery = `SELECT COUNT(*) FROM recruiters r ${whereQuery}`;
     const countResult = await this.db.executeQuery(countQuery, values);
     const totalData = parseInt(countResult?.rows[0]?.count || 0);
 
@@ -278,21 +280,23 @@ class AdminQuery {
     let whereQuery = "";
     let values = [];
     if (search) {
-        whereQuery = "WHERE name ILIKE $1";
+        whereQuery = "WHERE w.name ILIKE $1";
         values.push(`%${search}%`);
     }
     const offset = limit * (page - 1);
     
     const rawQuery = `
-      SELECT id, user_id, name, avatar_url, telephone, gender_id, created_at, updated_at, deleted_at
-      FROM workers
+      SELECT w.id, w.user_id, w.name, w.avatar_url, w.telephone, w.gender_id, w.created_at, w.updated_at, w.deleted_at,
+             u.email as user_email, u.username as user_username
+      FROM workers w
+      LEFT JOIN users u ON w.user_id = u.id
       ${whereQuery}
-      ORDER BY created_at DESC
+      ORDER BY w.created_at DESC
       LIMIT ${limit} OFFSET ${offset}
     `;
     const result = await this.db.executeQuery(rawQuery, values);
     
-    const countQuery = `SELECT COUNT(*) FROM workers ${whereQuery}`;
+    const countQuery = `SELECT COUNT(*) FROM workers w ${whereQuery}`;
     const countResult = await this.db.executeQuery(countQuery, values);
     const totalData = parseInt(countResult?.rows[0]?.count || 0);
     
