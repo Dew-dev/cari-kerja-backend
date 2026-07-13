@@ -32,6 +32,13 @@ const config = {
     bucketName: process.env.R2_BUCKET_NAME,
   },
   redisUrl: process.env.REDIS_URL || "redis://localhost:6379",
+  xendit: {
+    secretKey: process.env.XENDIT_SECRET_KEY,
+    webhookToken: process.env.XENDIT_WEBHOOK_TOKEN,
+    callbackUrl: process.env.XENDIT_CALLBACK_URL,
+    successRedirectUrl: process.env.XENDIT_SUCCESS_REDIRECT_URL,
+    failureRedirectUrl: process.env.XENDIT_FAILURE_REDIRECT_URL,
+  },
 };
 
 const store = new confidence.Store(config);
