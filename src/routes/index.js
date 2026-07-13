@@ -24,6 +24,8 @@ const jobPostBenefits = require('./job_post_benefits');
 const contact_us = require('./contact_us');
 const locations = require('./locations');
 const admin = require('./admin');
+const payments = require('./payments');
+
 
 module.exports = (server) => {
   users(server);
@@ -52,4 +54,6 @@ module.exports = (server) => {
   contact_us(server);
   locations(server);
   admin(server);
+  payments(server);
 };
+

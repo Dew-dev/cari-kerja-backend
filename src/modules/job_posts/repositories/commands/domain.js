@@ -8,7 +8,9 @@ const {
   ConflictError,
   InternalServerError,
   BadRequestError,
+  ForbiddenError,
 } = require("../../../../helpers/errors");
+const PaymentQuery = require("../../../payments/repositories/queries/query");
 const ctx = "Jobposts-Command-Domain";
 const joi = require("joi");
 const commandModel = require("../../repositories/commands/command_model");
@@ -27,6 +29,7 @@ class Jobpost {
   constructor(db) {
     this.command = new Command(db);
     this.query = new Query(db);
+    this.paymentQuery = new PaymentQuery(db);
   }
 
   async createJobPost(payload) {
@@ -58,6 +61,16 @@ class Jobpost {
       vip_end_at,
       is_remote,
     } = payload;
+
+    // ======================================
+    // SUBSCRIPTION QUOTA ENFORCEMENT
+    // Cek apakah recruiter sudah melebihi limit posting dari paket aktifnya
+    // ======================================
+    const quotaCheckResult = await this._checkPostingQuota(recruiter_id);
+    if (quotaCheckResult.err) {
+      return wrapper.error(quotaCheckResult.err);
+    }
+    // ======================================
 
     const jobPostId = uuidv4();
     const data = {
@@ -933,6 +946,46 @@ class Jobpost {
     await this.command.deleteJobPost(id);
     return wrapper.data("Job deleted successfully");
   }
-}   
+
+  /**
+   * Cek apakah recruiter masih dalam batas kuota posting
+   * Berdasarkan subscription plan aktif. Default: Paket Free = 1 job post aktif.
+   */
+  async _checkPostingQuota(recruiter_id) {
+    try {
+      // 1. Ambil subscription aktif
+      const subResult = await this.paymentQuery.getActiveSubscription(recruiter_id);
+      const activeSubscription = subResult?.rows?.[0] || null;
+
+      // 2. Tentukan max_active_posts
+      // Jika tidak ada subscription aktif → paket free = 1 posting
+      const maxActivePosts = activeSubscription ? parseInt(activeSubscription.max_active_posts, 10) : 1;
+
+      // 3. Hitung job post aktif saat ini (tidak termasuk archived/deleted)
+      const countResult = await this.paymentQuery.countActiveJobPostsFallback(recruiter_id);
+      const currentActive = parseInt(countResult?.rows?.[0]?.count || 0, 10);
+
+      logger.info(ctx, "_checkPostingQuota", `Recruiter ${recruiter_id}: ${currentActive}/${maxActivePosts} job posts aktif`);
+
+      // 4. Cek apakah sudah melebihi limit
+      if (currentActive >= maxActivePosts) {
+        const planName = activeSubscription ? activeSubscription.plan_display_name : "Paket Free";
+        return wrapper.error(
+          new ForbiddenError(
+            `Batas posting Anda sudah penuh (${currentActive}/${maxActivePosts} iklan aktif pada ${planName}). ` +
+            `Upgrade paket Anda untuk menambah lebih banyak iklan.`
+          )
+        );
+      }
+
+      return wrapper.data({ allowed: true, currentActive, maxActivePosts });
+    } catch (err) {
+      logger.error(ctx, "_checkPostingQuota", "Error checking quota", err);
+      // Jika gagal cek quota, biarkan lanjut (fail-open) agar tidak block recruiter
+      return wrapper.data({ allowed: true });
+    }
+  }
+}
 
 module.exports = Jobpost;
+
