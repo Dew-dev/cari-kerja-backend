@@ -22,7 +22,6 @@ class Recruiter {
       return wrapper.error(new NotFoundError("Can not find recruiter"));
     }
 
-    logger.info(ctx, "getRecruiter", "Get detail recruiter", payload);
     return wrapper.data(recruiter.data);
   }
 
@@ -66,7 +65,6 @@ class Recruiter {
       ),
     }));
 
-    logger.info(ctx, "getAllRecruitersByIndustry", "Get recruiters grouped by industry");
     return wrapper.data(grouped);
   }
 
@@ -94,7 +92,6 @@ class Recruiter {
       totalPage,
     };
 
-    logger.info(ctx, "getAllCompanies", "Get all companies", payload);
     return wrapper.paginationData(companies.data, pagination);
   }
 }

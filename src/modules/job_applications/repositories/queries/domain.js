@@ -22,7 +22,6 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Can not find jobposts"));
     }
 
-    logger.info(ctx, "getJobpostsByRecruiterId", "Get Jobposts", payload);
     return wrapper.paginationData(jobposts.data, jobposts.meta);
   }
 
@@ -35,7 +34,6 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Can not find the job post"));
     }
 
-    logger.info(ctx, "getJobpostById", "Job Post Query", payload);
     return wrapper.data(jobpost.data);
   }
 
@@ -180,7 +178,6 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Can not find jobposts"));
     }
 
-    logger.info(ctx, "getJobposts", "Get Jobposts", data);
     return wrapper.paginationData(jobposts.data, jobposts.meta);
   }
 
@@ -330,7 +327,6 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Can not find jobposts"));
     }
 
-    logger.info(ctx, "getJobposts", "Get Jobposts", data);
     return wrapper.paginationData(jobposts.data, jobposts.meta);
   }
 
@@ -450,7 +446,6 @@ class Jobposts {
         return wrapper.error(new NotFoundError("Cannot find questions"));
       }
 
-      logger.info(ctx, "getJobpostQuestions", "Get Jobpost Questions", data);
       return wrapper.paginationData(questions.data, questions.meta);
     } catch (err) {
       logger.error(ctx, "getJobpostQuestions", "Error get questions", err);
@@ -481,11 +476,9 @@ class Jobposts {
         return wrapper.error(new NotFoundError("Unable to load currencies"));
       }
 
-      logger.info(ctx, "getCurrency", "Get currencies list");
       return wrapper.data(list.data);
     }
 
-    logger.info(ctx, "getCurrencyByCode", "Get currency", payload);
     return wrapper.data(currency.data);
   }
 }

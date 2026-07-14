@@ -228,7 +228,6 @@ class User {
       user_agent: payload.user_agent || "Unknown"
     });
 
-    logger.info(ctx, "Success login by google", "Users auth", "Success");
     return wrapper.data({ token, refreshToken });
   }
 
@@ -418,7 +417,6 @@ class User {
       logger.error(ctx, "Failed to update", "Domain users", updateResult.err);
       return wrapper.error(new InternalServerError("Update User Failed"));
     }
-    logger.info(ctx, "Update Succeed", "Domain Users", wrapper.data({ id }));
     return wrapper.data({ id });
   }
 

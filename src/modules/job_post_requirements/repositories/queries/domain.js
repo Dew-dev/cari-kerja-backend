@@ -20,7 +20,6 @@ class JobPostRequirements {
       return wrapper.error(new NotFoundError("No job_post_requirements found"));
     }
 
-    logger.info(ctx, "getAllJobPostRequirementsByJobPostId", "Success get JobPostRequirements", payload);
     return wrapper.data(result.data);
   }
 }

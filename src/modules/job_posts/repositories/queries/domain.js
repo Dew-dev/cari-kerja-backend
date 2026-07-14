@@ -274,14 +274,12 @@ class Jobposts {
           values.push(skillIds);
           idx += 1;
           
-          logger.info(ctx, "getJobPostsLogic", `Worker ${user_id} has ${skillIds.length} skills - filtering recommendations`);
         }
       } catch (error) {
         logger.error(ctx, "getJobPostsLogic", "Error fetching worker skills", error);
         // Continue without skill filtering if there's an error
       }
     } else if (recommendations === false && user_id) {
-      logger.info(ctx, "getJobPostsLogic", `Worker ${user_id} disabled recommendations - showing all jobs`);
     }
 
     const sortableColumns = {
@@ -323,7 +321,6 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Can not find jobposts"));
     }
 
-    logger.info(ctx, "getJobposts", "Get Jobposts", finalData);
     return wrapper.paginationData(jobposts.data, jobposts.meta);
   }
 
@@ -371,7 +368,6 @@ class Jobposts {
       questions: !questionsResult.err ? questionsResult.data : [],
     };
 
-    logger.info(ctx, "getJobpostById", "Job Post Query", payload);
     
     return wrapper.data(jobPostData);
   }
@@ -592,7 +588,6 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Can not find jobposts"));
     }
 
-    logger.info(ctx, "getJobposts", "Get Jobposts", data);
     return wrapper.paginationData(jobposts.data, jobposts.meta);
   }
 
@@ -712,7 +707,6 @@ class Jobposts {
         return wrapper.error(new NotFoundError("Cannot find questions"));
       }
 
-      logger.info(ctx, "getJobpostQuestions", "Get Jobpost Questions", data);
       return wrapper.paginationData(questions.data, questions.meta);
     } catch (err) {
       logger.error(ctx, "getJobpostQuestions", "Error get questions", err);
@@ -743,11 +737,9 @@ class Jobposts {
         return wrapper.error(new NotFoundError("Unable to load currencies"));
       }
 
-      logger.info(ctx, "getCurrency", "Get currencies list");
       return wrapper.data(list.data);
     }
 
-    logger.info(ctx, "getCurrencyByCode", "Get currency", payload);
     return wrapper.data(currency.data);
   }
 
@@ -763,7 +755,6 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Can not find tag"));
     }
 
-    logger.info(ctx, "getTagByName", "Get job tag", payload);
     return wrapper.data(jobtag.data);
   }
 
@@ -784,7 +775,6 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Applicants not found"));
     }
 
-    logger.info(ctx, "getJobApplicants", "Get job applicants", payload);
     return wrapper.data(applicants.data);
   }
   async getWorkerByApplication(payload) {
@@ -826,7 +816,6 @@ class Jobposts {
       answers: !answersResult.err && answersResult.data ? answersResult.data : [],
     };
 
-    logger.info(ctx, "getWorkerByApplication", "Get worker detail", payload);
     return wrapper.data(workerData);
   }
 }

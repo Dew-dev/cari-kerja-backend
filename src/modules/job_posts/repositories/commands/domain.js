@@ -965,7 +965,6 @@ class Jobpost {
       const countResult = await this.paymentQuery.countActiveJobPostsFallback(recruiter_id);
       const currentActive = parseInt(countResult?.rows?.[0]?.count || 0, 10);
 
-      logger.info(ctx, "_checkPostingQuota", `Recruiter ${recruiter_id}: ${currentActive}/${maxActivePosts} job posts aktif`);
 
       // 4. Cek apakah sudah melebihi limit
       if (currentActive >= maxActivePosts) {

@@ -18,7 +18,6 @@ class JobPostTags {
       return wrapper.error(new NotFoundError("Can not find tag"));
     }
 
-    logger.info(ctx, "getTag", "Get job tag", payload);
     return wrapper.data(jobtag.data);
   }
 
@@ -31,7 +30,6 @@ class JobPostTags {
       return wrapper.error(new NotFoundError("Can not find tag"));
     }
 
-    logger.info(ctx, "getTagByName", "Get job tag", payload);
     return wrapper.data(jobtag.data);
   }
 
@@ -51,12 +49,6 @@ class JobPostTags {
       return wrapper.error(new NotFoundError("Can not find tag"));
     }
 
-    logger.info(
-      ctx,
-      "getOneJobPostTagByTagIdAndJobPostId",
-      "Get Job Post Tag",
-      payload
-    );
     return wrapper.data(jobtag.data);
   }
 
@@ -69,7 +61,6 @@ class JobPostTags {
       return wrapper.error(new NotFoundError("Can not find tags"));
     }
 
-    logger.info(ctx, "getTags", "Get job post tags", payload);
     return wrapper.data(jobposttags.data);
   }
 }

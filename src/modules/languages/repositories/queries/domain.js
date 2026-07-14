@@ -20,7 +20,6 @@ class Languages {
       return wrapper.error(new NotFoundError("No languages found"));
     }
 
-    logger.info(ctx, "getAllLanguagesByWorkerId", "Success get languages", payload);
     return wrapper.data(result.data);
   }
 }
