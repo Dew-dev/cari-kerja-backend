@@ -17,7 +17,6 @@ class Locations {
       return wrapper.error(new NotFoundError("Cannot find provinces"));
     }
 
-    logger.info(ctx, "getAllProvinces", "Get all provinces");
     return wrapper.data(provinces.data);
   }
 
@@ -30,7 +29,6 @@ class Locations {
       return wrapper.error(new NotFoundError("Province not found"));
     }
 
-    logger.info(ctx, "getProvinceById", "Get province", payload);
     return wrapper.data(province.data);
   }
 
@@ -49,7 +47,6 @@ class Locations {
       return wrapper.error(new NotFoundError("Cannot find cities"));
     }
 
-    logger.info(ctx, "getAllCities", "Get cities", payload);
     return wrapper.data(cities.data);
   }
 
@@ -62,7 +59,6 @@ class Locations {
       return wrapper.error(new NotFoundError("City not found"));
     }
 
-    logger.info(ctx, "getCityById", "Get city", payload);
     return wrapper.data(city.data);
   }
 
@@ -85,7 +81,6 @@ class Locations {
       results.cities = !cities.err ? cities.data : [];
     }
 
-    logger.info(ctx, "searchLocations", "Search locations", payload);
     return wrapper.data(results);
   }
 }

@@ -18,7 +18,6 @@ class Worker {
       return wrapper.error(new NotFoundError("Can not find worker"));
     }
 
-    logger.info(ctx, "getWorker", "get detail worker", payload);
     return wrapper.data(worker.data);
   }
 
@@ -31,7 +30,6 @@ class Worker {
       return wrapper.error(new NotFoundError("Can not find worker"));
     }
 
-    logger.info(ctx, "getWorkerById", "get detail worker", payload);
     return wrapper.data(worker.data);
   }
 
@@ -177,7 +175,6 @@ class Worker {
       return wrapper.error(new NotFoundError("Cannot find workers"));
     }
 
-    logger.info(ctx, "getWorkers", "Get Workers", data);
     return wrapper.paginationData(workers.data, workers.meta);
   }
 }

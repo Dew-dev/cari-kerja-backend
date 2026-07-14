@@ -53,12 +53,6 @@ class Recruiter {
       );
       return wrapper.error(new InternalServerError("Update Recruiter Failed"));
     }
-    logger.info(
-      ctx,
-      "Update Succeed",
-      "Domain Recruiter",
-      wrapper.data({ id })
-    );
     return wrapper.data({ id });
   }
 
@@ -85,7 +79,6 @@ class Recruiter {
       return wrapper.error(new InternalServerError("Update Recruiter VIP Failed"));
     }
 
-    logger.info(ctx, "Update recruiter VIP succeed", "Domain Recruiter", wrapper.data({ id }));
     return wrapper.data({
       id,
       ...updateData,

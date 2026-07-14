@@ -241,7 +241,6 @@ class PaymentCommandDomain {
           expires_at: expiresAt,
         });
 
-        logger.info(ctx, "_activatePlan", `Subscription ${plan.name} activated for recruiter ${recruiter_id}`);
       } else if (order_type === "single_post") {
         // Ambil detail plan
         const planResult = await this.query.getSinglePostPlanById(plan_id);
@@ -260,7 +259,6 @@ class PaymentCommandDomain {
           expires_at: expiresAt,
         });
 
-        logger.info(ctx, "_activatePlan", `Single post slot (${plan.name}) created for recruiter ${recruiter_id}`);
       } else if (order_type === "boost") {
         // Ambil detail plan
         const planResult = await this.query.getBoostPlanById(plan_id);
@@ -291,7 +289,6 @@ class PaymentCommandDomain {
           boost_expires_at: expiresAt,
         });
 
-        logger.info(ctx, "_activatePlan", `Boost ${plan.name} activated for job post ${job_post_id}`);
       }
 
       return wrapper.data("Plan activated successfully");

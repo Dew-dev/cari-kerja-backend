@@ -20,7 +20,6 @@ class Portofolios {
       return wrapper.error(new NotFoundError("No portofolio found"));
     }
 
-    logger.info(ctx, "getAllPortofoliosByWorkerId", "Success get portofolio", payload);
     return wrapper.data(result.data);
   }
 }

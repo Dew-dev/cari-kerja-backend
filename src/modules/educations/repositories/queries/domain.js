@@ -20,7 +20,6 @@ class Educations {
       return wrapper.error(new NotFoundError("No educations found"));
     }
 
-    logger.info(ctx, "getAllEducationsByWorkerId", "Success get educations", payload);
     return wrapper.data(result.data);
   }
 
@@ -35,7 +34,6 @@ class Educations {
       return wrapper.error(new NotFoundError("Educations not found"));
     }
 
-    logger.info(ctx, "getEducationsById", "Success get educations", payload);
     return wrapper.data(result.data);
   }
 }

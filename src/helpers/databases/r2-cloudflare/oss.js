@@ -24,7 +24,6 @@ const addObjectStream = async (params) => {
     };
     const result = await r2.putObject(newParams).promise();
 
-    logger.info(ctx, "result add object", "r2", result);
     return wrapper.data("Object successfully added");
   } catch (error) {
     return wrapper.error("Error adding date");
@@ -48,7 +47,6 @@ const deleteObjectStream = async (fileKey) => {
   try {
     const result = await r2.deleteObject({ Bucket: bucketName, Key: fileKey }).promise();
 
-    logger.info(ctx, "result delete object", "r2", result);
     return wrapper.data("Object successfully deleted");
   } catch (error) {
     return wrapper.error("Error delete data");
