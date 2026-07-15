@@ -79,9 +79,6 @@ class Command {
     deadline,
     province,
     city,
-    is_vip,
-    vip_start_at,
-    vip_end_at,
     is_remote,
   }) {
     const query = `
@@ -99,10 +96,7 @@ class Command {
         deadline = $11,
         province = $12,
         city = $13,
-        is_vip = $14,
-        vip_start_at = $15,
-        vip_end_at = $16,
-        is_remote = $17,
+        is_remote = $14,
         updated_at = NOW()
       WHERE id = $1
       RETURNING id;
@@ -122,9 +116,6 @@ class Command {
       deadline,
       province,
       city,
-      is_vip,
-      vip_start_at,
-      vip_end_at,
       is_remote,
     ];
 
@@ -171,9 +162,6 @@ class Command {
     category_id,
     province,
     city,
-    is_vip,
-    vip_start_at,
-    vip_end_at,
     is_remote,
   }) {
     const query = `
@@ -193,12 +181,9 @@ class Command {
         category_id,
         province,
         city,
-        is_vip,
-        vip_start_at,
-        vip_end_at,
         is_remote
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
       )
       RETURNING id;
     `;
@@ -219,9 +204,6 @@ class Command {
       category_id,
       province,
       city,
-      is_vip,
-      vip_start_at,
-      vip_end_at,
       is_remote,
     ];
 
