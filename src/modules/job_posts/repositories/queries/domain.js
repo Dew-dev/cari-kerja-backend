@@ -21,7 +21,8 @@ class Jobposts {
       location,
       province_name, // 🌍 Province name filter
       cities_name, // 🌍 City name filter
-      is_vip,
+      boost_type,
+      is_hot,
       is_remote,
       salary_min,
       salary_max,
@@ -118,9 +119,15 @@ class Jobposts {
       idx += 1;
     }
 
-    if (is_vip !== undefined && is_vip !== null && is_vip !== "") {
-      conditions.push(` AND j.is_vip = $${idx}`);
-      values.push(is_vip);
+    if (boost_type !== undefined && boost_type !== null && boost_type !== "") {
+      conditions.push(` AND j.boost_type = $${idx}`);
+      values.push(boost_type);
+      idx += 1;
+    }
+
+    if (is_hot !== undefined && is_hot !== null && is_hot !== "") {
+      conditions.push(` AND j.is_hot = $${idx}`);
+      values.push(is_hot);
       idx += 1;
     }
 
@@ -382,7 +389,8 @@ class Jobposts {
       location,
       province, // 🌍 Province name filter
       city, // 🌍 City name filter
-      is_vip,
+      boost_type,
+      is_hot,
       is_remote,
       salary_min,
       salary_max,
@@ -442,9 +450,15 @@ class Jobposts {
       idx += 1;
     }
 
-    if (is_vip !== undefined && is_vip !== null && is_vip !== "") {
-      conditions.push(` AND j.is_vip = $${idx}`);
-      values.push(is_vip);
+    if (boost_type !== undefined && boost_type !== null && boost_type !== "") {
+      conditions.push(` AND j.boost_type = $${idx}`);
+      values.push(boost_type);
+      idx += 1;
+    }
+
+    if (is_hot !== undefined && is_hot !== null && is_hot !== "") {
+      conditions.push(` AND j.is_hot = $${idx}`);
+      values.push(is_hot);
       idx += 1;
     }
 
