@@ -20,7 +20,6 @@ class WorkExperience {
       return wrapper.error(new NotFoundError("No work experiences found"));
     }
 
-    logger.info(ctx, "getAllWorkExperiencesByWorkerId", "Success get worker experiences", payload);
     return wrapper.data(result.data);
   }
 
@@ -35,7 +34,6 @@ class WorkExperience {
       return wrapper.error(new NotFoundError("Work experience not found"));
     }
 
-    logger.info(ctx, "getWorkExperienceById", "Success get worker experience", payload);
     return wrapper.data(result.data);
   }
 }

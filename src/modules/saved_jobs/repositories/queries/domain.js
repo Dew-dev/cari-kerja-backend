@@ -93,7 +93,6 @@ class SavedJobs {
       return wrapper.error(new NotFoundError("Can not find savedJobs"));
     }
 
-    logger.info(ctx, "getSavedJobsByWorkerId", "Get SavedJobs", payload);
     return wrapper.paginationData(savedJobs.data, savedJobs.meta);
   }
 
@@ -106,7 +105,6 @@ class SavedJobs {
       return wrapper.error(new NotFoundError("Can not find the SavedJobs"));
     }
 
-    logger.info(ctx, "getSavedJobsById", "Saved Jobs Query", payload);
     return wrapper.data(savedJobs.data);
   }
 
@@ -251,7 +249,6 @@ class SavedJobs {
       return wrapper.error(new NotFoundError("Can not find Saved Jobs"));
     }
 
-    logger.info(ctx, "getSavedJobs", "Get SavedJobs", data);
     return wrapper.paginationData(savedJobs.data, savedJobs.meta);
   }
 
@@ -401,7 +398,6 @@ class SavedJobs {
       return wrapper.error(new NotFoundError("Can not find savedJobs"));
     }
 
-    logger.info(ctx, "getSavedJobs", "Get Saved Jobs", data);
     return wrapper.paginationData(savedJobs.data, savedJobs.meta);
   }
 }

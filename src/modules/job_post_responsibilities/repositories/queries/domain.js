@@ -19,7 +19,6 @@ class JobPostResponsibilities {
       return wrapper.error(new NotFoundError("No JobPostResponsibilities found"));
     }
 
-    logger.info(ctx, "getAllJobPostResponsibilitiesByJobPostId", "Success get JobPostResponsibilities", payload);
     return wrapper.data(result.data);
   }
 }

@@ -56,9 +56,6 @@ class Jobpost {
       skills,
       province,
       city,
-      is_vip,
-      vip_start_at,
-      vip_end_at,
       is_remote,
     } = payload;
 
@@ -89,9 +86,6 @@ class Jobpost {
       category_id,
       province,
       city,
-      is_vip: is_vip ?? false,
-      vip_start_at: is_vip ? (vip_start_at ?? new Date()) : null,
-      vip_end_at: is_vip ? (vip_end_at ?? null) : null,
       is_remote: is_remote ?? false,
     };
 
@@ -661,7 +655,7 @@ class Jobpost {
   async updateJobPost(payload) {
     
     console.log("skillResult (update):", payload);
-    const { id, recruiter_id, user_id, tags, job_post_questions, questions, skills, province, city, is_vip, vip_start_at, vip_end_at, is_remote, ...jobData } = payload;
+    const { id, recruiter_id, user_id, tags, job_post_questions, questions, skills, province, city, is_remote, ...jobData } = payload;
 
     // 1️⃣ cek job milik recruiter
     const job = await this.query.findOneJobPost({
@@ -682,9 +676,6 @@ class Jobpost {
       location: jobData.location ?? job.data.location,
       province: province ?? job.data.province,
       city: city ?? job.data.city,
-      is_vip: is_vip ?? job.data.is_vip,
-      vip_start_at: is_vip === undefined ? job.data.vip_start_at : (is_vip ? (vip_start_at ?? new Date()) : null),
-      vip_end_at: is_vip === undefined ? job.data.vip_end_at : (is_vip ? (vip_end_at ?? null) : null),
       is_remote: is_remote ?? job.data.is_remote,
     });
 
@@ -762,32 +753,7 @@ class Jobpost {
     return wrapper.data(payload);
   }
 
-  async updateJobPostVip(payload) {
-    const { id, recruiter_id, is_vip, vip_start_at, vip_end_at } = payload;
 
-    const job = await this.query.findOneJobPost({ id, recruiter_id });
-
-    if (job.err || !job.data) {
-      return wrapper.error(
-        new NotFoundError("Job not found or not owned by recruiter"),
-      );
-    }
-
-    const updateData = {
-      is_vip,
-      vip_start_at: is_vip ? (vip_start_at ?? new Date()) : null,
-      vip_end_at: is_vip ? (vip_end_at ?? null) : null,
-    };
-
-    const result = await this.command.updateOneNew({ id }, updateData, "job_posts");
-
-    if (result.err) {
-      logger.error(ctx, "updateJobPostVip", "Update VIP job failed", result.err);
-      return wrapper.error(new InternalServerError("Failed to update job VIP status"));
-    }
-
-    return wrapper.data({ id, ...updateData });
-  }
 
   async duplicateJobPost(payload) {
     const { id, recruiter_id } = payload;
@@ -965,7 +931,6 @@ class Jobpost {
       const countResult = await this.paymentQuery.countActiveJobPostsFallback(recruiter_id);
       const currentActive = parseInt(countResult?.rows?.[0]?.count || 0, 10);
 
-      logger.info(ctx, "_checkPostingQuota", `Recruiter ${recruiter_id}: ${currentActive}/${maxActivePosts} job posts aktif`);
 
       // 4. Cek apakah sudah melebihi limit
       if (currentActive >= maxActivePosts) {

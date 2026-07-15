@@ -11,6 +11,17 @@ module.exports = (server) => {
   server.post("/api/v1/users/login", basicAuth.isAuthenticated, userHandler.login);
   server.get("/api/v1/users/google", authGoogle);
   server.get("/api/v1/users/google/callback", authGoogleCallback, userHandler.loginWithGoogle);
+  server.get("/api/v1/users/telegram", (req, res) => {
+    const config = require("../config/global_config");
+    const clientId = config.get("/telegramAuth/clientId");
+    const redirectUri = config.get("/telegramAuth/redirectUri");
+    const { role_id, origin } = req.query;
+    const state = JSON.stringify({ role_id: Number(role_id) || 1, origin });
+    const authUrl = `https://oauth.telegram.org/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid+profile&state=${encodeURIComponent(state)}`;
+    return res.redirect(authUrl);
+  });
+  server.get("/api/v1/users/telegram/callback", userHandler.loginWithTelegram);
+  server.post("/api/v1/users/login/telegram", userHandler.loginWithTelegram);
   server.delete("/api/v1/users/logout", verifyToken, userHandler.logout);
   server.put("/api/v1/users/refresh-token", basicAuth.isAuthenticated, userHandler.refreshToken);
   server.get("/api/v1/users/:id", verifyToken, userHandler.getUserById);

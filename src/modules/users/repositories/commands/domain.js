@@ -14,6 +14,9 @@ const {
   BadRequestError,
   ForbiddenError,
 } = require("../../../../helpers/errors");
+const config = require("../../../../config/global_config");
+const { verifyTelegramOidcToken } = require("../../../../helpers/auth/telegram_oidc");
+const axios = require("axios");
 const {
   compareHash,
   generateHash,
@@ -228,7 +231,142 @@ class User {
       user_agent: payload.user_agent || "Unknown"
     });
 
-    logger.info(ctx, "Success login by google", "Users auth", "Success");
+    return wrapper.data({ token, refreshToken });
+  }
+
+  async loginWithTelegram(payload) {
+    const { code, role_id } = payload;
+    const clientId = config.get("/telegramAuth/clientId");
+    const clientSecret = config.get("/telegramAuth/clientSecret");
+    const redirectUri = config.get("/telegramAuth/redirectUri");
+
+    if (!clientId || !clientSecret || !redirectUri) {
+      return wrapper.error(new InternalServerError("Telegram Authentication is not configured"));
+    }
+
+    let tokenResponse;
+    try {
+      // Exchange code for ID Token
+      tokenResponse = await axios.post(
+        "https://oauth.telegram.org/token",
+        new URLSearchParams({
+          grant_type: "authorization_code",
+          code: code,
+          redirect_uri: redirectUri,
+          client_id: clientId,
+          client_secret: clientSecret,
+        }).toString(),
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        }
+      );
+    } catch (error) {
+      logger.error(ctx, "Telegram OIDC Token Exchange Failed", "loginWithTelegram", error.response?.data || error.message);
+      return wrapper.error(new BadRequestError("Failed to exchange code for token with Telegram"));
+    }
+
+    const { id_token } = tokenResponse.data;
+    if (!id_token) {
+      return wrapper.error(new BadRequestError("Telegram did not return id_token"));
+    }
+
+    let oidcClaims;
+    try {
+      oidcClaims = await verifyTelegramOidcToken(id_token, clientId);
+    } catch (error) {
+      logger.error(ctx, "Telegram OIDC ID Token Verification Failed", "loginWithTelegram", error);
+      return wrapper.error(new ForbiddenError(`Invalid Telegram ID Token: ${error.message}`));
+    }
+
+    const provider_id = oidcClaims.sub; // unique telegram user id (string)
+    const name = oidcClaims.name || oidcClaims.preferred_username || `Telegram User ${provider_id}`;
+    const username = oidcClaims.preferred_username ? oidcClaims.preferred_username.toLowerCase() : `telegram_${provider_id}`;
+    const email = `telegram_${provider_id}@carikerja.id`;
+
+    // Query user by login_provider and provider_id
+    const user = await this.query.findOne(
+      { login_provider: "telegram", provider_id },
+      { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1 }
+    );
+
+    let data;
+    let dataWorker;
+    let dataRecruiter;
+
+    if (user.err) {
+      data = {
+        id: uuidv4(),
+        username,
+        email,
+        hashed_password: null,
+        login_provider: "telegram",
+        provider_id,
+        role_id: role_id || 1,
+      };
+      const result = await this.command.insertOne(data);
+
+      if (data.role_id == 1) {
+        dataWorker = {
+          id: uuidv4(),
+          user_id: data.id,
+          name: name,
+        };
+        const resultWorker = await this.workerCommand.insertOne(dataWorker);
+        if (resultWorker.err) {
+          return wrapper.error(
+            new InternalServerError("Sign up worker failed"),
+          );
+        }
+      } else if (data.role_id == 2) {
+        dataRecruiter = {
+          id: uuidv4(),
+          user_id: data.id,
+          company_name: name,
+          contact_name: name,
+          contact_phone: "NULL",
+        };
+        const resultRecruiter =
+          await this.recruiterCommand.insertOne(dataRecruiter);
+        if (resultRecruiter.err) {
+          return wrapper.error(
+            new InternalServerError("Sign up recruiter failed"),
+          );
+        }
+      }
+
+      if (result.err) {
+        return wrapper.error(new InternalServerError("Sign up failed"));
+      }
+    } else {
+      data = user.data;
+      if (data.role_id === 1) {
+        const resultWorker = await this.queryWorker.findOne(
+          { user_id: data.id },
+          { id: 1, name: 1 },
+        );
+        data["worker_id"] = resultWorker.data.id;
+      } else if (data.role_id === 2) {
+        const resultRecruiter = await this.queryRecruiter.findOne(
+          { user_id: data.id },
+          { id: 1, contact_name: 1 },
+        );
+        data["recruiter_id"] = resultRecruiter.data.id;
+      }
+    }
+
+    const token = await generateAccessToken(data);
+    const refreshToken = await generateRefreshToken({ id: data.id });
+
+    // Insert Audit Log
+    await this.command.insertAuditLog({
+      user_id: data.id,
+      action: "LOGIN_TELEGRAM",
+      ip_address: payload.ip_address || "Unknown",
+      user_agent: payload.user_agent || "Unknown",
+    });
+
     return wrapper.data({ token, refreshToken });
   }
 
@@ -418,7 +556,6 @@ class User {
       logger.error(ctx, "Failed to update", "Domain users", updateResult.err);
       return wrapper.error(new InternalServerError("Update User Failed"));
     }
-    logger.info(ctx, "Update Succeed", "Domain Users", wrapper.data({ id }));
     return wrapper.data({ id });
   }
 

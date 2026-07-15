@@ -20,7 +20,6 @@ class WorkerSkills {
       return wrapper.error(new NotFoundError("No worker skills found"));
     }
 
-    logger.info(ctx, "getAllWorkerSkillsByWorkerId", "Success get worker skills", payload);
     return wrapper.data(result.data);
   }
 }

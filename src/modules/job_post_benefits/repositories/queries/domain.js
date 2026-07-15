@@ -19,7 +19,6 @@ class JobPostBenefits {
       return wrapper.error(new NotFoundError("No JobPostBenefits found"));
     }
 
-    logger.info(ctx, "getAllJobPostBenefitsByJobPostId", "Success get JobPostBenefits", payload);
     return wrapper.data(result.data);
   }
 }
