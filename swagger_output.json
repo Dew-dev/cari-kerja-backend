@@ -7,8 +7,8 @@
   },
   "servers": [
     {
-      "url": "https://be-stage.cari-kerja.co.id",
-      "description": "Staging Server (VPS)"
+      "url": "http://localhost:5001",
+      "description": "Local server"
     },
     {
       "url": "http://localhost:5001",
@@ -295,13 +295,34 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "platform_name": {
+                    "type": "string",
+                    "example": "Cari Kerja"
+                  },
+                  "support_email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                  },
+                  "maintenance_mode": {
+                    "type": "boolean",
+                    "example": false
+                  },
+                  "max_upload_size_mb": {
+                    "type": "number",
+                    "example": 10
+                  },
+                  "allow_employer_registration": {
+                    "type": "boolean",
+                    "example": true
                   }
                 }
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "platform_name": "Cari Kerja",
+                "support_email": "user@example.com",
+                "maintenance_mode": false,
+                "max_upload_size_mb": 10,
+                "allow_employer_registration": true
               }
             }
           }
@@ -779,13 +800,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "is_suspended": {
+                    "type": "boolean",
+                    "example": false
                   }
-                }
+                },
+                "required": [
+                  "is_suspended"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "is_suspended": false
               }
             }
           }
@@ -1134,13 +1159,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "is_verified": {
+                    "type": "boolean",
+                    "example": true
                   }
-                }
+                },
+                "required": [
+                  "is_verified"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "is_verified": true
               }
             }
           }
@@ -1335,13 +1364,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "status": {
+                    "type": "string",
+                    "example": "OPEN"
                   }
-                }
+                },
+                "required": [
+                  "status"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "status": "OPEN"
               }
             }
           }
@@ -1533,13 +1566,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "name": {
+                    "type": "string",
+                    "example": "Contoh Nama"
                   }
-                }
+                },
+                "required": [
+                  "name"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "name": "Contoh Nama"
               }
             }
           }
@@ -1638,13 +1675,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "name": {
+                    "type": "string",
+                    "example": "Contoh Nama"
                   }
-                }
+                },
+                "required": [
+                  "name"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "name": "Contoh Nama"
               }
             }
           }
@@ -1734,13 +1775,53 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "worker_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Contoh Nama"
+                  },
+                  "issuer": {
+                    "type": "string",
+                    "example": "Contoh issuer"
+                  },
+                  "link": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "issue_date": {
+                    "type": "string",
+                    "example": "2022-06-15"
+                  },
+                  "expiry_date": {
+                    "type": "string",
+                    "example": "2023-12-31"
+                  },
+                  "credential_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "is_active": {
+                    "type": "boolean",
+                    "example": true
                   }
-                }
+                },
+                "required": [
+                  "worker_id",
+                  "link"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "worker_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "name": "Contoh Nama",
+                "issuer": "Contoh issuer",
+                "link": "https://example.com",
+                "issue_date": "2022-06-15",
+                "expiry_date": "2023-12-31",
+                "credential_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "is_active": true
               }
             }
           }
@@ -1850,13 +1931,57 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "worker_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Contoh Nama"
+                  },
+                  "issuer": {
+                    "type": "string",
+                    "example": "Contoh issuer"
+                  },
+                  "link": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "issue_date": {
+                    "type": "string",
+                    "example": "2022-06-15"
+                  },
+                  "expiry_date": {
+                    "type": "string",
+                    "example": "2023-12-31"
+                  },
+                  "credential_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "is_active": {
+                    "type": "boolean",
+                    "example": true
                   }
-                }
+                },
+                "required": [
+                  "worker_id",
+                  "name",
+                  "issuer",
+                  "link",
+                  "issue_date",
+                  "is_active"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "worker_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "name": "Contoh Nama",
+                "issuer": "Contoh issuer",
+                "link": "https://example.com",
+                "issue_date": "2022-06-15",
+                "expiry_date": "2023-12-31",
+                "credential_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "is_active": true
               }
             }
           }
@@ -2055,13 +2180,49 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "worker_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "institution_name": {
+                    "type": "string",
+                    "example": "Universitas Indonesia"
+                  },
+                  "degree": {
+                    "type": "string",
+                    "example": "Contoh degree"
+                  },
+                  "major": {
+                    "type": "string",
+                    "example": "Contoh major"
+                  },
+                  "start_date": {
+                    "type": "string",
+                    "example": "2022-01-01"
+                  },
+                  "end_date": {
+                    "type": "string",
+                    "example": "2023-12-31"
+                  },
+                  "is_current": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Contoh deskripsi yang menjelaskan detail terkait."
                   }
                 }
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "worker_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "institution_name": "Universitas Indonesia",
+                "degree": "Contoh degree",
+                "major": "Contoh major",
+                "start_date": "2022-01-01",
+                "end_date": "2023-12-31",
+                "is_current": true,
+                "description": "Contoh deskripsi yang menjelaskan detail terkait."
               }
             }
           }
@@ -2130,13 +2291,55 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "worker_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "institution_name": {
+                    "type": "string",
+                    "example": "Universitas Indonesia"
+                  },
+                  "degree": {
+                    "type": "string",
+                    "example": "Contoh degree"
+                  },
+                  "major": {
+                    "type": "string",
+                    "example": "Contoh major"
+                  },
+                  "start_date": {
+                    "type": "string",
+                    "example": "2022-01-01"
+                  },
+                  "end_date": {
+                    "type": "string",
+                    "example": "2023-12-31"
+                  },
+                  "is_current": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Contoh deskripsi yang menjelaskan detail terkait."
                   }
-                }
+                },
+                "required": [
+                  "worker_id",
+                  "institution_name",
+                  "degree",
+                  "start_date"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "worker_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "institution_name": "Universitas Indonesia",
+                "degree": "Contoh degree",
+                "major": "Contoh major",
+                "start_date": "2022-01-01",
+                "end_date": "2023-12-31",
+                "is_current": true,
+                "description": "Contoh deskripsi yang menjelaskan detail terkait."
               }
             }
           }
@@ -2230,13 +2433,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "name": {
+                    "type": "string",
+                    "example": "Contoh Nama"
                   }
-                }
+                },
+                "required": [
+                  "name"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "name": "Contoh Nama"
               }
             }
           }
@@ -2291,13 +2498,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "name": {
+                    "type": "string",
+                    "example": "Contoh Nama"
                   }
-                }
+                },
+                "required": [
+                  "name"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "name": "Contoh Nama"
               }
             }
           }
@@ -2384,13 +2595,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "name": {
+                    "type": "string",
+                    "example": "Contoh Nama"
                   }
-                }
+                },
+                "required": [
+                  "name"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "name": "Contoh Nama"
               }
             }
           }
@@ -2445,13 +2660,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "name": {
+                    "type": "string",
+                    "example": "Contoh Nama"
                   }
-                }
+                },
+                "required": [
+                  "name"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "name": "Contoh Nama"
               }
             }
           }
@@ -2538,13 +2757,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "gender_name": {
+                    "type": "string",
+                    "example": "Male"
                   }
-                }
+                },
+                "required": [
+                  "gender_name"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "gender_name": "Male"
               }
             }
           }
@@ -2599,13 +2822,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "gender_name": {
+                    "type": "string",
+                    "example": "Male"
                   }
-                }
+                },
+                "required": [
+                  "gender_name"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "gender_name": "Male"
               }
             }
           }
@@ -2692,13 +2919,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "name": {
+                    "type": "string",
+                    "example": "Contoh Nama"
                   }
-                }
+                },
+                "required": [
+                  "name"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "name": "Contoh Nama"
               }
             }
           }
@@ -2753,13 +2984,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "name": {
+                    "type": "string",
+                    "example": "Contoh Nama"
                   }
-                }
+                },
+                "required": [
+                  "name"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "name": "Contoh Nama"
               }
             }
           }
@@ -3072,13 +3307,14 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "status_id": {
+                    "type": "number",
+                    "example": 2
                   }
                 }
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "status_id": 2
               }
             }
           }
@@ -3160,13 +3396,348 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "recruiter_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "title": {
+                    "type": "string",
+                    "example": "Backend Developer"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Contoh deskripsi yang menjelaskan detail terkait."
+                  },
+                  "employment_type_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "experience_level_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "salary_type_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "job_post_status_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "location": {
+                    "type": "string",
+                    "example": "Jakarta, Indonesia"
+                  },
+                  "city": {
+                    "type": "string",
+                    "example": "Jakarta"
+                  },
+                  "province": {
+                    "type": "string",
+                    "example": "DKI Jakarta"
+                  },
+                  "salary_min": {
+                    "type": "number",
+                    "example": 5000000
+                  },
+                  "salary_max": {
+                    "type": "number",
+                    "example": 10000000
+                  },
+                  "currency_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "status_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "is_vip": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "vip_start_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2024-01-15T00:00:00.000Z"
+                  },
+                  "vip_end_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2024-01-15T00:00:00.000Z"
+                  },
+                  "is_remote": {
+                    "type": "boolean",
+                    "example": false
+                  },
+                  "deadline": {
+                    "type": "string",
+                    "example": "2026-12-31"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                        },
+                        "name": {
+                          "type": "string",
+                          "example": "Contoh Nama"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "name"
+                      ]
+                    }
+                  },
+                  "skills": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    }
+                  },
+                  "country": {
+                    "type": "string",
+                    "example": "Indonesia"
+                  },
+                  "category_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "requirements": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "requirement": {
+                          "type": "string",
+                          "example": "Minimal 2 tahun pengalaman di bidang terkait"
+                        },
+                        "order_index": {
+                          "type": "number",
+                          "example": 0
+                        }
+                      },
+                      "required": [
+                        "requirement",
+                        "order_index"
+                      ]
+                    }
+                  },
+                  "benefits": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "benefit": {
+                          "type": "string",
+                          "example": "Asuransi kesehatan & BPJS"
+                        },
+                        "order_index": {
+                          "type": "number",
+                          "example": 0
+                        }
+                      },
+                      "required": [
+                        "benefit",
+                        "order_index"
+                      ]
+                    }
+                  },
+                  "responsibilities": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "responsibility": {
+                          "type": "string",
+                          "example": "Mengelola dan memelihara API backend"
+                        },
+                        "order_index": {
+                          "type": "number",
+                          "example": 0
+                        }
+                      },
+                      "required": [
+                        "responsibility",
+                        "order_index"
+                      ]
+                    }
+                  },
+                  "job_post_questions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "question_text": {
+                          "type": "string",
+                          "example": "Berapa tahun pengalaman Anda di bidang ini?"
+                        },
+                        "question_type_id": {
+                          "type": "number",
+                          "example": 1
+                        },
+                        "options": {
+                          "type": "object",
+                          "properties": {}
+                        },
+                        "is_required": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "order_index": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2024-01-15T00:00:00.000Z"
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2024-01-15T00:00:00.000Z"
+                        }
+                      },
+                      "required": [
+                        "question_text",
+                        "question_type_id"
+                      ]
+                    }
+                  },
+                  "questions": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "question_text": {
+                          "type": "string",
+                          "example": "Berapa tahun pengalaman Anda di bidang ini?"
+                        },
+                        "question_type_id": {
+                          "type": "number",
+                          "example": 1
+                        },
+                        "options": {
+                          "type": "object",
+                          "properties": {}
+                        },
+                        "is_required": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "order_index": {
+                          "type": "number",
+                          "example": 0
+                        },
+                        "created_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2024-01-15T00:00:00.000Z"
+                        },
+                        "updated_at": {
+                          "type": "string",
+                          "format": "date-time",
+                          "example": "2024-01-15T00:00:00.000Z"
+                        }
+                      },
+                      "required": [
+                        "question_text",
+                        "question_type_id"
+                      ]
+                    }
                   }
-                }
+                },
+                "required": [
+                  "recruiter_id",
+                  "title",
+                  "description",
+                  "employment_type_id",
+                  "experience_level_id",
+                  "salary_type_id",
+                  "job_post_status_id",
+                  "salary_min",
+                  "currency_id",
+                  "category_id"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "recruiter_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "title": "Backend Developer",
+                "description": "Contoh deskripsi yang menjelaskan detail terkait.",
+                "employment_type_id": 1,
+                "experience_level_id": 1,
+                "salary_type_id": 1,
+                "job_post_status_id": 1,
+                "location": "Jakarta, Indonesia",
+                "city": "Jakarta",
+                "province": "DKI Jakarta",
+                "salary_min": 5000000,
+                "salary_max": 10000000,
+                "currency_id": 1,
+                "status_id": 1,
+                "is_vip": true,
+                "vip_start_at": "2024-01-15T00:00:00.000Z",
+                "vip_end_at": "2024-01-15T00:00:00.000Z",
+                "is_remote": false,
+                "deadline": "2026-12-31",
+                "tags": [
+                  {
+                    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "name": "Contoh Nama"
+                  }
+                ],
+                "skills": [
+                  "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                ],
+                "country": "Indonesia",
+                "category_id": 1,
+                "requirements": [
+                  {
+                    "requirement": "Minimal 2 tahun pengalaman di bidang terkait",
+                    "order_index": 0
+                  }
+                ],
+                "benefits": [
+                  {
+                    "benefit": "Asuransi kesehatan & BPJS",
+                    "order_index": 0
+                  }
+                ],
+                "responsibilities": [
+                  {
+                    "responsibility": "Mengelola dan memelihara API backend",
+                    "order_index": 0
+                  }
+                ],
+                "job_post_questions": [
+                  {
+                    "question_text": "Berapa tahun pengalaman Anda di bidang ini?",
+                    "question_type_id": 1,
+                    "options": {},
+                    "is_required": true,
+                    "order_index": 0,
+                    "created_at": "2024-01-15T00:00:00.000Z",
+                    "updated_at": "2024-01-15T00:00:00.000Z"
+                  }
+                ],
+                "questions": [
+                  {
+                    "question_text": "Berapa tahun pengalaman Anda di bidang ini?",
+                    "question_type_id": 1,
+                    "options": {},
+                    "is_required": true,
+                    "order_index": 0,
+                    "created_at": "2024-01-15T00:00:00.000Z",
+                    "updated_at": "2024-01-15T00:00:00.000Z"
+                  }
+                ]
               }
             }
           }
@@ -3205,16 +3776,58 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "exampleField": {
-                    "type": "string"
-                  }
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "question_text": {
+                      "type": "string",
+                      "example": "Berapa tahun pengalaman Anda di bidang ini?"
+                    },
+                    "question_type_id": {
+                      "type": "number",
+                      "example": 1
+                    },
+                    "options": {
+                      "type": "object",
+                      "properties": {}
+                    },
+                    "is_required": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "order_index": {
+                      "type": "number",
+                      "example": 0
+                    },
+                    "created_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2024-01-15T00:00:00.000Z"
+                    },
+                    "updated_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2024-01-15T00:00:00.000Z"
+                    }
+                  },
+                  "required": [
+                    "question_text",
+                    "question_type_id"
+                  ]
                 }
               },
-              "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
-              }
+              "example": [
+                {
+                  "question_text": "Berapa tahun pengalaman Anda di bidang ini?",
+                  "question_type_id": 1,
+                  "options": {},
+                  "is_required": true,
+                  "order_index": 0,
+                  "created_at": "2024-01-15T00:00:00.000Z",
+                  "updated_at": "2024-01-15T00:00:00.000Z"
+                }
+              ]
             }
           }
         }
@@ -3254,13 +3867,49 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "job_post_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "question_text": {
+                    "type": "string",
+                    "example": "Berapa tahun pengalaman Anda di bidang ini?"
+                  },
+                  "question_type_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "options": {
+                    "type": "object",
+                    "properties": {}
+                  },
+                  "is_required": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "order_index": {
+                    "type": "number",
+                    "example": 0
+                  },
+                  "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2024-01-15T00:00:00.000Z"
                   }
-                }
+                },
+                "required": [
+                  "question_text",
+                  "question_type_id"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "job_post_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "question_text": "Berapa tahun pengalaman Anda di bidang ini?",
+                "question_type_id": 1,
+                "options": {},
+                "is_required": true,
+                "order_index": 0,
+                "updated_at": "2024-01-15T00:00:00.000Z"
               }
             }
           }
@@ -3336,16 +3985,43 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "object",
-                "properties": {
-                  "exampleField": {
-                    "type": "string"
-                  }
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "job_application_id": {
+                      "type": "string",
+                      "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    },
+                    "question_id": {
+                      "type": "string",
+                      "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    },
+                    "answer": {
+                      "type": "object",
+                      "properties": {}
+                    },
+                    "submitted_at": {
+                      "type": "string",
+                      "format": "date-time",
+                      "example": "2024-01-15T00:00:00.000Z"
+                    }
+                  },
+                  "required": [
+                    "job_application_id",
+                    "question_id",
+                    "answer"
+                  ]
                 }
               },
-              "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
-              }
+              "example": [
+                {
+                  "job_application_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "question_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "answer": {},
+                  "submitted_at": "2024-01-15T00:00:00.000Z"
+                }
+              ]
             }
           }
         }
@@ -3385,13 +4061,64 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "resume_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "cover_letter": {
+                    "type": "string",
+                    "example": "Saya sangat tertarik dengan posisi ini dan yakin dapat berkontribusi secara maksimal."
+                  },
+                  "application_status_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "answers": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "question_id": {
+                          "type": "string",
+                          "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                        },
+                        "answer": {
+                          "type": "string",
+                          "example": "3 tahun"
+                        }
+                      },
+                      "required": [
+                        "question_id"
+                      ]
+                    }
+                  },
+                  "applied_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2024-01-15T00:00:00.000Z"
+                  },
+                  "updated_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2024-01-15T00:00:00.000Z"
                   }
-                }
+                },
+                "required": [
+                  "application_status_id"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "resume_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "cover_letter": "Saya sangat tertarik dengan posisi ini dan yakin dapat berkontribusi secara maksimal.",
+                "application_status_id": 1,
+                "answers": [
+                  {
+                    "question_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                    "answer": "3 tahun"
+                  }
+                ],
+                "applied_at": "2024-01-15T00:00:00.000Z",
+                "updated_at": "2024-01-15T00:00:00.000Z"
               }
             }
           }
@@ -3752,15 +4479,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {
-                  "exampleField": {
-                    "type": "string"
-                  }
-                }
+                "properties": {}
               },
-              "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
-              }
+              "example": {}
             }
           }
         }
@@ -3799,15 +4520,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {
-                  "exampleField": {
-                    "type": "string"
-                  }
-                }
+                "properties": {}
               },
-              "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
-              }
+              "example": {}
             }
           }
         }
@@ -3846,15 +4561,9 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {
-                  "exampleField": {
-                    "type": "string"
-                  }
-                }
+                "properties": {}
               },
-              "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
-              }
+              "example": {}
             }
           }
         }
@@ -4019,13 +4728,29 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "recruiter_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "benefit": {
+                    "type": "string",
+                    "example": "Asuransi kesehatan & BPJS"
+                  },
+                  "order_index": {
+                    "type": "number",
+                    "example": 0
                   }
-                }
+                },
+                "required": [
+                  "recruiter_id",
+                  "benefit",
+                  "order_index"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "recruiter_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "benefit": "Asuransi kesehatan & BPJS",
+                "order_index": 0
               }
             }
           }
@@ -4064,13 +4789,33 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "recruiter_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "benefit": {
+                    "type": "string",
+                    "example": "Asuransi kesehatan & BPJS"
+                  },
+                  "order_index": {
+                    "type": "number",
+                    "example": 0
                   }
-                }
+                },
+                "required": [
+                  "id",
+                  "recruiter_id"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "recruiter_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "benefit": "Asuransi kesehatan & BPJS",
+                "order_index": 0
               }
             }
           }
@@ -4189,13 +4934,29 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "recruiter_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "requirement": {
+                    "type": "string",
+                    "example": "Minimal 2 tahun pengalaman di bidang terkait"
+                  },
+                  "order_index": {
+                    "type": "number",
+                    "example": 0
                   }
-                }
+                },
+                "required": [
+                  "recruiter_id",
+                  "requirement",
+                  "order_index"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "recruiter_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "requirement": "Minimal 2 tahun pengalaman di bidang terkait",
+                "order_index": 0
               }
             }
           }
@@ -4234,13 +4995,33 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "recruiter_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "requirement": {
+                    "type": "string",
+                    "example": "Minimal 2 tahun pengalaman di bidang terkait"
+                  },
+                  "order_index": {
+                    "type": "number",
+                    "example": 0
                   }
-                }
+                },
+                "required": [
+                  "id",
+                  "recruiter_id"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "recruiter_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "requirement": "Minimal 2 tahun pengalaman di bidang terkait",
+                "order_index": 0
               }
             }
           }
@@ -4359,13 +5140,29 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "recruiter_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "responsibility": {
+                    "type": "string",
+                    "example": "Mengelola dan memelihara API backend"
+                  },
+                  "order_index": {
+                    "type": "number",
+                    "example": 0
                   }
-                }
+                },
+                "required": [
+                  "recruiter_id",
+                  "responsibility",
+                  "order_index"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "recruiter_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "responsibility": "Mengelola dan memelihara API backend",
+                "order_index": 0
               }
             }
           }
@@ -4404,13 +5201,33 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "recruiter_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "responsibility": {
+                    "type": "string",
+                    "example": "Mengelola dan memelihara API backend"
+                  },
+                  "order_index": {
+                    "type": "number",
+                    "example": 0
                   }
-                }
+                },
+                "required": [
+                  "id",
+                  "recruiter_id"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "recruiter_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "responsibility": "Mengelola dan memelihara API backend",
+                "order_index": 0
               }
             }
           }
@@ -4850,13 +5667,34 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "worker_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "language_name": {
+                    "type": "string",
+                    "example": "English"
+                  },
+                  "proficiency_level_id": {
+                    "type": "number",
+                    "example": 3
+                  },
+                  "is_primary": {
+                    "type": "boolean",
+                    "example": true
                   }
-                }
+                },
+                "required": [
+                  "worker_id",
+                  "language_name",
+                  "proficiency_level_id"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "worker_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "language_name": "English",
+                "proficiency_level_id": 3,
+                "is_primary": true
               }
             }
           }
@@ -4897,13 +5735,34 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "worker_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "language_name": {
+                    "type": "string",
+                    "example": "English"
+                  },
+                  "proficiency_level_id": {
+                    "type": "number",
+                    "example": 3
+                  },
+                  "is_primary": {
+                    "type": "boolean",
+                    "example": true
                   }
-                }
+                },
+                "required": [
+                  "worker_id",
+                  "language_name",
+                  "proficiency_level_id"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "worker_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "language_name": "English",
+                "proficiency_level_id": 3,
+                "is_primary": true
               }
             }
           }
@@ -5244,13 +6103,29 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "country_name": {
+                    "type": "string",
+                    "example": "Indonesia"
+                  },
+                  "iso_alpha2": {
+                    "type": "string",
+                    "example": "ID"
+                  },
+                  "iso_alpha3": {
+                    "type": "string",
+                    "example": "IDN"
                   }
-                }
+                },
+                "required": [
+                  "country_name",
+                  "iso_alpha2",
+                  "iso_alpha3"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "country_name": "Indonesia",
+                "iso_alpha2": "ID",
+                "iso_alpha3": "IDN"
               }
             }
           }
@@ -5305,13 +6180,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "country_name": {
+                    "type": "string",
+                    "example": "Indonesia"
                   }
-                }
+                },
+                "required": [
+                  "country_name"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "country_name": "Indonesia"
               }
             }
           }
@@ -5720,13 +6599,39 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "worker_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "title": {
+                    "type": "string",
+                    "example": "Backend Developer"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Contoh deskripsi yang menjelaskan detail terkait."
+                  },
+                  "link": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "is_public": {
+                    "type": "boolean",
+                    "example": true
                   }
-                }
+                },
+                "required": [
+                  "worker_id",
+                  "title",
+                  "link"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "worker_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "title": "Backend Developer",
+                "description": "Contoh deskripsi yang menjelaskan detail terkait.",
+                "link": "https://example.com",
+                "is_public": true
               }
             }
           }
@@ -5767,13 +6672,39 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "worker_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                  },
+                  "title": {
+                    "type": "string",
+                    "example": "Backend Developer"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Contoh deskripsi yang menjelaskan detail terkait."
+                  },
+                  "link": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "is_public": {
+                    "type": "boolean",
+                    "example": true
                   }
-                }
+                },
+                "required": [
+                  "worker_id",
+                  "title",
+                  "link"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "worker_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                "title": "Backend Developer",
+                "description": "Contoh deskripsi yang menjelaskan detail terkait.",
+                "link": "https://example.com",
+                "is_public": true
               }
             }
           }
@@ -5990,13 +6921,64 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "company_name": {
+                    "type": "string",
+                    "example": "PT Contoh Sejahtera"
+                  },
+                  "avatar_url": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "company_website": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "contact_name": {
+                    "type": "string",
+                    "example": "Budi Santoso"
+                  },
+                  "contact_phone": {
+                    "type": "string",
+                    "example": "+6281234567890"
+                  },
+                  "address": {
+                    "type": "string",
+                    "example": "Jl. Sudirman No. 1, Jakarta"
+                  },
+                  "industry_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Contoh deskripsi yang menjelaskan detail terkait."
+                  },
+                  "employee_count": {
+                    "type": "string",
+                    "example": "50-100"
+                  },
+                  "instagram_url": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "tiktok_url": {
+                    "type": "string",
+                    "example": "https://example.com"
                   }
                 }
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "company_name": "PT Contoh Sejahtera",
+                "avatar_url": "https://example.com",
+                "company_website": "https://example.com",
+                "contact_name": "Budi Santoso",
+                "contact_phone": "+6281234567890",
+                "address": "Jl. Sudirman No. 1, Jakarta",
+                "industry_id": 1,
+                "description": "Contoh deskripsi yang menjelaskan detail terkait.",
+                "employee_count": "50-100",
+                "instagram_url": "https://example.com",
+                "tiktok_url": "https://example.com"
               }
             }
           }
@@ -6029,13 +7011,64 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "company_name": {
+                    "type": "string",
+                    "example": "PT Contoh Sejahtera"
+                  },
+                  "avatar_url": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "company_website": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "contact_name": {
+                    "type": "string",
+                    "example": "Budi Santoso"
+                  },
+                  "contact_phone": {
+                    "type": "string",
+                    "example": "+6281234567890"
+                  },
+                  "address": {
+                    "type": "string",
+                    "example": "Jl. Sudirman No. 1, Jakarta"
+                  },
+                  "industry_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Contoh deskripsi yang menjelaskan detail terkait."
+                  },
+                  "employee_count": {
+                    "type": "string",
+                    "example": "50-100"
+                  },
+                  "instagram_url": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "tiktok_url": {
+                    "type": "string",
+                    "example": "https://example.com"
                   }
                 }
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "company_name": "PT Contoh Sejahtera",
+                "avatar_url": "https://example.com",
+                "company_website": "https://example.com",
+                "contact_name": "Budi Santoso",
+                "contact_phone": "+6281234567890",
+                "address": "Jl. Sudirman No. 1, Jakarta",
+                "industry_id": 1,
+                "description": "Contoh deskripsi yang menjelaskan detail terkait.",
+                "employee_count": "50-100",
+                "instagram_url": "https://example.com",
+                "tiktok_url": "https://example.com"
               }
             }
           }
@@ -6162,13 +7195,29 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "resume_url": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "title": {
+                    "type": "string",
+                    "example": "Backend Developer"
+                  },
+                  "is_default": {
+                    "type": "boolean",
+                    "example": true
                   }
-                }
+                },
+                "required": [
+                  "resume_url",
+                  "title",
+                  "is_default"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "resume_url": "https://example.com",
+                "title": "Backend Developer",
+                "is_default": true
               }
             }
           }
@@ -6237,13 +7286,24 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "resume_url": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "title": {
+                    "type": "string",
+                    "example": "Backend Developer"
+                  },
+                  "is_default": {
+                    "type": "boolean",
+                    "example": true
                   }
                 }
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "resume_url": "https://example.com",
+                "title": "Backend Developer",
+                "is_default": true
               }
             }
           }
@@ -6517,13 +7577,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "worker_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
                   }
-                }
+                },
+                "required": [
+                  "worker_id"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "worker_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
               }
             }
           }
@@ -6605,13 +7669,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "skill_name": {
+                    "type": "string",
+                    "example": "JavaScript"
                   }
-                }
+                },
+                "required": [
+                  "skill_name"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "skill_name": "JavaScript"
               }
             }
           }
@@ -6680,13 +7748,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "skill_name": {
+                    "type": "string",
+                    "example": "JavaScript"
                   }
-                }
+                },
+                "required": [
+                  "skill_name"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "skill_name": "JavaScript"
               }
             }
           }
@@ -6723,16 +7795,8 @@
     },
     "/api/v1/users/register-worker": {
       "post": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "description": "Registrasi akun baru sebagai pencari kerja (worker). Dilindungi Basic Auth (bukan Bearer token) — klik Authorize dan masukkan username/password basic auth.",
+        "parameters": [],
         "responses": {
           "default": {
             "description": ""
@@ -6741,19 +7805,46 @@
         "tags": [
           "Users"
         ],
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "username": {
+                    "type": "string",
+                    "example": "johndoe"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "P@ssw0rd123"
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                  },
+                  "name": {
+                    "type": "string",
+                    "example": "Budi Santoso"
                   }
-                }
+                },
+                "required": [
+                  "username",
+                  "password",
+                  "email",
+                  "name"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "username": "johndoe",
+                "password": "P@ssw0rd123",
+                "email": "user@example.com",
+                "name": "Budi Santoso"
               }
             }
           }
@@ -6762,16 +7853,8 @@
     },
     "/api/v1/users/register-recruiter": {
       "post": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "description": "Registrasi akun baru sebagai recruiter/perusahaan. Dilindungi Basic Auth (bukan Bearer token) — klik Authorize dan masukkan username/password basic auth.",
+        "parameters": [],
         "responses": {
           "default": {
             "description": ""
@@ -6780,19 +7863,58 @@
         "tags": [
           "Users"
         ],
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "username": {
+                    "type": "string",
+                    "example": "johndoe"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "P@ssw0rd123"
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                  },
+                  "company_name": {
+                    "type": "string",
+                    "example": "PT Contoh Sejahtera"
+                  },
+                  "contact_name": {
+                    "type": "string",
+                    "example": "Budi Santoso"
+                  },
+                  "contact_phone": {
+                    "type": "string",
+                    "example": "+6281234567890"
                   }
-                }
+                },
+                "required": [
+                  "username",
+                  "password",
+                  "email",
+                  "company_name",
+                  "contact_name",
+                  "contact_phone"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "username": "johndoe",
+                "password": "P@ssw0rd123",
+                "email": "user@example.com",
+                "company_name": "PT Contoh Sejahtera",
+                "contact_name": "Budi Santoso",
+                "contact_phone": "+6281234567890"
               }
             }
           }
@@ -6801,19 +7923,12 @@
     },
     "/api/v1/users/update-user/{id}": {
       "put": {
-        "description": "",
+        "description": "Update data user. Dilindungi Basic Auth (bukan Bearer token) — klik Authorize dan masukkan username/password basic auth.",
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "authorization",
-            "in": "header",
             "schema": {
               "type": "string"
             }
@@ -6827,19 +7942,45 @@
         "tags": [
           "Users"
         ],
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "username": {
+                    "type": "string",
+                    "example": "johndoe"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "P@ssw0rd123"
+                  },
+                  "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                  },
+                  "login_provider": {
+                    "type": "string",
+                    "example": "Contoh login provider"
+                  },
+                  "provider_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
                   }
                 }
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "username": "johndoe",
+                "password": "P@ssw0rd123",
+                "email": "user@example.com",
+                "login_provider": "Contoh login provider",
+                "provider_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
               }
             }
           }
@@ -6856,13 +7997,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "user-agent",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -6873,19 +8007,34 @@
         "tags": [
           "Users"
         ],
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "email": {
+                    "type": "string",
+                    "example": "user@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "P@ssw0rd123"
                   }
-                }
+                },
+                "required": [
+                  "email",
+                  "password"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "email": "user@example.com",
+                "password": "P@ssw0rd123"
               }
             }
           }
@@ -7203,16 +8352,8 @@
     },
     "/api/v1/users/refresh-token": {
       "put": {
-        "description": "",
-        "parameters": [
-          {
-            "name": "authorization",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
+        "description": "Refresh access token. Dilindungi Basic Auth (bukan Bearer token) — klik Authorize dan masukkan username/password basic auth.",
+        "parameters": [],
         "responses": {
           "default": {
             "description": ""
@@ -7221,19 +8362,28 @@
         "tags": [
           "Users"
         ],
+        "security": [
+          {
+            "basicAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "token": {
+                    "type": "string",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token"
                   }
-                }
+                },
+                "required": [
+                  "token"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.example.token"
               }
             }
           }
@@ -7387,13 +8537,23 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "current_password": {
+                    "type": "string",
+                    "example": "P@ssw0rd123"
+                  },
+                  "new_password": {
+                    "type": "string",
+                    "example": "P@ssw0rd123"
                   }
-                }
+                },
+                "required": [
+                  "current_password",
+                  "new_password"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "current_password": "P@ssw0rd123",
+                "new_password": "P@ssw0rd123"
               }
             }
           }
@@ -7426,13 +8586,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "user_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
                   }
-                }
+                },
+                "required": [
+                  "user_id"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "user_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
               }
             }
           }
@@ -7655,13 +8819,82 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "name": {
+                    "type": "string",
+                    "example": "Contoh Nama"
+                  },
+                  "avatar_url": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "telephone": {
+                    "type": "string",
+                    "example": "+6281234567890"
+                  },
+                  "date_of_birth": {
+                    "type": "string",
+                    "example": "1998-05-20"
+                  },
+                  "gender_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "nationality_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "religion_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "marriage_status_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "address": {
+                    "type": "string",
+                    "example": "Jl. Sudirman No. 1, Jakarta"
+                  },
+                  "profile_summary": {
+                    "type": "string",
+                    "example": "Backend developer dengan 3 tahun pengalaman di Node.js dan PostgreSQL."
+                  },
+                  "current_salary": {
+                    "type": "number",
+                    "example": 7000000
+                  },
+                  "current_salary_currency_id": {
+                    "type": "number",
+                    "example": 7000000
+                  },
+                  "expected_salary": {
+                    "type": "number",
+                    "example": 7000000
+                  },
+                  "expected_salary_currency_id": {
+                    "type": "number",
+                    "example": 7000000
                   }
-                }
+                },
+                "required": [
+                  "profile_summary"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "name": "Contoh Nama",
+                "avatar_url": "https://example.com",
+                "telephone": "+6281234567890",
+                "date_of_birth": "1998-05-20",
+                "gender_id": 1,
+                "nationality_id": 1,
+                "religion_id": 1,
+                "marriage_status_id": 1,
+                "address": "Jl. Sudirman No. 1, Jakarta",
+                "profile_summary": "Backend developer dengan 3 tahun pengalaman di Node.js dan PostgreSQL.",
+                "current_salary": 7000000,
+                "current_salary_currency_id": 7000000,
+                "expected_salary": 7000000,
+                "expected_salary_currency_id": 7000000
               }
             }
           }
@@ -7710,13 +8943,82 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "name": {
+                    "type": "string",
+                    "example": "Contoh Nama"
+                  },
+                  "avatar_url": {
+                    "type": "string",
+                    "example": "https://example.com"
+                  },
+                  "telephone": {
+                    "type": "string",
+                    "example": "+6281234567890"
+                  },
+                  "date_of_birth": {
+                    "type": "string",
+                    "example": "1998-05-20"
+                  },
+                  "gender_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "nationality_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "religion_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "marriage_status_id": {
+                    "type": "number",
+                    "example": 1
+                  },
+                  "address": {
+                    "type": "string",
+                    "example": "Jl. Sudirman No. 1, Jakarta"
+                  },
+                  "profile_summary": {
+                    "type": "string",
+                    "example": "Backend developer dengan 3 tahun pengalaman di Node.js dan PostgreSQL."
+                  },
+                  "current_salary": {
+                    "type": "number",
+                    "example": 7000000
+                  },
+                  "current_salary_currency_id": {
+                    "type": "number",
+                    "example": 7000000
+                  },
+                  "expected_salary": {
+                    "type": "number",
+                    "example": 7000000
+                  },
+                  "expected_salary_currency_id": {
+                    "type": "number",
+                    "example": 7000000
                   }
-                }
+                },
+                "required": [
+                  "profile_summary"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "name": "Contoh Nama",
+                "avatar_url": "https://example.com",
+                "telephone": "+6281234567890",
+                "date_of_birth": "1998-05-20",
+                "gender_id": 1,
+                "nationality_id": 1,
+                "religion_id": 1,
+                "marriage_status_id": 1,
+                "address": "Jl. Sudirman No. 1, Jakarta",
+                "profile_summary": "Backend developer dengan 3 tahun pengalaman di Node.js dan PostgreSQL.",
+                "current_salary": 7000000,
+                "current_salary_currency_id": 7000000,
+                "expected_salary": 7000000,
+                "expected_salary_currency_id": 7000000
               }
             }
           }
@@ -7798,13 +9100,17 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "skill_id": {
+                    "type": "string",
+                    "example": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
                   }
-                }
+                },
+                "required": [
+                  "skill_id"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "skill_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
               }
             }
           }
@@ -7916,13 +9222,39 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "company_name": {
+                    "type": "string",
+                    "example": "PT Contoh Sejahtera"
+                  },
+                  "job_title": {
+                    "type": "string",
+                    "example": "Contoh job title"
+                  },
+                  "start_date": {
+                    "type": "string",
+                    "example": "2022-01-01"
+                  },
+                  "end_date": {
+                    "type": "string",
+                    "example": "2023-12-31"
+                  },
+                  "is_current": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Contoh deskripsi yang menjelaskan detail terkait."
                   }
                 }
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "company_name": "PT Contoh Sejahtera",
+                "job_title": "Contoh job title",
+                "start_date": "2022-01-01",
+                "end_date": "2023-12-31",
+                "is_current": true,
+                "description": "Contoh deskripsi yang menjelaskan detail terkait."
               }
             }
           }
@@ -7991,13 +9323,44 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "exampleField": {
-                    "type": "string"
+                  "company_name": {
+                    "type": "string",
+                    "example": "PT Contoh Sejahtera"
+                  },
+                  "job_title": {
+                    "type": "string",
+                    "example": "Contoh job title"
+                  },
+                  "start_date": {
+                    "type": "string",
+                    "example": "2022-01-01"
+                  },
+                  "end_date": {
+                    "type": "string",
+                    "example": "2023-12-31"
+                  },
+                  "is_current": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Contoh deskripsi yang menjelaskan detail terkait."
                   }
-                }
+                },
+                "required": [
+                  "company_name",
+                  "job_title",
+                  "start_date"
+                ]
               },
               "example": {
-                "note": "Auto-generated example. Replace fields according to actual requirements."
+                "company_name": "PT Contoh Sejahtera",
+                "job_title": "Contoh job title",
+                "start_date": "2022-01-01",
+                "end_date": "2023-12-31",
+                "is_current": true,
+                "description": "Contoh deskripsi yang menjelaskan detail terkait."
               }
             }
           }
@@ -8030,6 +9393,210 @@
         "tags": [
           "Workers"
         ]
+      }
+    },
+    "/api/v1/workers/cv/parse": {
+      "post": {
+        "summary": "Parse CV / Resume",
+        "description": "Upload a PDF or DOCX CV file (max 5 MB). Returns structured data extracted from the CV — personal info, work experiences, educations, and skills — that can be used to pre-fill the worker profile form.",
+        "tags": [
+          "CV Parsing"
+        ],
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Bearer token"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "cv"
+                ],
+                "properties": {
+                  "cv": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "CV file in PDF or DOCX format (max 5 MB)"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "CV parsed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "personal_info": {
+                          "type": "object",
+                          "properties": {
+                            "full_name": {
+                              "type": "string",
+                              "example": "Budi Santoso"
+                            },
+                            "email": {
+                              "type": "string",
+                              "example": "budi@example.com"
+                            },
+                            "phone": {
+                              "type": "string",
+                              "example": "+6281234567890"
+                            },
+                            "location": {
+                              "type": "string",
+                              "nullable": true,
+                              "example": null
+                            }
+                          }
+                        },
+                        "work_experiences": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "company_name": {
+                                "type": "string",
+                                "example": "PT Maju Bersama"
+                              },
+                              "job_title": {
+                                "type": "string",
+                                "example": "Backend Developer"
+                              },
+                              "start_date": {
+                                "type": "string",
+                                "example": "Jan 2022"
+                              },
+                              "end_date": {
+                                "type": "string",
+                                "nullable": true,
+                                "example": null
+                              },
+                              "is_current": {
+                                "type": "boolean",
+                                "example": true
+                              },
+                              "description": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            }
+                          }
+                        },
+                        "educations": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "institution_name": {
+                                "type": "string",
+                                "example": "Universitas Indonesia"
+                              },
+                              "degree": {
+                                "type": "string",
+                                "example": "S1"
+                              },
+                              "major": {
+                                "type": "string",
+                                "nullable": true,
+                                "example": "Teknik Informatika"
+                              },
+                              "start_date": {
+                                "type": "string",
+                                "example": "2018"
+                              },
+                              "end_date": {
+                                "type": "string",
+                                "nullable": true,
+                                "example": "2022"
+                              },
+                              "is_current": {
+                                "type": "boolean",
+                                "example": false
+                              },
+                              "description": {
+                                "type": "string",
+                                "nullable": true
+                              }
+                            }
+                          }
+                        },
+                        "skills": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          },
+                          "example": [
+                            "JavaScript",
+                            "Node.js",
+                            "PostgreSQL"
+                          ]
+                        },
+                        "_meta": {
+                          "type": "object",
+                          "properties": {
+                            "sections_detected": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "example": [
+                                "experience",
+                                "education",
+                                "skills"
+                              ]
+                            },
+                            "raw_char_count": {
+                              "type": "integer",
+                              "example": 4200
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Success"
+                    },
+                    "code": {
+                      "type": "integer",
+                      "example": 200
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request — missing file or unsupported format"
+          },
+          "401": {
+            "description": "Unauthorized — invalid or missing token"
+          },
+          "500": {
+            "description": "Internal server error during parsing"
+          }
+        }
       }
     }
   },

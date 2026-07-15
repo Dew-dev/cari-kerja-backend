@@ -79,9 +79,22 @@ const uploadPortfolio = createUploader(
   10 // max 10MB
 );
 
+// CV parsing → PDF or DOCX, max 5 MB
+const uploadCV = createUploader(
+  "cv-temp",
+  "cv",
+  [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ],
+  5
+);
+
 module.exports = {
   uploadAvatarRecruiter,
   uploadAvatarWorker,
   uploadResume,
   uploadPortfolio,
+  uploadCV,
 };
