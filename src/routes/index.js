@@ -25,6 +25,8 @@ const contact_us = require('./contact_us');
 const locations = require('./locations');
 const admin = require('./admin');
 const payments = require('./payments');
+const cvParsing = require('./cv_parsing');
+const chat = require('./chat');
 
 
 module.exports = (server) => {
@@ -55,5 +57,7 @@ module.exports = (server) => {
   locations(server);
   admin(server);
   payments(server);
+  cvParsing(server);
+  chat(server);
 };
 
