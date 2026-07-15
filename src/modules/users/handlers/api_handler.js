@@ -91,13 +91,16 @@ const loginWithTelegram = async (req, res) => {
     }
   }
 
+  const query = req.query || {};
+  const body = req.body || {};
+  const headers = req.headers || {};
   const payload = {
-    code: req.query.code || req.body.code,
-    state: req.query.state || req.body.state,
-    role_id: stateData.role_id || req.body.role_id || 1,
-    origin: stateData.origin || req.body.origin,
+    code: query.code || body.code,
+    state: query.state || body.state,
+    role_id: stateData.role_id || body.role_id || 1,
+    origin: stateData.origin || body.origin,
     ip_address: req.ip || req.connection?.remoteAddress,
-    user_agent: req.headers["user-agent"],
+    user_agent: headers["user-agent"],
   };
 
   const validatePayload = validator.isValidPayload(
