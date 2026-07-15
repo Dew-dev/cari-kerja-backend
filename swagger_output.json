@@ -8220,21 +8220,14 @@
         "description": "",
         "parameters": [
           {
-            "name": "user-agent",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "state",
+            "name": "code",
             "in": "query",
             "schema": {
               "type": "string"
             }
           },
           {
-            "name": "code",
+            "name": "state",
             "in": "query",
             "schema": {
               "type": "string"
@@ -8285,21 +8278,14 @@
         "description": "",
         "parameters": [
           {
-            "name": "user-agent",
-            "in": "header",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "state",
+            "name": "code",
             "in": "query",
             "schema": {
               "type": "string"
             }
           },
           {
-            "name": "code",
+            "name": "state",
             "in": "query",
             "schema": {
               "type": "string"
