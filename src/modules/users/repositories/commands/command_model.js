@@ -80,6 +80,15 @@ const loginWithGoogleParamType = joi.object({
   user_agent: joi.string().optional().allow("", null),
 });
 
+const loginWithTelegramParamType = joi.object({
+  code: joi.string().required(),
+  state: joi.string().optional().allow("", null),
+  role_id: joi.number().optional().default(1),
+  origin: joi.string().optional().allow("", null),
+  ip_address: joi.string().optional().allow("", null),
+  user_agent: joi.string().optional().allow("", null),
+});
+
 const registerParamType = joi.object({
   username: joi
     .string()
@@ -214,6 +223,7 @@ const verifyEmailParamType = joi.object({
 module.exports = {
   loginParamType,
   loginWithGoogleParamType,
+  loginWithTelegramParamType,
   registerParamType,
   updateUserParamType,
   deleteParamType,

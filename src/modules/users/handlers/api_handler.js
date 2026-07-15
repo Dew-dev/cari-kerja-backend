@@ -81,6 +81,56 @@ const loginWithGoogle = async (req, res) => {
   return res.redirect(`${redirectOrigin}/auth/callback?token=${token}&refreshToken=${refreshToken}`);
 };
 
+const loginWithTelegram = async (req, res) => {
+  let stateData = {};
+  if (req.query.state) {
+    try {
+      stateData = JSON.parse(req.query.state);
+    } catch (e) {
+      // ignore parse error
+    }
+  }
+
+  const payload = {
+    code: req.query.code || req.body.code,
+    state: req.query.state || req.body.state,
+    role_id: stateData.role_id || req.body.role_id || 1,
+    origin: stateData.origin || req.body.origin,
+    ip_address: req.ip || req.connection?.remoteAddress,
+    user_agent: req.headers["user-agent"],
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.loginWithTelegramParamType
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.loginWithTelegram(validatePayload.data);
+  if (result.err) {
+    return sendResponse(result, res);
+  }
+
+  const token = result?.data?.token;
+  const refreshToken = result?.data?.refreshToken;
+
+  storeCookie(res, "refreshToken", refreshToken);
+  storeCookie(res, "accessToken", token);
+  storeCookie(res, "role", "user");
+  storeCookie(res, "jp_session", token);
+
+  if (req.method === "GET") {
+    const config = require("../../../config/global_config");
+    const feUrl = config.get("/frontendUrl");
+    const redirectOrigin = payload.origin || feUrl;
+    return res.redirect(`${redirectOrigin}/auth/callback?token=${token}&refreshToken=${refreshToken}`);
+  }
+
+  return sendResponse(result, res);
+};
+
 const logout = async (req, res) => {
   const payload = { token: req.cookies.refreshToken };
   const validatePayload = validator.isValidPayload(
@@ -266,6 +316,7 @@ module.exports = {
   getUserById,
   login,
   loginWithGoogle,
+  loginWithTelegram,
   logout,
   registerRecruiter,
   registerWorker,

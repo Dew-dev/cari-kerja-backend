@@ -24,6 +24,11 @@ const config = {
     clientId: process.env.GOOGLE_CLIENT_ID,
     secretKey: process.env.GOOGLE_SECRET_KEY,
   },
+  telegramAuth: {
+    clientId: process.env.TELEGRAM_CLIENT_ID,
+    clientSecret: process.env.TELEGRAM_CLIENT_SECRET,
+    redirectUri: process.env.TELEGRAM_REDIRECT_URI,
+  },
   r2BucketAuth: {
     enpS3Client: process.env.R2_ENDPOINT_S3_CLIENT,
     userApiToken: process.env.R2_USER_API_TOKEN,
