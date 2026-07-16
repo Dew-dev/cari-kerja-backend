@@ -3,6 +3,7 @@ const DB = require("../../../../helpers/databases/postgresql/db");
 const config = require("../../../../config/global_config");
 const { NotFoundError, InternalServerError, BadRequestError, ConflictError } = require("../../../../helpers/errors");
 const { LOOKUP_CONFIG } = require("../../helpers/lookup_config");
+const { PLAN_CONFIG } = require("../../helpers/plan_config");
 
 class AdminCommand {
   constructor() {
@@ -303,6 +304,73 @@ class AdminCommand {
     const result = await this.db.executeQuery(updateQuery, [finalStatusId, id]);
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("Application not found"));
     return wrapper.data(result.rows[0]);
+  }
+
+  // ==================== PLANS ====================
+  async insertPlan(payload) {
+    const { type, name, display_name, price_idr, duration_days, is_active } = payload;
+    const config = PLAN_CONFIG[type];
+    if (!config) return wrapper.error(new BadRequestError("Invalid plan type"));
+
+    const extraValue = payload[config.extraColumn];
+    const rawQuery = `
+      INSERT INTO ${config.table} (name, display_name, price_idr, duration_days, is_active, ${config.extraColumn})
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING ${config.select}
+    `;
+    try {
+      const result = await this.db.executeQuery(rawQuery, [name, display_name, price_idr, duration_days, is_active, extraValue]);
+      return wrapper.data(result.rows[0]);
+    } catch (err) {
+      return wrapper.error(new InternalServerError("Failed to insert plan. Name might already exist."));
+    }
+  }
+
+  async updatePlan(payload) {
+    const { type, id, name, display_name, price_idr, duration_days, is_active } = payload;
+    const config = PLAN_CONFIG[type];
+    if (!config) return wrapper.error(new BadRequestError("Invalid plan type"));
+
+    const extraValue = payload[config.extraColumn];
+    const rawQuery = `
+      UPDATE ${config.table}
+      SET name = COALESCE($1, name),
+          display_name = COALESCE($2, display_name),
+          price_idr = COALESCE($3, price_idr),
+          duration_days = COALESCE($4, duration_days),
+          is_active = COALESCE($5, is_active),
+          ${config.extraColumn} = COALESCE($6, ${config.extraColumn})
+      WHERE id = $7
+      RETURNING ${config.select}
+    `;
+    try {
+      const result = await this.db.executeQuery(rawQuery, [name, display_name, price_idr, duration_days, is_active, extraValue, id]);
+      if (result.rowCount === 0) return wrapper.error(new NotFoundError("Plan not found"));
+      return wrapper.data(result.rows[0]);
+    } catch (err) {
+      return wrapper.error(new InternalServerError("Failed to update plan. Name might already exist."));
+    }
+  }
+
+  async deletePlan(payload) {
+    const { type, id } = payload;
+    const config = PLAN_CONFIG[type];
+    if (!config) return wrapper.error(new BadRequestError("Invalid plan type"));
+
+    const refQuery = `SELECT COUNT(*) FROM payment_orders WHERE plan_type = $1 AND plan_id = $2`;
+    const refResult = await this.db.executeQuery(refQuery, [config.table, id]);
+    if (parseInt(refResult?.rows[0]?.count || 0) > 0) {
+      return wrapper.error(new ConflictError("Plan is referenced by payment orders. Deactivate it instead (is_active = false)."));
+    }
+
+    const rawQuery = `DELETE FROM ${config.table} WHERE id = $1 RETURNING id`;
+    try {
+      const result = await this.db.executeQuery(rawQuery, [id]);
+      if (result.rowCount === 0) return wrapper.error(new NotFoundError("Plan not found"));
+      return wrapper.data("Plan deleted successfully");
+    } catch (err) {
+      return wrapper.error(new ConflictError("Plan is still in use. Deactivate it instead (is_active = false)."));
+    }
   }
 
   // ==================== LOCATIONS ====================

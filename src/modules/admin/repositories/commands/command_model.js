@@ -150,6 +150,38 @@ const deleteCityParamType = joi.object({
   id: joi.number().required()
 });
 
+const planTypeParam = joi.string().valid("subscription", "single_post", "boost");
+
+const insertPlanParamType = joi.object({
+  type: planTypeParam.required(),
+  name: joi.string().max(50).required(),
+  display_name: joi.string().max(100).required(),
+  price_idr: joi.number().min(0).required(),
+  duration_days: joi.number().min(1).required(),
+  is_active: joi.boolean().default(true),
+  max_active_posts: joi.number().min(1).when("type", { is: "subscription", then: joi.required(), otherwise: joi.forbidden() }),
+  is_hot: joi.boolean().when("type", { is: "single_post", then: joi.required(), otherwise: joi.forbidden() }),
+  boost_priority: joi.number().min(1).when("type", { is: "boost", then: joi.required(), otherwise: joi.forbidden() })
+});
+
+const updatePlanParamType = joi.object({
+  type: planTypeParam.required(),
+  id: joi.number().required(),
+  name: joi.string().max(50).optional(),
+  display_name: joi.string().max(100).optional(),
+  price_idr: joi.number().min(0).optional(),
+  duration_days: joi.number().min(1).optional(),
+  is_active: joi.boolean().optional(),
+  max_active_posts: joi.number().min(1).when("type", { is: "subscription", then: joi.optional(), otherwise: joi.forbidden() }),
+  is_hot: joi.boolean().when("type", { is: "single_post", then: joi.optional(), otherwise: joi.forbidden() }),
+  boost_priority: joi.number().min(1).when("type", { is: "boost", then: joi.optional(), otherwise: joi.forbidden() })
+});
+
+const deletePlanParamType = joi.object({
+  type: planTypeParam.required(),
+  id: joi.number().required()
+});
+
 const updateApplicationParamType = joi.object({
   id: joi.string().guid().required(),
   status_name: joi.string().required()

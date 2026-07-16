@@ -313,6 +313,52 @@ const deleteApplication = async (req, res) => {
   return sendResponse(result, res);
 };
 
+// plans
+const getAllPlans = async (req, res) => {
+  const payload = { ...req.query };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getAllPlansParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getAllPlans();
+  return sendResponse(result, res);
+};
+
+const getPlansByType = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getPlansByTypeParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getPlansByType(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const insertPlan = async (req, res) => {
+  const payload = { ...req.params, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.insertPlanParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.insertPlan(validatePayload.data);
+  return sendResponse(result, res, 201);
+};
+
+const updatePlan = async (req, res) => {
+  const payload = { ...req.params, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updatePlanParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updatePlan(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deletePlan = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deletePlanParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deletePlan(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 // locations
 const insertProvince = async (req, res) => {
   const payload = { ...req.body };
@@ -408,5 +454,10 @@ module.exports = {
   deleteProvince,
   insertCity,
   updateCity,
-  deleteCity
+  deleteCity,
+  getAllPlans,
+  getPlansByType,
+  insertPlan,
+  updatePlan,
+  deletePlan
 };

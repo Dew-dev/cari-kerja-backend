@@ -49,6 +49,13 @@ module.exports = (server) => {
   server.delete("/api/v1/admin/jobs/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteJob);
   server.put("/api/v1/admin/jobs/:id/status", verifyToken, verifyRole(allowedRoles), adminHandler.updateJobStatus);
   
+  // Plans CRUD (:type = subscription | single_post | boost)
+  server.get("/api/v1/admin/plans", verifyToken, verifyRole(allowedRoles), adminHandler.getAllPlans);
+  server.get("/api/v1/admin/plans/:type", verifyToken, verifyRole(allowedRoles), adminHandler.getPlansByType);
+  server.post("/api/v1/admin/plans/:type", verifyToken, verifyRole(allowedRoles), adminHandler.insertPlan);
+  server.put("/api/v1/admin/plans/:type/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updatePlan);
+  server.delete("/api/v1/admin/plans/:type/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deletePlan);
+
   // Locations CRUD (read tetap via /api/v1/locations/*)
   server.post("/api/v1/admin/locations/provinces", verifyToken, verifyRole(allowedRoles), adminHandler.insertProvince);
   server.put("/api/v1/admin/locations/provinces/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateProvince);

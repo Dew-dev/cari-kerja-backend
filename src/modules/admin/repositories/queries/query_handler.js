@@ -81,6 +81,16 @@ const getLookupTable = async (payload) => {
   return await adminQuery.getLookupTable(payload);
 };
 
+const getPlansByType = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getPlansByType(payload);
+};
+
+const getAllPlans = async () => {
+  const adminQuery = new Domain();
+  return await adminQuery.getAllPlans();
+};
+
 module.exports = {
   getDashboardStats,
   getUsers,
@@ -97,5 +107,7 @@ module.exports = {
   getWorkerById,
   getEmployerById,
   getJobById,
-  getLookupTable
+  getLookupTable,
+  getPlansByType,
+  getAllPlans
 };

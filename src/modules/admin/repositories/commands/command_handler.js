@@ -91,6 +91,21 @@ const deleteApplication = async (payload) => {
   return await adminCommand.deleteApplication(payload);
 };
 
+const insertPlan = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.insertPlan(payload);
+};
+
+const updatePlan = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.updatePlan(payload);
+};
+
+const deletePlan = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.deletePlan(payload);
+};
+
 const insertProvince = async (payload) => {
   const adminCommand = new Domain();
   return await adminCommand.insertProvince(payload);
@@ -145,5 +160,8 @@ module.exports = {
   deleteProvince,
   insertCity,
   updateCity,
-  deleteCity
+  deleteCity,
+  insertPlan,
+  updatePlan,
+  deletePlan
 };

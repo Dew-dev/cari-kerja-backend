@@ -3,6 +3,7 @@ const DB = require("../../../../helpers/databases/postgresql/db");
 const config = require("../../../../config/global_config");
 const { NotFoundError } = require("../../../../helpers/errors");
 const { LOOKUP_CONFIG } = require("../../helpers/lookup_config");
+const { PLAN_CONFIG } = require("../../helpers/plan_config");
 
 class AdminQuery {
   constructor() {
@@ -253,6 +254,31 @@ class AdminQuery {
     const rawQuery = `SELECT ${LOOKUP_CONFIG[table].select} FROM ${table} ORDER BY id ASC`;
     const result = await this.db.executeQuery(rawQuery);
     return wrapper.data(result.rows);
+  }
+
+  // ==================== PLANS ====================
+  async getPlansByType(payload) {
+    const { type } = payload;
+    const config = PLAN_CONFIG[type];
+    if (!config) return wrapper.error(new NotFoundError("Invalid plan type"));
+
+    const rawQuery = `SELECT ${config.select} FROM ${config.table} ORDER BY price_idr ASC`;
+    const result = await this.db.executeQuery(rawQuery);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getAllPlans() {
+    const [subscription, singlePost, boost] = await Promise.all([
+      this.db.executeQuery(`SELECT ${PLAN_CONFIG.subscription.select} FROM subscription_plans ORDER BY price_idr ASC`),
+      this.db.executeQuery(`SELECT ${PLAN_CONFIG.single_post.select} FROM single_post_plans ORDER BY price_idr ASC`),
+      this.db.executeQuery(`SELECT ${PLAN_CONFIG.boost.select} FROM boost_plans ORDER BY price_idr ASC`)
+    ]);
+
+    return wrapper.data({
+      subscription: subscription?.rows || [],
+      single_post: singlePost?.rows || [],
+      boost: boost?.rows || []
+    });
   }
 
   async getUserById(payload) {

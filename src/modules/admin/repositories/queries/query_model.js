@@ -64,6 +64,12 @@ const getLookupTableParamType = joi.object({
   table: joi.string().required()
 });
 
+const getPlansByTypeParamType = joi.object({
+  type: joi.string().valid("subscription", "single_post", "boost").required()
+});
+
+const getAllPlansParamType = joi.object({});
+
 module.exports = {
   getStatsParamType,
   getUsersParamType,
@@ -79,5 +85,7 @@ module.exports = {
   getWorkerByIdParamType,
   getEmployerByIdParamType,
   getJobByIdParamType,
-  getLookupTableParamType
+  getLookupTableParamType,
+  getPlansByTypeParamType,
+  getAllPlansParamType
 };
