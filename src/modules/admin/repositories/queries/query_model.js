@@ -64,6 +64,36 @@ const getLookupTableParamType = joi.object({
   table: joi.string().required()
 });
 
+const getWorkerSubResourceParamType = joi.object({
+  worker_id: joi.string().guid().required()
+});
+
+const getEmployerSubResourceParamType = joi.object({
+  employer_id: joi.string().guid().required()
+});
+
+const getConversationMessagesParamType = joi.object({
+  id: joi.string().guid().required()
+});
+
+const getPaymentOrdersParamType = joi.object({
+  page: joi.number().min(1).default(1),
+  limit: joi.number().min(1).max(100).default(10),
+  search: joi.string().allow("").optional(),
+  status: joi.string().valid("pending", "paid", "expired", "failed").optional(),
+  order_type: joi.string().valid("subscription", "single_post", "boost").optional()
+});
+
+const getPaymentOrderByIdParamType = joi.object({
+  id: joi.string().guid().required()
+});
+
+const getPlansByTypeParamType = joi.object({
+  type: joi.string().valid("subscription", "single_post", "boost").required()
+});
+
+const getAllPlansParamType = joi.object({});
+
 module.exports = {
   getStatsParamType,
   getUsersParamType,
@@ -79,5 +109,12 @@ module.exports = {
   getWorkerByIdParamType,
   getEmployerByIdParamType,
   getJobByIdParamType,
-  getLookupTableParamType
+  getLookupTableParamType,
+  getPlansByTypeParamType,
+  getAllPlansParamType,
+  getPaymentOrdersParamType,
+  getPaymentOrderByIdParamType,
+  getWorkerSubResourceParamType,
+  getEmployerSubResourceParamType,
+  getConversationMessagesParamType
 };

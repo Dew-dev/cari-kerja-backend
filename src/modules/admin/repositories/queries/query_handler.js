@@ -81,6 +81,106 @@ const getLookupTable = async (payload) => {
   return await adminQuery.getLookupTable(payload);
 };
 
+const getWorkerWorkExperiences = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerWorkExperiences(payload);
+};
+
+const getWorkerEducations = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerEducations(payload);
+};
+
+const getWorkerCertifications = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerCertifications(payload);
+};
+
+const getWorkerPortfolios = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerPortfolios(payload);
+};
+
+const getWorkerLanguages = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerLanguages(payload);
+};
+
+const getWorkerResumes = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerResumes(payload);
+};
+
+const getWorkerSkills = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerSkills(payload);
+};
+
+const getWorkerApplications = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerApplications(payload);
+};
+
+const getWorkerJobPostAnswers = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerJobPostAnswers(payload);
+};
+
+const getWorkerSavedJobs = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerSavedJobs(payload);
+};
+
+const getEmployerJobPosts = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getEmployerJobPosts(payload);
+};
+
+const getEmployerSubscriptions = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getEmployerSubscriptions(payload);
+};
+
+const getEmployerPaymentOrders = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getEmployerPaymentOrders(payload);
+};
+
+const getWorkerConversations = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerConversations(payload);
+};
+
+const getEmployerConversations = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getEmployerConversations(payload);
+};
+
+const getConversationMessages = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getConversationMessages(payload);
+};
+
+const getPaymentOrders = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getPaymentOrders(payload);
+};
+
+const getPaymentOrderById = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getPaymentOrderById(payload);
+};
+
+const getPlansByType = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getPlansByType(payload);
+};
+
+const getAllPlans = async () => {
+  const adminQuery = new Domain();
+  return await adminQuery.getAllPlans();
+};
+
 module.exports = {
   getDashboardStats,
   getUsers,
@@ -97,5 +197,25 @@ module.exports = {
   getWorkerById,
   getEmployerById,
   getJobById,
-  getLookupTable
+  getLookupTable,
+  getPlansByType,
+  getAllPlans,
+  getPaymentOrders,
+  getPaymentOrderById,
+  getWorkerWorkExperiences,
+  getWorkerEducations,
+  getWorkerCertifications,
+  getWorkerPortfolios,
+  getWorkerLanguages,
+  getWorkerResumes,
+  getWorkerSkills,
+  getWorkerApplications,
+  getWorkerJobPostAnswers,
+  getWorkerSavedJobs,
+  getEmployerJobPosts,
+  getEmployerSubscriptions,
+  getEmployerPaymentOrders,
+  getWorkerConversations,
+  getEmployerConversations,
+  getConversationMessages
 };

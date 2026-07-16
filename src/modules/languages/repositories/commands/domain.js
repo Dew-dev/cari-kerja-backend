@@ -12,12 +12,25 @@ class Languages {
     this.query = new Query(db);
   }
 
+  // Resolve id master `languages` dari nama (upsert bila belum ada)
+  async resolveLanguageId(languageName) {
+    try {
+      const result = await this.command.upsertMasterLanguage(languageName);
+      return result?.rows?.[0]?.id || null;
+    } catch (error) {
+      logger.error(ctx, "resolveLanguageId", "Failed to resolve language id", error);
+      return null;
+    }
+  }
+
   // INSERT one language
   async insertOne(payload) {
+    const language_id = await this.resolveLanguageId(payload.language_name);
     const document = {
       id: uuidv4(),
       worker_id: payload.worker_id,
       language_name: payload.language_name,
+      language_id,
       proficiency_level_id: payload.proficiency_level_id,
       is_primary: payload.is_primary || false,
     };
@@ -38,8 +51,10 @@ class Languages {
       return wrapper.error(new NotFoundError("Language not found"));
     }
 
+    const language_id = await this.resolveLanguageId(payload.language_name);
     const document = {
       language_name: payload.language_name,
+      language_id,
       proficiency_level_id: payload.proficiency_level_id,
       is_primary: payload.is_primary || false,
     };

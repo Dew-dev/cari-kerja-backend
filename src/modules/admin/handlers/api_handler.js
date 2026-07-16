@@ -313,6 +313,396 @@ const deleteApplication = async (req, res) => {
   return sendResponse(result, res);
 };
 
+// worker sub-resources
+// GET list generik: worker_id dari path
+const makeGetWorkerSubResource = (queryFn) => async (req, res) => {
+  const payload = { worker_id: req.params.worker_id };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getWorkerSubResourceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler[queryFn](validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const getWorkerWorkExperiences = makeGetWorkerSubResource("getWorkerWorkExperiences");
+const getWorkerEducations = makeGetWorkerSubResource("getWorkerEducations");
+const getWorkerCertifications = makeGetWorkerSubResource("getWorkerCertifications");
+const getWorkerPortfolios = makeGetWorkerSubResource("getWorkerPortfolios");
+const getWorkerLanguages = makeGetWorkerSubResource("getWorkerLanguages");
+const getWorkerResumes = makeGetWorkerSubResource("getWorkerResumes");
+const getWorkerSkills = makeGetWorkerSubResource("getWorkerSkills");
+const getWorkerApplications = makeGetWorkerSubResource("getWorkerApplications");
+const getWorkerJobPostAnswers = makeGetWorkerSubResource("getWorkerJobPostAnswers");
+const getWorkerSavedJobs = makeGetWorkerSubResource("getWorkerSavedJobs");
+
+// insert/update/delete generik untuk work_experiences, educations, certifications, portfolios
+const makeInsertWorkerSubResource = (resource) => async (req, res) => {
+  const payload = { resource, worker_id: req.params.worker_id, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.insertWorkerSubResourceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.insertWorkerSubResource(validatePayload.data);
+  return sendResponse(result, res, 201);
+};
+
+const makeUpdateWorkerSubResource = (resource) => async (req, res) => {
+  const payload = { resource, worker_id: req.params.worker_id, id: req.params.id, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateWorkerSubResourceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updateWorkerSubResource(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const makeDeleteWorkerSubResource = (resource) => async (req, res) => {
+  const payload = { resource, worker_id: req.params.worker_id, id: req.params.id };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteWorkerSubResourceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteWorkerSubResource(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const insertWorkerWorkExperience = makeInsertWorkerSubResource("work_experiences");
+const updateWorkerWorkExperience = makeUpdateWorkerSubResource("work_experiences");
+const deleteWorkerWorkExperience = makeDeleteWorkerSubResource("work_experiences");
+const insertWorkerEducation = makeInsertWorkerSubResource("educations");
+const updateWorkerEducation = makeUpdateWorkerSubResource("educations");
+const deleteWorkerEducation = makeDeleteWorkerSubResource("educations");
+const insertWorkerCertification = makeInsertWorkerSubResource("certifications");
+const updateWorkerCertification = makeUpdateWorkerSubResource("certifications");
+const deleteWorkerCertification = makeDeleteWorkerSubResource("certifications");
+const insertWorkerPortfolio = makeInsertWorkerSubResource("portfolios");
+const updateWorkerPortfolio = makeUpdateWorkerSubResource("portfolios");
+const deleteWorkerPortfolio = makeDeleteWorkerSubResource("portfolios");
+
+const insertWorkerLanguage = async (req, res) => {
+  const payload = { worker_id: req.params.worker_id, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.insertWorkerLanguageParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.insertWorkerLanguage(validatePayload.data);
+  return sendResponse(result, res, 201);
+};
+
+const updateWorkerLanguage = async (req, res) => {
+  const payload = { worker_id: req.params.worker_id, id: req.params.id, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateWorkerLanguageParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updateWorkerLanguage(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteWorkerLanguage = async (req, res) => {
+  const payload = { worker_id: req.params.worker_id, id: req.params.id };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteWorkerLanguageParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteWorkerLanguage(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const updateWorkerResume = async (req, res) => {
+  const payload = { worker_id: req.params.worker_id, id: req.params.id, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateWorkerResumeParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updateWorkerResume(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteWorkerResume = async (req, res) => {
+  const payload = { worker_id: req.params.worker_id, id: req.params.id };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteWorkerResumeParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteWorkerResume(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const insertWorkerSkill = async (req, res) => {
+  const payload = { worker_id: req.params.worker_id, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.insertWorkerSkillParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.insertWorkerSkill(validatePayload.data);
+  return sendResponse(result, res, 201);
+};
+
+const deleteWorkerSkill = async (req, res) => {
+  const payload = { worker_id: req.params.worker_id, skill_id: req.params.skill_id };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteWorkerSkillParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteWorkerSkill(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const updateWorkerApplication = async (req, res) => {
+  const payload = { worker_id: req.params.worker_id, id: req.params.id, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateWorkerApplicationParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updateWorkerApplication(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteWorkerApplication = async (req, res) => {
+  const payload = { worker_id: req.params.worker_id, id: req.params.id };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteWorkerApplicationParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteWorkerApplication(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const updateWorkerJobPostAnswer = async (req, res) => {
+  const payload = { worker_id: req.params.worker_id, id: req.params.id, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateWorkerJobPostAnswerParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updateWorkerJobPostAnswer(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteWorkerJobPostAnswer = async (req, res) => {
+  const payload = { worker_id: req.params.worker_id, id: req.params.id };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteWorkerJobPostAnswerParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteWorkerJobPostAnswer(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteWorkerSavedJob = async (req, res) => {
+  const payload = { worker_id: req.params.worker_id, id: req.params.id };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteWorkerSavedJobParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteWorkerSavedJob(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+// employer sub-resources
+const makeGetEmployerSubResource = (queryFn) => async (req, res) => {
+  const payload = { employer_id: req.params.employer_id };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getEmployerSubResourceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler[queryFn](validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const getEmployerJobPosts = makeGetEmployerSubResource("getEmployerJobPosts");
+const getEmployerSubscriptions = makeGetEmployerSubResource("getEmployerSubscriptions");
+const getEmployerPaymentOrders = makeGetEmployerSubResource("getEmployerPaymentOrders");
+
+const deleteEmployerJobPost = async (req, res) => {
+  const payload = { employer_id: req.params.employer_id, id: req.params.id };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteEmployerJobPostParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteEmployerJobPost(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const updateEmployerSubscription = async (req, res) => {
+  const payload = { employer_id: req.params.employer_id, id: req.params.id, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateEmployerSubscriptionParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updateEmployerSubscription(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteEmployerSubscription = async (req, res) => {
+  const payload = { employer_id: req.params.employer_id, id: req.params.id };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteEmployerSubscriptionParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteEmployerSubscription(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+// chat moderation
+const getWorkerConversations = async (req, res) => {
+  const payload = { worker_id: req.params.worker_id };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getWorkerSubResourceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getWorkerConversations(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const getEmployerConversations = async (req, res) => {
+  const payload = { employer_id: req.params.employer_id };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getEmployerSubResourceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getEmployerConversations(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const getConversationMessages = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getConversationMessagesParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getConversationMessages(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteConversationMessage = async (req, res) => {
+  const payload = {
+    conversation_id: req.params.id,
+    message_id: req.params.message_id,
+    admin_user_id: req.userMeta.id,
+    ip_address: req.ip,
+    user_agent: req.headers["user-agent"]
+  };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteConversationMessageParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteConversationMessage(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+// payment orders
+const getPaymentOrders = async (req, res) => {
+  const payload = { ...req.query };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getPaymentOrdersParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getPaymentOrders(validatePayload.data);
+  return paginationResponse(result, res);
+};
+
+const getPaymentOrderById = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getPaymentOrderByIdParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getPaymentOrderById(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const updatePaymentOrderStatus = async (req, res) => {
+  const payload = {
+    id: req.params.id,
+    ...req.body,
+    admin_user_id: req.userMeta.id,
+    ip_address: req.ip,
+    user_agent: req.headers["user-agent"]
+  };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updatePaymentOrderStatusParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updatePaymentOrderStatus(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+// plans
+const getAllPlans = async (req, res) => {
+  const payload = { ...req.query };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getAllPlansParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getAllPlans();
+  return sendResponse(result, res);
+};
+
+const getPlansByType = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getPlansByTypeParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getPlansByType(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const insertPlan = async (req, res) => {
+  const payload = { ...req.params, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.insertPlanParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.insertPlan(validatePayload.data);
+  return sendResponse(result, res, 201);
+};
+
+const updatePlan = async (req, res) => {
+  const payload = { ...req.params, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updatePlanParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updatePlan(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deletePlan = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deletePlanParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deletePlan(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+// locations
+const insertProvince = async (req, res) => {
+  const payload = { ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.insertProvinceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.insertProvince(validatePayload.data);
+  return sendResponse(result, res, 201);
+};
+
+const updateProvince = async (req, res) => {
+  const payload = { id: req.params.id, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateProvinceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updateProvince(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteProvince = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteProvinceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteProvince(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const insertCity = async (req, res) => {
+  const payload = { ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.insertCityParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.insertCity(validatePayload.data);
+  return sendResponse(result, res, 201);
+};
+
+const updateCity = async (req, res) => {
+  const payload = { id: req.params.id, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateCityParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updateCity(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteCity = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteCityParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteCity(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 module.exports = {
   getDashboardStats,
   getDashboardGrowth,
@@ -347,5 +737,63 @@ module.exports = {
   updateJob,
   deleteJob,
   updateApplication,
-  deleteApplication
+  deleteApplication,
+  insertProvince,
+  updateProvince,
+  deleteProvince,
+  insertCity,
+  updateCity,
+  deleteCity,
+  getAllPlans,
+  getPlansByType,
+  insertPlan,
+  updatePlan,
+  deletePlan,
+  getPaymentOrders,
+  getPaymentOrderById,
+  updatePaymentOrderStatus,
+  getWorkerWorkExperiences,
+  getWorkerEducations,
+  getWorkerCertifications,
+  getWorkerPortfolios,
+  getWorkerLanguages,
+  getWorkerResumes,
+  getWorkerSkills,
+  getWorkerApplications,
+  getWorkerJobPostAnswers,
+  getWorkerSavedJobs,
+  insertWorkerWorkExperience,
+  updateWorkerWorkExperience,
+  deleteWorkerWorkExperience,
+  insertWorkerEducation,
+  updateWorkerEducation,
+  deleteWorkerEducation,
+  insertWorkerCertification,
+  updateWorkerCertification,
+  deleteWorkerCertification,
+  insertWorkerPortfolio,
+  updateWorkerPortfolio,
+  deleteWorkerPortfolio,
+  insertWorkerLanguage,
+  updateWorkerLanguage,
+  deleteWorkerLanguage,
+  updateWorkerResume,
+  deleteWorkerResume,
+  insertWorkerSkill,
+  deleteWorkerSkill,
+  updateWorkerApplication,
+  deleteWorkerApplication,
+  updateWorkerJobPostAnswer,
+  deleteWorkerJobPostAnswer,
+  deleteWorkerSavedJob,
+  getEmployerJobPosts,
+  getEmployerSubscriptions,
+  getEmployerPaymentOrders,
+  deleteEmployerJobPost,
+  updateEmployerSubscription,
+  deleteEmployerSubscription,
+  getWorkerConversations,
+  getEmployerConversations,
+  getConversationMessages,
+  deleteConversationMessage
 };

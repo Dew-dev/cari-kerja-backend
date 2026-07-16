@@ -1,4 +1,4 @@
-const collection = "languages";
+const collection = "worker_languages";
 const errorEmptyMessage = "Data Not Found Please Try Another Input";
 const errorQueryMessage = "Error querying PostgreSQL";
 const logger = require("../../../../helpers/utils/logger");

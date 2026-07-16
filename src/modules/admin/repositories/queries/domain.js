@@ -2,6 +2,8 @@ const wrapper = require("../../../../helpers/utils/wrapper");
 const DB = require("../../../../helpers/databases/postgresql/db");
 const config = require("../../../../config/global_config");
 const { NotFoundError } = require("../../../../helpers/errors");
+const { LOOKUP_CONFIG } = require("../../helpers/lookup_config");
+const { PLAN_CONFIG } = require("../../helpers/plan_config");
 
 class AdminQuery {
   constructor() {
@@ -244,30 +246,391 @@ class AdminQuery {
 
   async getLookupTable(payload) {
     const { table } = payload;
-    const LOOKUP_CONFIG = {
-      genders: "gender_name",
-      marriage_statuses: "status_name",
-      religions: "religion_name",
-      employment_types: "type_name",
-      experience_levels: "level_name",
-      salary_types: "type_name",
-      job_post_statuses: "name",
-      application_statuses: "name",
-      question_types: "name",
-      industries: "name",
-      proficiency_levels: "name",
-      job_tags: "name",
-      skills: "skill_name",
-      nationalities: "country_name"
-    };
 
     if (!LOOKUP_CONFIG[table]) {
       return wrapper.error(new NotFoundError("Invalid lookup table"));
     }
 
-    const rawQuery = `SELECT * FROM ${table} ORDER BY id ASC`;
+    const rawQuery = `SELECT ${LOOKUP_CONFIG[table].select} FROM ${table} ORDER BY id ASC`;
     const result = await this.db.executeQuery(rawQuery);
     return wrapper.data(result.rows);
+  }
+
+  // ==================== WORKER SUB-RESOURCES ====================
+  async findWorker(worker_id) {
+    const worker = await this.db.findOne({ id: worker_id }, { id: 1 }, "workers");
+    if (worker.err) return null;
+    return worker.data;
+  }
+
+  async getWorkerWorkExperiences(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT id, company_name, job_title, start_date, end_date, is_current, description, created_at, updated_at
+      FROM work_experiences
+      WHERE worker_id = $1
+      ORDER BY start_date DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerEducations(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT id, institution_name, degree, major, start_date, end_date, is_current, description, created_at, updated_at
+      FROM educations
+      WHERE worker_id = $1
+      ORDER BY start_date DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerCertifications(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT id, name, issuer, link, credential_id, issue_date, expiry_date, is_active, created_at, updated_at
+      FROM certifications
+      WHERE worker_id = $1
+      ORDER BY issue_date DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerPortfolios(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT id, title, link, description, is_public, created_at, updated_at
+      FROM portfolios
+      WHERE worker_id = $1
+      ORDER BY updated_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerLanguages(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT wl.id, wl.language_name, wl.language_id, wl.proficiency_level_id,
+             pl.name AS proficiency_level_name, wl.is_primary, wl.updated_at
+      FROM worker_languages wl
+      LEFT JOIN proficiency_levels pl ON pl.id = wl.proficiency_level_id
+      WHERE wl.worker_id = $1
+      ORDER BY wl.updated_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerResumes(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT id, resume_url, title, is_default, created_at, updated_at
+      FROM resumes
+      WHERE worker_id = $1
+      ORDER BY updated_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerSkills(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT ws.skill_id, s.skill_name, ws.created_at
+      FROM worker_skills ws
+      JOIN skills s ON ws.skill_id = s.id
+      WHERE ws.worker_id = $1
+      ORDER BY s.skill_name ASC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerApplications(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT a.id, a.job_post_id, jp.title AS job_title, r.company_name,
+             a.application_status_id, s.name AS status_name,
+             a.resume_id, a.cover_letter, a.applied_at, a.updated_at
+      FROM job_applications a
+      JOIN job_posts jp ON a.job_post_id = jp.id
+      JOIN recruiters r ON jp.recruiter_id = r.id
+      JOIN application_statuses s ON a.application_status_id = s.id
+      WHERE a.worker_id = $1 AND a.deleted_at IS NULL
+      ORDER BY a.applied_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerJobPostAnswers(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT ans.id, ans.job_application_id, ans.question_id,
+             q.question_text AS question, jp.title AS job_title,
+             ans.answer, ans.submitted_at
+      FROM job_post_answers ans
+      JOIN job_applications a ON ans.job_application_id = a.id
+      JOIN job_post_questions q ON ans.question_id = q.id
+      JOIN job_posts jp ON a.job_post_id = jp.id
+      WHERE a.worker_id = $1
+      ORDER BY ans.submitted_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerSavedJobs(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT sj.id, sj.job_post_id, jp.title AS job_title, r.company_name, sj.created_at
+      FROM saved_jobs sj
+      JOIN job_posts jp ON sj.job_post_id = jp.id
+      JOIN recruiters r ON jp.recruiter_id = r.id
+      WHERE sj.worker_id = $1
+      ORDER BY sj.created_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  // ==================== EMPLOYER SUB-RESOURCES ====================
+  async findEmployer(employer_id) {
+    const employer = await this.db.findOne({ id: employer_id }, { id: 1 }, "recruiters");
+    if (employer.err) return null;
+    return employer.data;
+  }
+
+  async getEmployerJobPosts(payload) {
+    const { employer_id } = payload;
+    if (!(await this.findEmployer(employer_id))) return wrapper.error(new NotFoundError("Employer not found"));
+
+    const rawQuery = `
+      SELECT jp.id, jp.title, jp.city, jp.province, s.name AS status_name, jp.created_at
+      FROM job_posts jp
+      JOIN job_post_statuses s ON jp.status_id = s.id
+      WHERE jp.recruiter_id = $1 AND jp.deleted_at IS NULL
+      ORDER BY jp.created_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [employer_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getEmployerSubscriptions(payload) {
+    const { employer_id } = payload;
+    if (!(await this.findEmployer(employer_id))) return wrapper.error(new NotFoundError("Employer not found"));
+
+    const rawQuery = `
+      SELECT rs.id, rs.plan_id, sp.display_name AS plan_display_name, sp.price_idr,
+             rs.payment_order_id, rs.starts_at, rs.expires_at, rs.is_active, rs.created_at, rs.updated_at
+      FROM recruiter_subscriptions rs
+      JOIN subscription_plans sp ON rs.plan_id = sp.id
+      WHERE rs.recruiter_id = $1
+      ORDER BY rs.created_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [employer_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getEmployerPaymentOrders(payload) {
+    const { employer_id } = payload;
+    if (!(await this.findEmployer(employer_id))) return wrapper.error(new NotFoundError("Employer not found"));
+
+    const rawQuery = `
+      SELECT po.id, po.order_type, po.plan_id, po.plan_type, po.job_post_id,
+             po.xendit_invoice_id, po.xendit_external_id, po.amount, po.status,
+             po.paid_at, po.invoice_expires_at, po.created_at, po.updated_at,
+             COALESCE(sp.display_name, spp.display_name, bp.display_name) AS plan_name
+      FROM payment_orders po
+      LEFT JOIN subscription_plans sp ON po.plan_type = 'subscription_plans' AND po.plan_id = sp.id
+      LEFT JOIN single_post_plans spp ON po.plan_type = 'single_post_plans' AND po.plan_id = spp.id
+      LEFT JOIN boost_plans bp ON po.plan_type = 'boost_plans' AND po.plan_id = bp.id
+      WHERE po.recruiter_id = $1
+      ORDER BY po.created_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [employer_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  // ==================== CHAT MODERATION ====================
+  // conversations.worker_id/recruiter_id ber-FK ke users.id, jadi resolve user_id dari profil dulu
+  async getConversationsByUserId(userId) {
+    const rawQuery = `
+      SELECT c.id, c.worker_id, c.recruiter_id, c.job_id,
+             w.name AS worker_name, r.company_name, jp.title AS job_title,
+             c.last_message, c.last_message_at, c.status, c.updated_at
+      FROM conversations c
+      LEFT JOIN workers w ON w.user_id = c.worker_id
+      LEFT JOIN recruiters r ON r.user_id = c.recruiter_id
+      LEFT JOIN job_posts jp ON jp.id = c.job_id
+      WHERE c.worker_id = $1 OR c.recruiter_id = $1
+      ORDER BY c.updated_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [userId]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerConversations(payload) {
+    const { worker_id } = payload;
+    const worker = await this.db.findOne({ id: worker_id }, { id: 1, user_id: 1 }, "workers");
+    if (worker.err) return wrapper.error(new NotFoundError("Worker not found"));
+    return this.getConversationsByUserId(worker.data.user_id);
+  }
+
+  async getEmployerConversations(payload) {
+    const { employer_id } = payload;
+    const employer = await this.db.findOne({ id: employer_id }, { id: 1, user_id: 1 }, "recruiters");
+    if (employer.err) return wrapper.error(new NotFoundError("Employer not found"));
+    return this.getConversationsByUserId(employer.data.user_id);
+  }
+
+  async getConversationMessages(payload) {
+    const { id } = payload;
+    const conversation = await this.db.findOne({ id }, { id: 1 }, "conversations");
+    if (conversation.err) return wrapper.error(new NotFoundError("Conversation not found"));
+
+    const rawQuery = `
+      SELECT m.id, m.sender_id, u.role_id,
+             COALESCE(w.name, r.company_name, u.username) AS sender_name,
+             m.message, m.type, m.is_read, m.created_at
+      FROM messages m
+      JOIN users u ON u.id = m.sender_id
+      LEFT JOIN workers w ON w.user_id = u.id
+      LEFT JOIN recruiters r ON r.user_id = u.id
+      WHERE m.conversation_id = $1
+      ORDER BY m.created_at ASC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  // ==================== PAYMENT ORDERS ====================
+  async getPaymentOrders(payload) {
+    const { page, limit, search, status, order_type } = payload;
+    const conditions = [];
+    const values = [];
+    let idx = 1;
+
+    if (search) {
+      conditions.push(`(r.company_name ILIKE $${idx} OR po.xendit_external_id ILIKE $${idx})`);
+      values.push(`%${search}%`);
+      idx++;
+    }
+    if (status) {
+      conditions.push(`po.status = $${idx}`);
+      values.push(status);
+      idx++;
+    }
+    if (order_type) {
+      conditions.push(`po.order_type = $${idx}`);
+      values.push(order_type);
+      idx++;
+    }
+    const whereQuery = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const offset = limit * (page - 1);
+
+    const planJoin = `
+      LEFT JOIN subscription_plans sp ON po.plan_type = 'subscription_plans' AND po.plan_id = sp.id
+      LEFT JOIN single_post_plans spp ON po.plan_type = 'single_post_plans' AND po.plan_id = spp.id
+      LEFT JOIN boost_plans bp ON po.plan_type = 'boost_plans' AND po.plan_id = bp.id
+    `;
+
+    const rawQuery = `
+      SELECT po.id, po.recruiter_id, po.order_type, po.plan_id, po.plan_type, po.job_post_id,
+             po.xendit_invoice_id, po.xendit_external_id, po.amount, po.status,
+             po.paid_at, po.invoice_expires_at, po.created_at, po.updated_at,
+             r.company_name,
+             COALESCE(sp.display_name, spp.display_name, bp.display_name) AS plan_name
+      FROM payment_orders po
+      JOIN recruiters r ON po.recruiter_id = r.id
+      ${planJoin}
+      ${whereQuery}
+      ORDER BY po.created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+    const result = await this.db.executeQuery(rawQuery, values);
+
+    const countQuery = `
+      SELECT COUNT(*)
+      FROM payment_orders po
+      JOIN recruiters r ON po.recruiter_id = r.id
+      ${whereQuery}
+    `;
+    const countResult = await this.db.executeQuery(countQuery, values);
+    const totalData = parseInt(countResult?.rows[0]?.count || 0);
+
+    return wrapper.paginationData(result?.rows || [], {
+      page, limit, totalData, totalPage: Math.ceil(totalData / limit)
+    });
+  }
+
+  async getPaymentOrderById(payload) {
+    const { id } = payload;
+    const rawQuery = `
+      SELECT po.id, po.recruiter_id, po.order_type, po.plan_id, po.plan_type, po.job_post_id,
+             po.xendit_invoice_id, po.xendit_external_id, po.amount, po.status,
+             po.paid_at, po.invoice_expires_at, po.metadata, po.created_at, po.updated_at,
+             r.company_name,
+             COALESCE(sp.display_name, spp.display_name, bp.display_name) AS plan_name
+      FROM payment_orders po
+      JOIN recruiters r ON po.recruiter_id = r.id
+      LEFT JOIN subscription_plans sp ON po.plan_type = 'subscription_plans' AND po.plan_id = sp.id
+      LEFT JOIN single_post_plans spp ON po.plan_type = 'single_post_plans' AND po.plan_id = spp.id
+      LEFT JOIN boost_plans bp ON po.plan_type = 'boost_plans' AND po.plan_id = bp.id
+      WHERE po.id = $1
+    `;
+    const result = await this.db.executeQuery(rawQuery, [id]);
+    if (result.rows.length === 0) return wrapper.error(new NotFoundError("Payment order not found"));
+    return wrapper.data(result.rows[0]);
+  }
+
+  // ==================== PLANS ====================
+  async getPlansByType(payload) {
+    const { type } = payload;
+    const config = PLAN_CONFIG[type];
+    if (!config) return wrapper.error(new NotFoundError("Invalid plan type"));
+
+    const rawQuery = `SELECT ${config.select} FROM ${config.table} ORDER BY price_idr ASC`;
+    const result = await this.db.executeQuery(rawQuery);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getAllPlans() {
+    const [subscription, singlePost, boost] = await Promise.all([
+      this.db.executeQuery(`SELECT ${PLAN_CONFIG.subscription.select} FROM subscription_plans ORDER BY price_idr ASC`),
+      this.db.executeQuery(`SELECT ${PLAN_CONFIG.single_post.select} FROM single_post_plans ORDER BY price_idr ASC`),
+      this.db.executeQuery(`SELECT ${PLAN_CONFIG.boost.select} FROM boost_plans ORDER BY price_idr ASC`)
+    ]);
+
+    return wrapper.data({
+      subscription: subscription?.rows || [],
+      single_post: singlePost?.rows || [],
+      boost: boost?.rows || []
+    });
   }
 
   async getUserById(payload) {
@@ -327,7 +690,8 @@ class AdminQuery {
   async getEmployerById(payload) {
     const { id } = payload;
     const rawQuery = `
-      SELECT id, user_id, company_name, contact_name, contact_phone, company_email, company_website, company_address, industry_id, company_description, company_logo, is_vip, is_verified, created_at
+      SELECT id, user_id, company_name, contact_name, contact_phone, company_website, address, description, avatar_url,
+             employee_count, instagram_url, tiktok_url, industry_id, is_vip, is_verified, created_at
       FROM recruiters
       WHERE id = $1 AND deleted_at IS NULL
     `;
