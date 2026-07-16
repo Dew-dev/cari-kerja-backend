@@ -64,6 +64,10 @@ const getLookupTableParamType = joi.object({
   table: joi.string().required()
 });
 
+const getWorkerSubResourceParamType = joi.object({
+  worker_id: joi.string().guid().required()
+});
+
 const getPaymentOrdersParamType = joi.object({
   page: joi.number().min(1).default(1),
   limit: joi.number().min(1).max(100).default(10),
@@ -101,5 +105,6 @@ module.exports = {
   getPlansByTypeParamType,
   getAllPlansParamType,
   getPaymentOrdersParamType,
-  getPaymentOrderByIdParamType
+  getPaymentOrderByIdParamType,
+  getWorkerSubResourceParamType
 };

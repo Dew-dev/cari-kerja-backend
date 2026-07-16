@@ -81,6 +81,56 @@ const getLookupTable = async (payload) => {
   return await adminQuery.getLookupTable(payload);
 };
 
+const getWorkerWorkExperiences = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerWorkExperiences(payload);
+};
+
+const getWorkerEducations = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerEducations(payload);
+};
+
+const getWorkerCertifications = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerCertifications(payload);
+};
+
+const getWorkerPortfolios = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerPortfolios(payload);
+};
+
+const getWorkerLanguages = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerLanguages(payload);
+};
+
+const getWorkerResumes = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerResumes(payload);
+};
+
+const getWorkerSkills = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerSkills(payload);
+};
+
+const getWorkerApplications = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerApplications(payload);
+};
+
+const getWorkerJobPostAnswers = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerJobPostAnswers(payload);
+};
+
+const getWorkerSavedJobs = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerSavedJobs(payload);
+};
+
 const getPaymentOrders = async (payload) => {
   const adminQuery = new Domain();
   return await adminQuery.getPaymentOrders(payload);
@@ -121,5 +171,15 @@ module.exports = {
   getPlansByType,
   getAllPlans,
   getPaymentOrders,
-  getPaymentOrderById
+  getPaymentOrderById,
+  getWorkerWorkExperiences,
+  getWorkerEducations,
+  getWorkerCertifications,
+  getWorkerPortfolios,
+  getWorkerLanguages,
+  getWorkerResumes,
+  getWorkerSkills,
+  getWorkerApplications,
+  getWorkerJobPostAnswers,
+  getWorkerSavedJobs
 };

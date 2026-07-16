@@ -37,6 +37,51 @@ module.exports = (server) => {
   server.put("/api/v1/admin/workers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateWorker);
   server.delete("/api/v1/admin/workers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteWorker);
 
+  // Worker sub-resources (worker_id dari path, bukan JWT)
+  server.get("/api/v1/admin/workers/:worker_id/work-experiences", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkerWorkExperiences);
+  server.post("/api/v1/admin/workers/:worker_id/work-experiences", verifyToken, verifyRole(allowedRoles), adminHandler.insertWorkerWorkExperience);
+  server.put("/api/v1/admin/workers/:worker_id/work-experiences/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateWorkerWorkExperience);
+  server.delete("/api/v1/admin/workers/:worker_id/work-experiences/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteWorkerWorkExperience);
+
+  server.get("/api/v1/admin/workers/:worker_id/educations", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkerEducations);
+  server.post("/api/v1/admin/workers/:worker_id/educations", verifyToken, verifyRole(allowedRoles), adminHandler.insertWorkerEducation);
+  server.put("/api/v1/admin/workers/:worker_id/educations/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateWorkerEducation);
+  server.delete("/api/v1/admin/workers/:worker_id/educations/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteWorkerEducation);
+
+  server.get("/api/v1/admin/workers/:worker_id/certifications", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkerCertifications);
+  server.post("/api/v1/admin/workers/:worker_id/certifications", verifyToken, verifyRole(allowedRoles), adminHandler.insertWorkerCertification);
+  server.put("/api/v1/admin/workers/:worker_id/certifications/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateWorkerCertification);
+  server.delete("/api/v1/admin/workers/:worker_id/certifications/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteWorkerCertification);
+
+  server.get("/api/v1/admin/workers/:worker_id/portfolios", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkerPortfolios);
+  server.post("/api/v1/admin/workers/:worker_id/portfolios", verifyToken, verifyRole(allowedRoles), adminHandler.insertWorkerPortfolio);
+  server.put("/api/v1/admin/workers/:worker_id/portfolios/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateWorkerPortfolio);
+  server.delete("/api/v1/admin/workers/:worker_id/portfolios/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteWorkerPortfolio);
+
+  server.get("/api/v1/admin/workers/:worker_id/languages", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkerLanguages);
+  server.post("/api/v1/admin/workers/:worker_id/languages", verifyToken, verifyRole(allowedRoles), adminHandler.insertWorkerLanguage);
+  server.put("/api/v1/admin/workers/:worker_id/languages/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateWorkerLanguage);
+  server.delete("/api/v1/admin/workers/:worker_id/languages/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteWorkerLanguage);
+
+  server.get("/api/v1/admin/workers/:worker_id/resumes", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkerResumes);
+  server.put("/api/v1/admin/workers/:worker_id/resumes/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateWorkerResume);
+  server.delete("/api/v1/admin/workers/:worker_id/resumes/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteWorkerResume);
+
+  server.get("/api/v1/admin/workers/:worker_id/skills", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkerSkills);
+  server.post("/api/v1/admin/workers/:worker_id/skills", verifyToken, verifyRole(allowedRoles), adminHandler.insertWorkerSkill);
+  server.delete("/api/v1/admin/workers/:worker_id/skills/:skill_id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteWorkerSkill);
+
+  server.get("/api/v1/admin/workers/:worker_id/applications", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkerApplications);
+  server.put("/api/v1/admin/workers/:worker_id/applications/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateWorkerApplication);
+  server.delete("/api/v1/admin/workers/:worker_id/applications/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteWorkerApplication);
+
+  server.get("/api/v1/admin/workers/:worker_id/job-post-answers", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkerJobPostAnswers);
+  server.put("/api/v1/admin/workers/:worker_id/job-post-answers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateWorkerJobPostAnswer);
+  server.delete("/api/v1/admin/workers/:worker_id/job-post-answers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteWorkerJobPostAnswer);
+
+  server.get("/api/v1/admin/workers/:worker_id/saved-jobs", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkerSavedJobs);
+  server.delete("/api/v1/admin/workers/:worker_id/saved-jobs/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteWorkerSavedJob);
+
   server.get("/api/v1/admin/employers", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployers);
   server.get("/api/v1/admin/employers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployerById);
   server.put("/api/v1/admin/employers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateEmployer);

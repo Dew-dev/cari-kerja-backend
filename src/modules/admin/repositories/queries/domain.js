@@ -256,6 +256,168 @@ class AdminQuery {
     return wrapper.data(result.rows);
   }
 
+  // ==================== WORKER SUB-RESOURCES ====================
+  async findWorker(worker_id) {
+    const worker = await this.db.findOne({ id: worker_id }, { id: 1 }, "workers");
+    if (worker.err) return null;
+    return worker.data;
+  }
+
+  async getWorkerWorkExperiences(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT id, company_name, job_title, start_date, end_date, is_current, description, created_at, updated_at
+      FROM work_experiences
+      WHERE worker_id = $1
+      ORDER BY start_date DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerEducations(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT id, institution_name, degree, major, start_date, end_date, is_current, description, created_at, updated_at
+      FROM educations
+      WHERE worker_id = $1
+      ORDER BY start_date DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerCertifications(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT id, name, issuer, link, credential_id, issue_date, expiry_date, is_active, created_at, updated_at
+      FROM certifications
+      WHERE worker_id = $1
+      ORDER BY issue_date DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerPortfolios(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT id, title, link, description, is_public, created_at, updated_at
+      FROM portfolios
+      WHERE worker_id = $1
+      ORDER BY updated_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerLanguages(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT wl.id, wl.language_name, wl.language_id, wl.proficiency_level_id,
+             pl.name AS proficiency_level_name, wl.is_primary, wl.updated_at
+      FROM worker_languages wl
+      LEFT JOIN proficiency_levels pl ON pl.id = wl.proficiency_level_id
+      WHERE wl.worker_id = $1
+      ORDER BY wl.updated_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerResumes(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT id, resume_url, title, is_default, created_at, updated_at
+      FROM resumes
+      WHERE worker_id = $1
+      ORDER BY updated_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerSkills(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT ws.skill_id, s.skill_name, ws.created_at
+      FROM worker_skills ws
+      JOIN skills s ON ws.skill_id = s.id
+      WHERE ws.worker_id = $1
+      ORDER BY s.skill_name ASC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerApplications(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT a.id, a.job_post_id, jp.title AS job_title, r.company_name,
+             a.application_status_id, s.name AS status_name,
+             a.resume_id, a.cover_letter, a.applied_at, a.updated_at
+      FROM job_applications a
+      JOIN job_posts jp ON a.job_post_id = jp.id
+      JOIN recruiters r ON jp.recruiter_id = r.id
+      JOIN application_statuses s ON a.application_status_id = s.id
+      WHERE a.worker_id = $1 AND a.deleted_at IS NULL
+      ORDER BY a.applied_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerJobPostAnswers(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT ans.id, ans.job_application_id, ans.question_id,
+             q.question_text AS question, jp.title AS job_title,
+             ans.answer, ans.submitted_at
+      FROM job_post_answers ans
+      JOIN job_applications a ON ans.job_application_id = a.id
+      JOIN job_post_questions q ON ans.question_id = q.id
+      JOIN job_posts jp ON a.job_post_id = jp.id
+      WHERE a.worker_id = $1
+      ORDER BY ans.submitted_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerSavedJobs(payload) {
+    const { worker_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const rawQuery = `
+      SELECT sj.id, sj.job_post_id, jp.title AS job_title, r.company_name, sj.created_at
+      FROM saved_jobs sj
+      JOIN job_posts jp ON sj.job_post_id = jp.id
+      JOIN recruiters r ON jp.recruiter_id = r.id
+      WHERE sj.worker_id = $1
+      ORDER BY sj.created_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
   // ==================== PAYMENT ORDERS ====================
   async getPaymentOrders(payload) {
     const { page, limit, search, status, order_type } = payload;

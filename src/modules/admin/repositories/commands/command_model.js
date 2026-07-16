@@ -200,6 +200,138 @@ const deleteApplicationParamType = joi.object({
   hard_delete: joi.boolean().default(false)
 });
 
+// ==================== WORKER SUB-RESOURCES ====================
+// Field per resource (payload sama dengan endpoint worker masing-masing)
+const workerSubResourceFields = {
+  work_experiences: {
+    company_name: joi.string().max(150),
+    job_title: joi.string().max(100),
+    start_date: joi.string(),
+    end_date: joi.string().allow(null),
+    is_current: joi.boolean(),
+    description: joi.string().allow("", null)
+  },
+  educations: {
+    institution_name: joi.string().max(150),
+    degree: joi.string().max(100),
+    major: joi.string().max(100).allow("", null),
+    start_date: joi.string(),
+    end_date: joi.string().allow(null),
+    is_current: joi.boolean(),
+    description: joi.string().allow("", null)
+  },
+  certifications: {
+    name: joi.string().max(150),
+    issuer: joi.string().max(150),
+    link: joi.string().allow("", null),
+    credential_id: joi.string().max(100).allow("", null),
+    issue_date: joi.string(),
+    expiry_date: joi.string().allow(null),
+    is_active: joi.boolean()
+  },
+  portfolios: {
+    title: joi.string().max(150),
+    link: joi.string().max(500),
+    description: joi.string().allow("", null),
+    is_public: joi.boolean()
+  }
+};
+
+const buildSubResourceSchema = (fields, extraKeys) => joi.object({
+  resource: joi.string().valid(...Object.keys(workerSubResourceFields)).required(),
+  worker_id: joi.string().guid().required(),
+  ...extraKeys,
+  ...fields
+});
+
+// Gabungan semua field resource sebagai optional; validasi kolom relevan dilakukan
+// oleh config WORKER_SUBRESOURCES di domain (kolom tak relevan diabaikan).
+const allSubResourceFields = Object.assign({}, ...Object.values(workerSubResourceFields).map(fields =>
+  Object.fromEntries(Object.entries(fields).map(([key, schema]) => [key, schema.optional()]))
+));
+
+const insertWorkerSubResourceParamType = buildSubResourceSchema(allSubResourceFields, {});
+
+const updateWorkerSubResourceParamType = buildSubResourceSchema(allSubResourceFields, {
+  id: joi.string().guid().required()
+});
+
+const deleteWorkerSubResourceParamType = joi.object({
+  resource: joi.string().valid(...Object.keys(workerSubResourceFields)).required(),
+  worker_id: joi.string().guid().required(),
+  id: joi.string().guid().required()
+});
+
+const insertWorkerLanguageParamType = joi.object({
+  worker_id: joi.string().guid().required(),
+  language_name: joi.string().max(100).required(),
+  proficiency_level_id: joi.number().required(),
+  is_primary: joi.boolean().default(false)
+});
+
+const updateWorkerLanguageParamType = joi.object({
+  worker_id: joi.string().guid().required(),
+  id: joi.string().guid().required(),
+  language_name: joi.string().max(100).optional(),
+  proficiency_level_id: joi.number().optional(),
+  is_primary: joi.boolean().optional()
+});
+
+const deleteWorkerLanguageParamType = joi.object({
+  worker_id: joi.string().guid().required(),
+  id: joi.string().guid().required()
+});
+
+const updateWorkerResumeParamType = joi.object({
+  worker_id: joi.string().guid().required(),
+  id: joi.string().guid().required(),
+  title: joi.string().max(150).optional(),
+  is_default: joi.boolean().optional()
+});
+
+const deleteWorkerResumeParamType = joi.object({
+  worker_id: joi.string().guid().required(),
+  id: joi.string().guid().required()
+});
+
+const insertWorkerSkillParamType = joi.object({
+  worker_id: joi.string().guid().required(),
+  skill_id: joi.string().guid().required()
+});
+
+const deleteWorkerSkillParamType = joi.object({
+  worker_id: joi.string().guid().required(),
+  skill_id: joi.string().guid().required()
+});
+
+const updateWorkerApplicationParamType = joi.object({
+  worker_id: joi.string().guid().required(),
+  id: joi.string().guid().required(),
+  application_status_id: joi.number().optional(),
+  cover_letter: joi.string().allow("", null).optional()
+});
+
+const deleteWorkerApplicationParamType = joi.object({
+  worker_id: joi.string().guid().required(),
+  id: joi.string().guid().required()
+});
+
+const updateWorkerJobPostAnswerParamType = joi.object({
+  worker_id: joi.string().guid().required(),
+  id: joi.string().guid().required(),
+  answer: joi.alternatives().try(joi.string(), joi.object(), joi.array(), joi.number(), joi.boolean()).required()
+});
+
+const deleteWorkerJobPostAnswerParamType = joi.object({
+  worker_id: joi.string().guid().required(),
+  id: joi.string().guid().required()
+});
+
+const deleteWorkerSavedJobParamType = joi.object({
+  worker_id: joi.string().guid().required(),
+  id: joi.string().guid().required()
+});
+
 module.exports = {
   updateUserStatusParamType,
   verifyEmployerParamType,
@@ -228,5 +360,20 @@ module.exports = {
   insertPlanParamType,
   updatePlanParamType,
   deletePlanParamType,
-  updatePaymentOrderStatusParamType
+  updatePaymentOrderStatusParamType,
+  insertWorkerSubResourceParamType,
+  updateWorkerSubResourceParamType,
+  deleteWorkerSubResourceParamType,
+  insertWorkerLanguageParamType,
+  updateWorkerLanguageParamType,
+  deleteWorkerLanguageParamType,
+  updateWorkerResumeParamType,
+  deleteWorkerResumeParamType,
+  insertWorkerSkillParamType,
+  deleteWorkerSkillParamType,
+  updateWorkerApplicationParamType,
+  deleteWorkerApplicationParamType,
+  updateWorkerJobPostAnswerParamType,
+  deleteWorkerJobPostAnswerParamType,
+  deleteWorkerSavedJobParamType
 };

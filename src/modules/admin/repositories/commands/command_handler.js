@@ -91,6 +91,81 @@ const deleteApplication = async (payload) => {
   return await adminCommand.deleteApplication(payload);
 };
 
+const insertWorkerSubResource = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.insertWorkerSubResource(payload);
+};
+
+const updateWorkerSubResource = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.updateWorkerSubResource(payload);
+};
+
+const deleteWorkerSubResource = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.deleteWorkerSubResource(payload);
+};
+
+const insertWorkerLanguage = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.insertWorkerLanguage(payload);
+};
+
+const updateWorkerLanguage = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.updateWorkerLanguage(payload);
+};
+
+const deleteWorkerLanguage = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.deleteWorkerLanguage(payload);
+};
+
+const updateWorkerResume = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.updateWorkerResume(payload);
+};
+
+const deleteWorkerResume = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.deleteWorkerResume(payload);
+};
+
+const insertWorkerSkill = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.insertWorkerSkill(payload);
+};
+
+const deleteWorkerSkill = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.deleteWorkerSkill(payload);
+};
+
+const updateWorkerApplication = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.updateWorkerApplication(payload);
+};
+
+const deleteWorkerApplication = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.deleteWorkerApplication(payload);
+};
+
+const updateWorkerJobPostAnswer = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.updateWorkerJobPostAnswer(payload);
+};
+
+const deleteWorkerJobPostAnswer = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.deleteWorkerJobPostAnswer(payload);
+};
+
+const deleteWorkerSavedJob = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.deleteWorkerSavedJob(payload);
+};
+
 const updatePaymentOrderStatus = async (payload) => {
   const adminCommand = new Domain();
   return await adminCommand.updatePaymentOrderStatus(payload);
@@ -169,5 +244,20 @@ module.exports = {
   insertPlan,
   updatePlan,
   deletePlan,
-  updatePaymentOrderStatus
+  updatePaymentOrderStatus,
+  insertWorkerSubResource,
+  updateWorkerSubResource,
+  deleteWorkerSubResource,
+  insertWorkerLanguage,
+  updateWorkerLanguage,
+  deleteWorkerLanguage,
+  updateWorkerResume,
+  deleteWorkerResume,
+  insertWorkerSkill,
+  deleteWorkerSkill,
+  updateWorkerApplication,
+  deleteWorkerApplication,
+  updateWorkerJobPostAnswer,
+  deleteWorkerJobPostAnswer,
+  deleteWorkerSavedJob
 };

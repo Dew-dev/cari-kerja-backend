@@ -4,6 +4,9 @@ const config = require("../../../../config/global_config");
 const { NotFoundError, InternalServerError, BadRequestError, ConflictError } = require("../../../../helpers/errors");
 const { LOOKUP_CONFIG } = require("../../helpers/lookup_config");
 const { PLAN_CONFIG } = require("../../helpers/plan_config");
+const { WORKER_SUBRESOURCES } = require("../../helpers/worker_subresource_config");
+const { deleteObjectStream } = require("../../../../helpers/databases/r2-cloudflare/oss");
+const { v4: uuidv4 } = require("uuid");
 
 class AdminCommand {
   constructor() {
@@ -311,6 +314,256 @@ class AdminCommand {
       `INSERT INTO audit_logs (user_id, action, ip_address, user_agent) VALUES ($1, $2, $3, $4)`,
       [user_id, action, ip_address, user_agent]
     );
+  }
+
+  // ==================== WORKER SUB-RESOURCES ====================
+  async findWorker(worker_id) {
+    const worker = await this.db.findOne({ id: worker_id }, { id: 1 }, "workers");
+    if (worker.err) return null;
+    return worker.data;
+  }
+
+  // Insert/update/delete generik untuk work_experiences, educations, certifications, portfolios.
+  // Pakai db.insertOne/updateOneNew agar enkripsi kolom sensitif tetap konsisten dengan module worker.
+  async insertWorkerSubResource(payload) {
+    const { resource, worker_id, ...data } = payload;
+    const config = WORKER_SUBRESOURCES[resource];
+    if (!config) return wrapper.error(new BadRequestError("Invalid sub-resource"));
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const document = { id: uuidv4(), worker_id };
+    for (const column of config.columns) {
+      if (data[column] !== undefined) document[column] = data[column];
+    }
+
+    const result = await this.db.insertOne(document, config.table);
+    if (result.err) return wrapper.error(new InternalServerError(`Failed to insert ${config.label.toLowerCase()}`));
+    return wrapper.data({ id: document.id });
+  }
+
+  async updateWorkerSubResource(payload) {
+    const { resource, worker_id, id, ...data } = payload;
+    const config = WORKER_SUBRESOURCES[resource];
+    if (!config) return wrapper.error(new BadRequestError("Invalid sub-resource"));
+
+    const existing = await this.db.findOne({ id, worker_id }, { id: 1 }, config.table);
+    if (existing.err) return wrapper.error(new NotFoundError(`${config.label} not found`));
+
+    const document = {};
+    for (const column of config.columns) {
+      if (data[column] !== undefined) document[column] = data[column];
+    }
+    if (Object.keys(document).length === 0) return wrapper.error(new BadRequestError("No data to update"));
+
+    const result = await this.db.updateOneNew({ id, worker_id }, document, config.table);
+    if (result.err) return wrapper.error(new InternalServerError(`Failed to update ${config.label.toLowerCase()}`));
+    return wrapper.data({ id });
+  }
+
+  async deleteWorkerSubResource(payload) {
+    const { resource, worker_id, id } = payload;
+    const config = WORKER_SUBRESOURCES[resource];
+    if (!config) return wrapper.error(new BadRequestError("Invalid sub-resource"));
+
+    const rawQuery = `DELETE FROM ${config.table} WHERE id = $1 AND worker_id = $2 RETURNING id`;
+    const result = await this.db.executeQuery(rawQuery, [id, worker_id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError(`${config.label} not found`));
+    return wrapper.data(`${config.label} deleted successfully`);
+  }
+
+  // Languages: perlu resolve language_id ke master lookup
+  async resolveLanguageId(languageName) {
+    const rawQuery = `
+      WITH ins AS (
+        INSERT INTO languages (name)
+        VALUES (INITCAP(TRIM($1)))
+        ON CONFLICT (name) DO NOTHING
+        RETURNING id
+      )
+      SELECT id FROM ins
+      UNION
+      SELECT id FROM languages WHERE name = INITCAP(TRIM($1))
+    `;
+    const result = await this.db.executeQuery(rawQuery, [languageName]);
+    return result?.rows?.[0]?.id || null;
+  }
+
+  async insertWorkerLanguage(payload) {
+    const { worker_id, language_name, proficiency_level_id, is_primary } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const language_id = await this.resolveLanguageId(language_name);
+    const document = {
+      id: uuidv4(),
+      worker_id,
+      language_name,
+      language_id,
+      proficiency_level_id,
+      is_primary: is_primary || false
+    };
+    const result = await this.db.insertOne(document, "worker_languages");
+    if (result.err) return wrapper.error(new InternalServerError("Failed to insert language"));
+    return wrapper.data({ id: document.id });
+  }
+
+  async updateWorkerLanguage(payload) {
+    const { worker_id, id, language_name, proficiency_level_id, is_primary } = payload;
+    const existing = await this.db.findOne({ id, worker_id }, { id: 1 }, "worker_languages");
+    if (existing.err) return wrapper.error(new NotFoundError("Language not found"));
+
+    const document = {};
+    if (language_name !== undefined) {
+      document.language_name = language_name;
+      document.language_id = await this.resolveLanguageId(language_name);
+    }
+    if (proficiency_level_id !== undefined) document.proficiency_level_id = proficiency_level_id;
+    if (is_primary !== undefined) document.is_primary = is_primary;
+    if (Object.keys(document).length === 0) return wrapper.error(new BadRequestError("No data to update"));
+
+    const result = await this.db.updateOneNew({ id, worker_id }, document, "worker_languages");
+    if (result.err) return wrapper.error(new InternalServerError("Failed to update language"));
+    return wrapper.data({ id });
+  }
+
+  async deleteWorkerLanguage(payload) {
+    const { worker_id, id } = payload;
+    const rawQuery = `DELETE FROM worker_languages WHERE id = $1 AND worker_id = $2 RETURNING id`;
+    const result = await this.db.executeQuery(rawQuery, [id, worker_id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Language not found"));
+    return wrapper.data("Language deleted successfully");
+  }
+
+  // Resumes: update title/is_default, delete termasuk file R2
+  async updateWorkerResume(payload) {
+    const { worker_id, id, title, is_default } = payload;
+    const existing = await this.db.findOne({ id, worker_id }, { id: 1 }, "resumes");
+    if (existing.err) return wrapper.error(new NotFoundError("Resume not found"));
+
+    if (is_default === true) {
+      await this.db.executeQuery(
+        `UPDATE resumes SET is_default = FALSE WHERE worker_id = $1 AND is_default = TRUE AND id <> $2`,
+        [worker_id, id]
+      );
+    }
+
+    const rawQuery = `
+      UPDATE resumes
+      SET title = COALESCE($1, title),
+          is_default = COALESCE($2, is_default),
+          updated_at = NOW()
+      WHERE id = $3 AND worker_id = $4
+      RETURNING id, resume_url, title, is_default, updated_at
+    `;
+    const result = await this.db.executeQuery(rawQuery, [title, is_default, id, worker_id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Resume not found"));
+    return wrapper.data(result.rows[0]);
+  }
+
+  async deleteWorkerResume(payload) {
+    const { worker_id, id } = payload;
+    const rawQuery = `DELETE FROM resumes WHERE id = $1 AND worker_id = $2 RETURNING id, resume_url`;
+    const result = await this.db.executeQuery(rawQuery, [id, worker_id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Resume not found"));
+
+    const resumeUrl = result.rows[0].resume_url;
+    if (resumeUrl) {
+      // best-effort: file key di R2 = path tanpa leading slash
+      await deleteObjectStream(resumeUrl.replace(/^\//, ""));
+    }
+    return wrapper.data("Resume deleted successfully");
+  }
+
+  // Skills (composite PK worker_id + skill_id)
+  async insertWorkerSkill(payload) {
+    const { worker_id, skill_id } = payload;
+    if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
+
+    const skill = await this.db.findOne({ id: skill_id }, { id: 1 }, "skills");
+    if (skill.err) return wrapper.error(new NotFoundError("Skill not found"));
+
+    const rawQuery = `
+      INSERT INTO worker_skills (worker_id, skill_id)
+      VALUES ($1, $2)
+      ON CONFLICT (worker_id, skill_id) DO NOTHING
+      RETURNING worker_id, skill_id
+    `;
+    const result = await this.db.executeQuery(rawQuery, [worker_id, skill_id]);
+    if (result.rowCount === 0) return wrapper.error(new ConflictError("Worker already has this skill"));
+    return wrapper.data(result.rows[0]);
+  }
+
+  async deleteWorkerSkill(payload) {
+    const { worker_id, skill_id } = payload;
+    const rawQuery = `DELETE FROM worker_skills WHERE worker_id = $1 AND skill_id = $2 RETURNING skill_id`;
+    const result = await this.db.executeQuery(rawQuery, [worker_id, skill_id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Worker skill not found"));
+    return wrapper.data("Worker skill deleted successfully");
+  }
+
+  // Applications
+  async updateWorkerApplication(payload) {
+    const { worker_id, id, application_status_id, cover_letter } = payload;
+    const rawQuery = `
+      UPDATE job_applications
+      SET application_status_id = COALESCE($1, application_status_id),
+          cover_letter = COALESCE($2, cover_letter),
+          updated_at = NOW()
+      WHERE id = $3 AND worker_id = $4 AND deleted_at IS NULL
+      RETURNING id, job_post_id, application_status_id, cover_letter, updated_at
+    `;
+    const result = await this.db.executeQuery(rawQuery, [application_status_id, cover_letter, id, worker_id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Application not found"));
+    return wrapper.data(result.rows[0]);
+  }
+
+  async deleteWorkerApplication(payload) {
+    const { worker_id, id } = payload;
+    const rawQuery = `
+      UPDATE job_applications SET deleted_at = NOW()
+      WHERE id = $1 AND worker_id = $2 AND deleted_at IS NULL
+      RETURNING id
+    `;
+    const result = await this.db.executeQuery(rawQuery, [id, worker_id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Application not found"));
+    return wrapper.data("Application deleted successfully");
+  }
+
+  // Job post answers (scoped via job_applications.worker_id)
+  async updateWorkerJobPostAnswer(payload) {
+    const { worker_id, id, answer } = payload;
+    const answerJson = JSON.stringify(answer);
+    const rawQuery = `
+      UPDATE job_post_answers ans
+      SET answer = $1::jsonb
+      FROM job_applications a
+      WHERE ans.id = $2 AND ans.job_application_id = a.id AND a.worker_id = $3
+      RETURNING ans.id, ans.answer, ans.submitted_at
+    `;
+    const result = await this.db.executeQuery(rawQuery, [answerJson, id, worker_id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Answer not found"));
+    return wrapper.data(result.rows[0]);
+  }
+
+  async deleteWorkerJobPostAnswer(payload) {
+    const { worker_id, id } = payload;
+    const rawQuery = `
+      DELETE FROM job_post_answers ans
+      USING job_applications a
+      WHERE ans.id = $1 AND ans.job_application_id = a.id AND a.worker_id = $2
+      RETURNING ans.id
+    `;
+    const result = await this.db.executeQuery(rawQuery, [id, worker_id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Answer not found"));
+    return wrapper.data("Answer deleted successfully");
+  }
+
+  // Saved jobs
+  async deleteWorkerSavedJob(payload) {
+    const { worker_id, id } = payload;
+    const rawQuery = `DELETE FROM saved_jobs WHERE id = $1 AND worker_id = $2 RETURNING id`;
+    const result = await this.db.executeQuery(rawQuery, [id, worker_id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Saved job not found"));
+    return wrapper.data("Saved job deleted successfully");
   }
 
   // ==================== PAYMENT ORDERS ====================
