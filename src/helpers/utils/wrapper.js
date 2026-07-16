@@ -11,7 +11,16 @@ const {
 } = require("../errors");
 const { ERROR: httpError } = require("../http-status/status_code");
 
-const data = (data) => ({ err: null, data });
+const data = (data, message = null, code = null) => {
+  const result = { err: null, data };
+  if (message != null) {
+    result.message = message;
+  }
+  if (code != null) {
+    result.code = code;
+  }
+  return result;
+};
 
 const paginationData = (data, meta) => ({ err: null, data, meta });
 

@@ -2,7 +2,11 @@
 const wrapper = require("./wrapper");
 
 const sendResponse = async (result, res, code = 200) => {
-  return result.err ? wrapper.response(res, "fail", result) : wrapper.response(res, "success", result, "Your Request Has Been Processed", code);
+  const statusCode = result.code ?? code;
+  const message = result.message || "Your Request Has Been Processed";
+  return result.err
+    ? wrapper.response(res, "fail", result)
+    : wrapper.response(res, "success", result, message, statusCode);
 };
 
 const paginationResponse = async (result, res) => {
