@@ -25,7 +25,8 @@ class Languages {
 
   // INSERT one language
   async insertOne(payload) {
-    const language_id = await this.resolveLanguageId(payload.language_name);
+    // Pakai language_id dari payload bila dikirim, tanpa upsert; jika tidak, resolve dari nama
+    const language_id = payload.language_id || (await this.resolveLanguageId(payload.language_name));
     const document = {
       id: uuidv4(),
       worker_id: payload.worker_id,
@@ -51,7 +52,7 @@ class Languages {
       return wrapper.error(new NotFoundError("Language not found"));
     }
 
-    const language_id = await this.resolveLanguageId(payload.language_name);
+    const language_id = payload.language_id || (await this.resolveLanguageId(payload.language_name));
     const document = {
       language_name: payload.language_name,
       language_id,

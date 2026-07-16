@@ -3,6 +3,12 @@ const languagesHandler = require("../modules/languages/handlers/api_handler");
 
 module.exports = (server) => {
   /**
+   * GET master languages untuk dropdown (publik, pola seperti nationalities)
+   * Endpoint: /api/v1/languages?search=<keyword>
+   */
+  server.get("/api/v1/languages", languagesHandler.getMasterLanguages);
+
+  /**
    * GET all languages by worker_id
    * Endpoint: /api/v1/workers/languages
    */

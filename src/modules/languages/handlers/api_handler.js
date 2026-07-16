@@ -5,6 +5,17 @@ const queryModel = require("../repositories/queries/query_model");
 const validator = require("../../../helpers/utils/validator");
 const { sendResponse } = require("../../../helpers/utils/response");
 
+// GET ALL master languages (dropdown, publik)
+const getMasterLanguages = async (req, res) => {
+    const payload = { ...req.query };
+    const validatePayload = validator.isValidPayload(payload, queryModel.getAllMasterLanguagesParam);
+    if (validatePayload.err) {
+        return sendResponse(validatePayload, res);
+    }
+    const result = await queryHandler.getAllMasterLanguages(validatePayload.data);
+    return sendResponse(result, res);
+};
+
 // GET ALL Languages
 const getAllLanguages = async (req, res) => {
     const payload = { worker_id: req.userMeta.worker_id };
@@ -50,6 +61,7 @@ const deleteLanguages = async (req, res) => {
 };
 
 module.exports = {
+    getMasterLanguages,
     getAllLanguages,
     insertLanguages,
     updateLanguages,
