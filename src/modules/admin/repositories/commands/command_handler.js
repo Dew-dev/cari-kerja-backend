@@ -91,6 +91,36 @@ const deleteApplication = async (payload) => {
   return await adminCommand.deleteApplication(payload);
 };
 
+const insertProvince = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.insertProvince(payload);
+};
+
+const updateProvince = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.updateProvince(payload);
+};
+
+const deleteProvince = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.deleteProvince(payload);
+};
+
+const insertCity = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.insertCity(payload);
+};
+
+const updateCity = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.updateCity(payload);
+};
+
+const deleteCity = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.deleteCity(payload);
+};
+
 module.exports = {
   updateUserStatus,
   verifyEmployer,
@@ -109,5 +139,11 @@ module.exports = {
   updateJob,
   deleteJob,
   updateApplication,
-  deleteApplication
+  deleteApplication,
+  insertProvince,
+  updateProvince,
+  deleteProvince,
+  insertCity,
+  updateCity,
+  deleteCity
 };

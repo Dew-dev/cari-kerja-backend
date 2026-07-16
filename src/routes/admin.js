@@ -49,6 +49,14 @@ module.exports = (server) => {
   server.delete("/api/v1/admin/jobs/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteJob);
   server.put("/api/v1/admin/jobs/:id/status", verifyToken, verifyRole(allowedRoles), adminHandler.updateJobStatus);
   
+  // Locations CRUD (read tetap via /api/v1/locations/*)
+  server.post("/api/v1/admin/locations/provinces", verifyToken, verifyRole(allowedRoles), adminHandler.insertProvince);
+  server.put("/api/v1/admin/locations/provinces/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateProvince);
+  server.delete("/api/v1/admin/locations/provinces/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteProvince);
+  server.post("/api/v1/admin/locations/cities", verifyToken, verifyRole(allowedRoles), adminHandler.insertCity);
+  server.put("/api/v1/admin/locations/cities/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateCity);
+  server.delete("/api/v1/admin/locations/cities/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteCity);
+
   server.get("/api/v1/admin/applications", verifyToken, verifyRole(allowedRoles), adminHandler.getApplications);
   server.put("/api/v1/admin/applications/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateApplication);
   server.delete("/api/v1/admin/applications/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteApplication);

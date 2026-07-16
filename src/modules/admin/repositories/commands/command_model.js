@@ -122,6 +122,34 @@ const deleteJobParamType = joi.object({
   hard_delete: joi.boolean().default(false)
 });
 
+const insertProvinceParamType = joi.object({
+  name: joi.string().max(100).required()
+});
+
+const updateProvinceParamType = joi.object({
+  id: joi.number().required(),
+  name: joi.string().max(100).required()
+});
+
+const deleteProvinceParamType = joi.object({
+  id: joi.number().required()
+});
+
+const insertCityParamType = joi.object({
+  name: joi.string().max(100).required(),
+  province_id: joi.number().required()
+});
+
+const updateCityParamType = joi.object({
+  id: joi.number().required(),
+  name: joi.string().max(100).optional(),
+  province_id: joi.number().optional()
+});
+
+const deleteCityParamType = joi.object({
+  id: joi.number().required()
+});
+
 const updateApplicationParamType = joi.object({
   id: joi.string().guid().required(),
   status_name: joi.string().required()
@@ -150,5 +178,11 @@ module.exports = {
   updateJobParamType,
   deleteJobParamType,
   updateApplicationParamType,
-  deleteApplicationParamType
+  deleteApplicationParamType,
+  insertProvinceParamType,
+  updateProvinceParamType,
+  deleteProvinceParamType,
+  insertCityParamType,
+  updateCityParamType,
+  deleteCityParamType
 };

@@ -305,6 +305,80 @@ class AdminCommand {
     return wrapper.data(result.rows[0]);
   }
 
+  // ==================== LOCATIONS ====================
+  async insertProvince(payload) {
+    const { name } = payload;
+    const rawQuery = `INSERT INTO provinces (name) VALUES ($1) RETURNING id, name`;
+    try {
+      const result = await this.db.executeQuery(rawQuery, [name]);
+      return wrapper.data(result.rows[0]);
+    } catch (err) {
+      return wrapper.error(new InternalServerError("Failed to insert province"));
+    }
+  }
+
+  async updateProvince(payload) {
+    const { id, name } = payload;
+    const rawQuery = `UPDATE provinces SET name = $1 WHERE id = $2 RETURNING id, name`;
+    const result = await this.db.executeQuery(rawQuery, [name, id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Province not found"));
+    return wrapper.data(result.rows[0]);
+  }
+
+  async deleteProvince(payload) {
+    const { id } = payload;
+    const countQuery = `SELECT COUNT(*) FROM cities WHERE province_id = $1`;
+    const countResult = await this.db.executeQuery(countQuery, [id]);
+    if (parseInt(countResult?.rows[0]?.count || 0) > 0) {
+      return wrapper.error(new ConflictError("Province still has related cities"));
+    }
+
+    const rawQuery = `DELETE FROM provinces WHERE id = $1 RETURNING id`;
+    const result = await this.db.executeQuery(rawQuery, [id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Province not found"));
+    return wrapper.data("Province deleted successfully");
+  }
+
+  async insertCity(payload) {
+    const { name, province_id } = payload;
+    const province = await this.db.executeQuery(`SELECT id FROM provinces WHERE id = $1`, [province_id]);
+    if (province.rows.length === 0) return wrapper.error(new NotFoundError("Province not found"));
+
+    const rawQuery = `INSERT INTO cities (name, province_id) VALUES ($1, $2) RETURNING id, name, province_id`;
+    try {
+      const result = await this.db.executeQuery(rawQuery, [name, province_id]);
+      return wrapper.data(result.rows[0]);
+    } catch (err) {
+      return wrapper.error(new InternalServerError("Failed to insert city"));
+    }
+  }
+
+  async updateCity(payload) {
+    const { id, name, province_id } = payload;
+    if (province_id !== undefined) {
+      const province = await this.db.executeQuery(`SELECT id FROM provinces WHERE id = $1`, [province_id]);
+      if (province.rows.length === 0) return wrapper.error(new NotFoundError("Province not found"));
+    }
+    const rawQuery = `
+      UPDATE cities
+      SET name = COALESCE($1, name),
+          province_id = COALESCE($2, province_id)
+      WHERE id = $3
+      RETURNING id, name, province_id
+    `;
+    const result = await this.db.executeQuery(rawQuery, [name, province_id, id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("City not found"));
+    return wrapper.data(result.rows[0]);
+  }
+
+  async deleteCity(payload) {
+    const { id } = payload;
+    const rawQuery = `DELETE FROM cities WHERE id = $1 RETURNING id`;
+    const result = await this.db.executeQuery(rawQuery, [id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("City not found"));
+    return wrapper.data("City deleted successfully");
+  }
+
   async deleteApplication(payload) {
     const { id, hard_delete } = payload;
     let query = "";

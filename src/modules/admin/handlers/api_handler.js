@@ -313,6 +313,61 @@ const deleteApplication = async (req, res) => {
   return sendResponse(result, res);
 };
 
+// locations
+const insertProvince = async (req, res) => {
+  const payload = { ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.insertProvinceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.insertProvince(validatePayload.data);
+  return sendResponse(result, res, 201);
+};
+
+const updateProvince = async (req, res) => {
+  const payload = { id: req.params.id, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateProvinceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updateProvince(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteProvince = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteProvinceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteProvince(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const insertCity = async (req, res) => {
+  const payload = { ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.insertCityParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.insertCity(validatePayload.data);
+  return sendResponse(result, res, 201);
+};
+
+const updateCity = async (req, res) => {
+  const payload = { id: req.params.id, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateCityParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updateCity(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteCity = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteCityParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteCity(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 module.exports = {
   getDashboardStats,
   getDashboardGrowth,
@@ -347,5 +402,11 @@ module.exports = {
   updateJob,
   deleteJob,
   updateApplication,
-  deleteApplication
+  deleteApplication,
+  insertProvince,
+  updateProvince,
+  deleteProvince,
+  insertCity,
+  updateCity,
+  deleteCity
 };
