@@ -9,6 +9,20 @@ class Languages {
     this.query = new Query(db);
   }
 
+  // Get All master languages (dropdown)
+  async getAllMasterLanguages(payload) {
+    const { search } = payload || {};
+
+    const result = await this.query.findAllMasterLanguages(search);
+
+    if (result.err) {
+      logger.error(ctx, "getAllMasterLanguages", "Failed to get master languages", result.err);
+      return wrapper.error(new NotFoundError("Cannot find languages"));
+    }
+
+    return wrapper.data(result.data);
+  }
+
   // Get All Languages By Worker Id
   async getAllLanguagesByWorkerId(payload) {
     const { worker_id } = payload;

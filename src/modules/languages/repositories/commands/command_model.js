@@ -3,6 +3,7 @@ const joi = require("joi");
 // Schema untuk menambahkan Languages
 const addLanguagesParamType = joi.object({
   worker_id: joi.string().required(),
+  language_id: joi.number().integer().optional(),
   language_name: joi.string().max(100).required(),
   proficiency_level_id: joi.number().integer().required(),
   is_primary: joi.boolean().optional().default(false),
@@ -12,6 +13,7 @@ const addLanguagesParamType = joi.object({
 const updateLanguagesParamType = joi.object({
   id: joi.string().required(), // Languages id
   worker_id: joi.string().required(),
+  language_id: joi.number().integer().optional(),
   language_name: joi.string().max(100).required(),
   proficiency_level_id: joi.number().integer().required(),
   is_primary: joi.boolean().optional().default(false),
