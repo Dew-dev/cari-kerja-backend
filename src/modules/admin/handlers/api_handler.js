@@ -313,6 +313,40 @@ const deleteApplication = async (req, res) => {
   return sendResponse(result, res);
 };
 
+// payment orders
+const getPaymentOrders = async (req, res) => {
+  const payload = { ...req.query };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getPaymentOrdersParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getPaymentOrders(validatePayload.data);
+  return paginationResponse(result, res);
+};
+
+const getPaymentOrderById = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getPaymentOrderByIdParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getPaymentOrderById(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const updatePaymentOrderStatus = async (req, res) => {
+  const payload = {
+    id: req.params.id,
+    ...req.body,
+    admin_user_id: req.userMeta.id,
+    ip_address: req.ip,
+    user_agent: req.headers["user-agent"]
+  };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updatePaymentOrderStatusParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updatePaymentOrderStatus(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 // plans
 const getAllPlans = async (req, res) => {
   const payload = { ...req.query };
@@ -459,5 +493,8 @@ module.exports = {
   getPlansByType,
   insertPlan,
   updatePlan,
-  deletePlan
+  deletePlan,
+  getPaymentOrders,
+  getPaymentOrderById,
+  updatePaymentOrderStatus
 };

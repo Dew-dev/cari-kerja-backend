@@ -49,6 +49,11 @@ module.exports = (server) => {
   server.delete("/api/v1/admin/jobs/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteJob);
   server.put("/api/v1/admin/jobs/:id/status", verifyToken, verifyRole(allowedRoles), adminHandler.updateJobStatus);
   
+  // Payment Orders
+  server.get("/api/v1/admin/payment-orders", verifyToken, verifyRole(allowedRoles), adminHandler.getPaymentOrders);
+  server.get("/api/v1/admin/payment-orders/:id", verifyToken, verifyRole(allowedRoles), adminHandler.getPaymentOrderById);
+  server.put("/api/v1/admin/payment-orders/:id/status", verifyToken, verifyRole(allowedRoles), adminHandler.updatePaymentOrderStatus);
+
   // Plans CRUD (:type = subscription | single_post | boost)
   server.get("/api/v1/admin/plans", verifyToken, verifyRole(allowedRoles), adminHandler.getAllPlans);
   server.get("/api/v1/admin/plans/:type", verifyToken, verifyRole(allowedRoles), adminHandler.getPlansByType);

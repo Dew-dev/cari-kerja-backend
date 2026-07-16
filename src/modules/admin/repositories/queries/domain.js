@@ -256,6 +256,86 @@ class AdminQuery {
     return wrapper.data(result.rows);
   }
 
+  // ==================== PAYMENT ORDERS ====================
+  async getPaymentOrders(payload) {
+    const { page, limit, search, status, order_type } = payload;
+    const conditions = [];
+    const values = [];
+    let idx = 1;
+
+    if (search) {
+      conditions.push(`(r.company_name ILIKE $${idx} OR po.xendit_external_id ILIKE $${idx})`);
+      values.push(`%${search}%`);
+      idx++;
+    }
+    if (status) {
+      conditions.push(`po.status = $${idx}`);
+      values.push(status);
+      idx++;
+    }
+    if (order_type) {
+      conditions.push(`po.order_type = $${idx}`);
+      values.push(order_type);
+      idx++;
+    }
+    const whereQuery = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const offset = limit * (page - 1);
+
+    const planJoin = `
+      LEFT JOIN subscription_plans sp ON po.plan_type = 'subscription_plans' AND po.plan_id = sp.id
+      LEFT JOIN single_post_plans spp ON po.plan_type = 'single_post_plans' AND po.plan_id = spp.id
+      LEFT JOIN boost_plans bp ON po.plan_type = 'boost_plans' AND po.plan_id = bp.id
+    `;
+
+    const rawQuery = `
+      SELECT po.id, po.recruiter_id, po.order_type, po.plan_id, po.plan_type, po.job_post_id,
+             po.xendit_invoice_id, po.xendit_external_id, po.amount, po.status,
+             po.paid_at, po.invoice_expires_at, po.created_at, po.updated_at,
+             r.company_name,
+             COALESCE(sp.display_name, spp.display_name, bp.display_name) AS plan_name
+      FROM payment_orders po
+      JOIN recruiters r ON po.recruiter_id = r.id
+      ${planJoin}
+      ${whereQuery}
+      ORDER BY po.created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+    const result = await this.db.executeQuery(rawQuery, values);
+
+    const countQuery = `
+      SELECT COUNT(*)
+      FROM payment_orders po
+      JOIN recruiters r ON po.recruiter_id = r.id
+      ${whereQuery}
+    `;
+    const countResult = await this.db.executeQuery(countQuery, values);
+    const totalData = parseInt(countResult?.rows[0]?.count || 0);
+
+    return wrapper.paginationData(result?.rows || [], {
+      page, limit, totalData, totalPage: Math.ceil(totalData / limit)
+    });
+  }
+
+  async getPaymentOrderById(payload) {
+    const { id } = payload;
+    const rawQuery = `
+      SELECT po.id, po.recruiter_id, po.order_type, po.plan_id, po.plan_type, po.job_post_id,
+             po.xendit_invoice_id, po.xendit_external_id, po.amount, po.status,
+             po.paid_at, po.invoice_expires_at, po.metadata, po.created_at, po.updated_at,
+             r.company_name,
+             COALESCE(sp.display_name, spp.display_name, bp.display_name) AS plan_name
+      FROM payment_orders po
+      JOIN recruiters r ON po.recruiter_id = r.id
+      LEFT JOIN subscription_plans sp ON po.plan_type = 'subscription_plans' AND po.plan_id = sp.id
+      LEFT JOIN single_post_plans spp ON po.plan_type = 'single_post_plans' AND po.plan_id = spp.id
+      LEFT JOIN boost_plans bp ON po.plan_type = 'boost_plans' AND po.plan_id = bp.id
+      WHERE po.id = $1
+    `;
+    const result = await this.db.executeQuery(rawQuery, [id]);
+    if (result.rows.length === 0) return wrapper.error(new NotFoundError("Payment order not found"));
+    return wrapper.data(result.rows[0]);
+  }
+
   // ==================== PLANS ====================
   async getPlansByType(payload) {
     const { type } = payload;

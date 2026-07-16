@@ -306,6 +306,36 @@ class AdminCommand {
     return wrapper.data(result.rows[0]);
   }
 
+  async insertAuditLog({ user_id, action, ip_address, user_agent }) {
+    return this.db.executeQuery(
+      `INSERT INTO audit_logs (user_id, action, ip_address, user_agent) VALUES ($1, $2, $3, $4)`,
+      [user_id, action, ip_address, user_agent]
+    );
+  }
+
+  // ==================== PAYMENT ORDERS ====================
+  async updatePaymentOrderStatus(payload) {
+    const { id, status, admin_user_id, ip_address, user_agent } = payload;
+
+    const rawQuery = `
+      UPDATE payment_orders
+      SET status = $1, updated_at = NOW()
+      WHERE id = $2
+      RETURNING id, recruiter_id, order_type, plan_id, plan_type, amount, status, updated_at
+    `;
+    const result = await this.db.executeQuery(rawQuery, [status, id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Payment order not found"));
+
+    await this.insertAuditLog({
+      user_id: admin_user_id,
+      action: `ADMIN_UPDATE_PAYMENT_ORDER_STATUS ${id} -> ${status}`,
+      ip_address,
+      user_agent
+    });
+
+    return wrapper.data(result.rows[0]);
+  }
+
   // ==================== PLANS ====================
   async insertPlan(payload) {
     const { type, name, display_name, price_idr, duration_days, is_active } = payload;

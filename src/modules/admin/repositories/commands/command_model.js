@@ -150,6 +150,14 @@ const deleteCityParamType = joi.object({
   id: joi.number().required()
 });
 
+const updatePaymentOrderStatusParamType = joi.object({
+  id: joi.string().guid().required(),
+  status: joi.string().valid("pending", "paid", "expired", "failed").required(),
+  admin_user_id: joi.string().guid().required(),
+  ip_address: joi.string().allow("", null).optional(),
+  user_agent: joi.string().allow("", null).optional()
+});
+
 const planTypeParam = joi.string().valid("subscription", "single_post", "boost");
 
 const insertPlanParamType = joi.object({
@@ -216,5 +224,9 @@ module.exports = {
   deleteProvinceParamType,
   insertCityParamType,
   updateCityParamType,
-  deleteCityParamType
+  deleteCityParamType,
+  insertPlanParamType,
+  updatePlanParamType,
+  deletePlanParamType,
+  updatePaymentOrderStatusParamType
 };

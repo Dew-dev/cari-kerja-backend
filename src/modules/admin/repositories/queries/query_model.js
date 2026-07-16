@@ -64,6 +64,18 @@ const getLookupTableParamType = joi.object({
   table: joi.string().required()
 });
 
+const getPaymentOrdersParamType = joi.object({
+  page: joi.number().min(1).default(1),
+  limit: joi.number().min(1).max(100).default(10),
+  search: joi.string().allow("").optional(),
+  status: joi.string().valid("pending", "paid", "expired", "failed").optional(),
+  order_type: joi.string().valid("subscription", "single_post", "boost").optional()
+});
+
+const getPaymentOrderByIdParamType = joi.object({
+  id: joi.string().guid().required()
+});
+
 const getPlansByTypeParamType = joi.object({
   type: joi.string().valid("subscription", "single_post", "boost").required()
 });
@@ -87,5 +99,7 @@ module.exports = {
   getJobByIdParamType,
   getLookupTableParamType,
   getPlansByTypeParamType,
-  getAllPlansParamType
+  getAllPlansParamType,
+  getPaymentOrdersParamType,
+  getPaymentOrderByIdParamType
 };

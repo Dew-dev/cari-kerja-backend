@@ -91,6 +91,11 @@ const deleteApplication = async (payload) => {
   return await adminCommand.deleteApplication(payload);
 };
 
+const updatePaymentOrderStatus = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.updatePaymentOrderStatus(payload);
+};
+
 const insertPlan = async (payload) => {
   const adminCommand = new Domain();
   return await adminCommand.insertPlan(payload);
@@ -163,5 +168,6 @@ module.exports = {
   deleteCity,
   insertPlan,
   updatePlan,
-  deletePlan
+  deletePlan,
+  updatePaymentOrderStatus
 };
