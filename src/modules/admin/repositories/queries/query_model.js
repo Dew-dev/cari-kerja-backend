@@ -72,6 +72,10 @@ const getEmployerSubResourceParamType = joi.object({
   employer_id: joi.string().guid().required()
 });
 
+const getConversationMessagesParamType = joi.object({
+  id: joi.string().guid().required()
+});
+
 const getPaymentOrdersParamType = joi.object({
   page: joi.number().min(1).default(1),
   limit: joi.number().min(1).max(100).default(10),
@@ -111,5 +115,6 @@ module.exports = {
   getPaymentOrdersParamType,
   getPaymentOrderByIdParamType,
   getWorkerSubResourceParamType,
-  getEmployerSubResourceParamType
+  getEmployerSubResourceParamType,
+  getConversationMessagesParamType
 };

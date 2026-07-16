@@ -357,6 +357,15 @@ const deleteEmployerSubscriptionParamType = joi.object({
   id: joi.string().guid().required()
 });
 
+// ==================== CHAT MODERATION ====================
+const deleteConversationMessageParamType = joi.object({
+  conversation_id: joi.string().guid().required(),
+  message_id: joi.string().guid().required(),
+  admin_user_id: joi.string().guid().required(),
+  ip_address: joi.string().allow("", null).optional(),
+  user_agent: joi.string().allow("", null).optional()
+});
+
 module.exports = {
   updateUserStatusParamType,
   verifyEmployerParamType,
@@ -403,5 +412,6 @@ module.exports = {
   deleteWorkerSavedJobParamType,
   deleteEmployerJobPostParamType,
   updateEmployerSubscriptionParamType,
-  deleteEmployerSubscriptionParamType
+  deleteEmployerSubscriptionParamType,
+  deleteConversationMessageParamType
 };

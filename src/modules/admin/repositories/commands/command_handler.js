@@ -181,6 +181,11 @@ const deleteEmployerSubscription = async (payload) => {
   return await adminCommand.deleteEmployerSubscription(payload);
 };
 
+const deleteConversationMessage = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.deleteConversationMessage(payload);
+};
+
 const updatePaymentOrderStatus = async (payload) => {
   const adminCommand = new Domain();
   return await adminCommand.updatePaymentOrderStatus(payload);
@@ -277,5 +282,6 @@ module.exports = {
   deleteWorkerSavedJob,
   deleteEmployerJobPost,
   updateEmployerSubscription,
-  deleteEmployerSubscription
+  deleteEmployerSubscription,
+  deleteConversationMessage
 };

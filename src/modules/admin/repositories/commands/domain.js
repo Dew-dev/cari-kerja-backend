@@ -614,6 +614,28 @@ class AdminCommand {
     return wrapper.data("Subscription deleted successfully");
   }
 
+  // ==================== CHAT MODERATION ====================
+  async deleteConversationMessage(payload) {
+    const { conversation_id, message_id, admin_user_id, ip_address, user_agent } = payload;
+
+    const rawQuery = `
+      DELETE FROM messages
+      WHERE id = $1 AND conversation_id = $2
+      RETURNING id
+    `;
+    const result = await this.db.executeQuery(rawQuery, [message_id, conversation_id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Message not found"));
+
+    await this.insertAuditLog({
+      user_id: admin_user_id,
+      action: `ADMIN_DELETE_CHAT_MESSAGE ${message_id} (conversation ${conversation_id})`,
+      ip_address,
+      user_agent
+    });
+
+    return wrapper.data("Message deleted successfully");
+  }
+
   // ==================== PAYMENT ORDERS ====================
   async updatePaymentOrderStatus(payload) {
     const { id, status, admin_user_id, ip_address, user_agent } = payload;

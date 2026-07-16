@@ -476,6 +476,58 @@ class AdminQuery {
     return wrapper.data(result?.rows || []);
   }
 
+  // ==================== CHAT MODERATION ====================
+  // conversations.worker_id/recruiter_id ber-FK ke users.id, jadi resolve user_id dari profil dulu
+  async getConversationsByUserId(userId) {
+    const rawQuery = `
+      SELECT c.id, c.worker_id, c.recruiter_id, c.job_id,
+             w.name AS worker_name, r.company_name, jp.title AS job_title,
+             c.last_message, c.last_message_at, c.status, c.updated_at
+      FROM conversations c
+      LEFT JOIN workers w ON w.user_id = c.worker_id
+      LEFT JOIN recruiters r ON r.user_id = c.recruiter_id
+      LEFT JOIN job_posts jp ON jp.id = c.job_id
+      WHERE c.worker_id = $1 OR c.recruiter_id = $1
+      ORDER BY c.updated_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [userId]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getWorkerConversations(payload) {
+    const { worker_id } = payload;
+    const worker = await this.db.findOne({ id: worker_id }, { id: 1, user_id: 1 }, "workers");
+    if (worker.err) return wrapper.error(new NotFoundError("Worker not found"));
+    return this.getConversationsByUserId(worker.data.user_id);
+  }
+
+  async getEmployerConversations(payload) {
+    const { employer_id } = payload;
+    const employer = await this.db.findOne({ id: employer_id }, { id: 1, user_id: 1 }, "recruiters");
+    if (employer.err) return wrapper.error(new NotFoundError("Employer not found"));
+    return this.getConversationsByUserId(employer.data.user_id);
+  }
+
+  async getConversationMessages(payload) {
+    const { id } = payload;
+    const conversation = await this.db.findOne({ id }, { id: 1 }, "conversations");
+    if (conversation.err) return wrapper.error(new NotFoundError("Conversation not found"));
+
+    const rawQuery = `
+      SELECT m.id, m.sender_id, u.role_id,
+             COALESCE(w.name, r.company_name, u.username) AS sender_name,
+             m.message, m.type, m.is_read, m.created_at
+      FROM messages m
+      JOIN users u ON u.id = m.sender_id
+      LEFT JOIN workers w ON w.user_id = u.id
+      LEFT JOIN recruiters r ON r.user_id = u.id
+      WHERE m.conversation_id = $1
+      ORDER BY m.created_at ASC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [id]);
+    return wrapper.data(result?.rows || []);
+  }
+
   // ==================== PAYMENT ORDERS ====================
   async getPaymentOrders(payload) {
     const { page, limit, search, status, order_type } = payload;

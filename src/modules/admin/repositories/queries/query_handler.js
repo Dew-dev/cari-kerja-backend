@@ -146,6 +146,21 @@ const getEmployerPaymentOrders = async (payload) => {
   return await adminQuery.getEmployerPaymentOrders(payload);
 };
 
+const getWorkerConversations = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getWorkerConversations(payload);
+};
+
+const getEmployerConversations = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getEmployerConversations(payload);
+};
+
+const getConversationMessages = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getConversationMessages(payload);
+};
+
 const getPaymentOrders = async (payload) => {
   const adminQuery = new Domain();
   return await adminQuery.getPaymentOrders(payload);
@@ -199,5 +214,8 @@ module.exports = {
   getWorkerSavedJobs,
   getEmployerJobPosts,
   getEmployerSubscriptions,
-  getEmployerPaymentOrders
+  getEmployerPaymentOrders,
+  getWorkerConversations,
+  getEmployerConversations,
+  getConversationMessages
 };

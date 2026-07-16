@@ -82,6 +82,12 @@ module.exports = (server) => {
   server.get("/api/v1/admin/workers/:worker_id/saved-jobs", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkerSavedJobs);
   server.delete("/api/v1/admin/workers/:worker_id/saved-jobs/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteWorkerSavedJob);
 
+  // Chat moderation
+  server.get("/api/v1/admin/workers/:worker_id/conversations", verifyToken, verifyRole(allowedRoles), adminHandler.getWorkerConversations);
+  server.get("/api/v1/admin/employers/:employer_id/conversations", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployerConversations);
+  server.get("/api/v1/admin/conversations/:id/messages", verifyToken, verifyRole(allowedRoles), adminHandler.getConversationMessages);
+  server.delete("/api/v1/admin/conversations/:id/messages/:message_id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteConversationMessage);
+
   server.get("/api/v1/admin/employers", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployers);
   server.get("/api/v1/admin/employers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployerById);
   server.put("/api/v1/admin/employers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateEmployer);

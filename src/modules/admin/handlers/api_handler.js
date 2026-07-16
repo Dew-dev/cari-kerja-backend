@@ -525,6 +525,49 @@ const deleteEmployerSubscription = async (req, res) => {
   return sendResponse(result, res);
 };
 
+// chat moderation
+const getWorkerConversations = async (req, res) => {
+  const payload = { worker_id: req.params.worker_id };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getWorkerSubResourceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getWorkerConversations(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const getEmployerConversations = async (req, res) => {
+  const payload = { employer_id: req.params.employer_id };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getEmployerSubResourceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getEmployerConversations(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const getConversationMessages = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getConversationMessagesParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getConversationMessages(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteConversationMessage = async (req, res) => {
+  const payload = {
+    conversation_id: req.params.id,
+    message_id: req.params.message_id,
+    admin_user_id: req.userMeta.id,
+    ip_address: req.ip,
+    user_agent: req.headers["user-agent"]
+  };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteConversationMessageParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteConversationMessage(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 // payment orders
 const getPaymentOrders = async (req, res) => {
   const payload = { ...req.query };
@@ -748,5 +791,9 @@ module.exports = {
   getEmployerPaymentOrders,
   deleteEmployerJobPost,
   updateEmployerSubscription,
-  deleteEmployerSubscription
+  deleteEmployerSubscription,
+  getWorkerConversations,
+  getEmployerConversations,
+  getConversationMessages,
+  deleteConversationMessage
 };
