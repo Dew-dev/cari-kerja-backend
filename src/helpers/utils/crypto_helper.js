@@ -55,7 +55,11 @@ const decrypt = (ciphertext) => {
   }
 };
 
-const sensitiveKeys = ["email", "username", "telephone", "name", "address", "worker_name", "worker_telephone", "user_email", "user_username"];
+const sensitiveKeys = [
+  "email", "username", "telephone", "name", "address", 
+  "worker_name", "worker_telephone", "user_email", "user_username",
+  "company_name", "contact_name", "contact_phone", "company_email", "company_address"
+];
 
 const isSensitiveKey = (key) => {
   if (!key) return false;

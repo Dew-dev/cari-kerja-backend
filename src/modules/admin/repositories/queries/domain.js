@@ -175,34 +175,41 @@ class AdminQuery {
 
   async getDashboardActivities() {
     const rawQuery = `
-      SELECT 'USER' as type, 'User ' || username || ' registered' as message, created_at
+      SELECT 'USER' as type, username as name, created_at
       FROM users
       UNION ALL
-      SELECT 'EMPLOYER' as type, 'Employer ' || company_name || ' registered' as message, created_at
+      SELECT 'EMPLOYER' as type, company_name as name, created_at
       FROM recruiters
       UNION ALL
-      SELECT 'JOB' as type, 'Job ' || title || ' posted' as message, created_at
+      SELECT 'JOB' as type, title as name, created_at
       FROM job_posts
       ORDER BY created_at DESC
       LIMIT 5
     `;
     const result = await this.db.executeQuery(rawQuery);
     if (!result || !result.rows) return wrapper.data([]);
+    
     const data = result.rows.map((r, i) => {
+      let message = "";
+      if (r.type === 'USER') message = `User ${r.name} registered`;
+      else if (r.type === 'EMPLOYER') message = `Employer ${r.name} registered`;
+      else if (r.type === 'JOB') message = `Job ${r.name} posted`;
+
       const diff = Math.floor((new Date() - new Date(r.created_at)) / 1000);
       let timeStr = "";
       if (diff < 60) timeStr = diff + " secs ago";
       else if (diff < 3600) timeStr = Math.floor(diff/60) + " mins ago";
       else if (diff < 86400) timeStr = Math.floor(diff/3600) + " hours ago";
       else timeStr = Math.floor(diff/86400) + " days ago";
-
+      
       return {
         id: (i + 1).toString(),
-        message: r.message,
+        message,
         time: timeStr,
         type: r.type
       };
     });
+    
     return wrapper.data(data);
   }
 
