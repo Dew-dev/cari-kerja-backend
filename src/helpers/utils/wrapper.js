@@ -15,6 +15,19 @@ const data = (data) => ({ err: null, data });
 
 const paginationData = (data, meta) => ({ err: null, data, meta });
 
+const buildPaginationMeta = (page, limit, totalData) => {
+  const pageNum = Number(page) || 1;
+  const limitNum = Number(limit) || 10;
+  const total = Math.max(parseInt(totalData, 10) || 0, 0);
+
+  return {
+    page: pageNum,
+    per_page: limitNum,
+    total_data: total,
+    total_pages: limitNum > 0 ? Math.ceil(total / limitNum) : 0,
+  };
+};
+
 const error = (err) => ({ err, data: null });
 
 const response = (res, type, result, message = "", code = 200) => {
@@ -102,6 +115,7 @@ const checkErrorCode = (error) => {
 module.exports = {
   data,
   paginationData,
+  buildPaginationMeta,
   error,
   response,
   paginationResponse,

@@ -24,16 +24,9 @@ class ContactUsQueryDomain {
       return wrapper.error(new InternalServerError(countResult.err));
     }
 
-    const total = parseInt(countResult.data, 10);
-    return wrapper.data({
-      data: result.data,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
+    const meta = wrapper.buildPaginationMeta(page, limit, countResult.data);
+
+    return wrapper.paginationData(result.data, meta);
   }
 
   async getContactMessageById(payload) {
