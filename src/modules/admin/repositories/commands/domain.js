@@ -170,7 +170,7 @@ class AdminCommand {
   }
 
   async updateWorker(payload) {
-    const { id, name, telephone, address, profile_summary, current_salary, expected_salary, gender_id, date_of_birth } = payload;
+    const { id, name, telephone, address, profile_summary, current_salary, expected_salary, gender_id, date_of_birth, nationality_id, religion_id, marriage_status_id } = payload;
     const updateQuery = `
       UPDATE workers 
       SET name = COALESCE($1, name), 
@@ -181,11 +181,14 @@ class AdminCommand {
           expected_salary = COALESCE($6, expected_salary),
           gender_id = COALESCE($7, gender_id),
           date_of_birth = COALESCE($8, date_of_birth),
+          nationality_id = COALESCE($9, nationality_id),
+          religion_id = COALESCE($10, religion_id),
+          marriage_status_id = COALESCE($11, marriage_status_id),
           updated_at = NOW()
-      WHERE id = $9 AND deleted_at IS NULL
+      WHERE id = $12 AND deleted_at IS NULL
       RETURNING *
     `;
-    const result = await this.db.executeQuery(updateQuery, [name, telephone, address, profile_summary, current_salary, expected_salary, gender_id, date_of_birth, id]);
+    const result = await this.db.executeQuery(updateQuery, [name, telephone, address, profile_summary, current_salary, expected_salary, gender_id, date_of_birth, nationality_id, religion_id, marriage_status_id, id]);
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("Worker not found"));
     return wrapper.data(result.rows[0]);
   }
@@ -204,29 +207,38 @@ class AdminCommand {
   }
 
   async updateEmployer(payload) {
-    const { id, company_name, contact_name, contact_phone, company_email, company_website, company_address, company_description, is_vip, is_verified, industry_id, website, description } = payload;
+    const {
+      id, company_name, contact_name, contact_phone, company_website,
+      is_vip, is_verified, industry_id, employee_count, instagram_url, tiktok_url,
+      website, address, description, company_address, company_description
+    } = payload;
+    // kompatibilitas payload lama: website -> company_website, company_address -> address, company_description -> description
     const finalWebsite = website !== undefined ? website : company_website;
+    const finalAddress = address !== undefined ? address : company_address;
     const finalDescription = description !== undefined ? description : company_description;
-    
+
     const updateQuery = `
-      UPDATE recruiters 
-      SET company_name = COALESCE($1, company_name), 
-          contact_name = COALESCE($2, contact_name), 
-          contact_phone = COALESCE($3, contact_phone), 
-          company_email = COALESCE($4, company_email), 
-          company_website = COALESCE($5, company_website), 
-          company_address = COALESCE($6, company_address),
-          company_description = COALESCE($7, company_description),
-          is_vip = COALESCE($8, is_vip),
-          is_verified = COALESCE($9, is_verified),
-          industry_id = COALESCE($10, industry_id),
+      UPDATE recruiters
+      SET company_name = COALESCE($1, company_name),
+          contact_name = COALESCE($2, contact_name),
+          contact_phone = COALESCE($3, contact_phone),
+          company_website = COALESCE($4, company_website),
+          address = COALESCE($5, address),
+          description = COALESCE($6, description),
+          employee_count = COALESCE($7, employee_count),
+          instagram_url = COALESCE($8, instagram_url),
+          tiktok_url = COALESCE($9, tiktok_url),
+          is_vip = COALESCE($10, is_vip),
+          is_verified = COALESCE($11, is_verified),
+          industry_id = COALESCE($12, industry_id),
           updated_at = NOW()
-      WHERE id = $11 AND deleted_at IS NULL
-      RETURNING *
+      WHERE id = $13 AND deleted_at IS NULL
+      RETURNING id, user_id, company_name, contact_name, contact_phone, company_website, address, description,
+                avatar_url, employee_count, instagram_url, tiktok_url, industry_id, is_vip, is_verified, updated_at
     `;
     const result = await this.db.executeQuery(updateQuery, [
-      company_name, contact_name, contact_phone, company_email, 
-      finalWebsite, company_address, finalDescription, 
+      company_name, contact_name, contact_phone, finalWebsite,
+      finalAddress, finalDescription, employee_count, instagram_url, tiktok_url,
       is_vip, is_verified, industry_id, id
     ]);
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("Employer not found"));
@@ -564,6 +576,42 @@ class AdminCommand {
     const result = await this.db.executeQuery(rawQuery, [id, worker_id]);
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("Saved job not found"));
     return wrapper.data("Saved job deleted successfully");
+  }
+
+  // ==================== EMPLOYER SUB-RESOURCES ====================
+  async deleteEmployerJobPost(payload) {
+    const { employer_id, id } = payload;
+    const rawQuery = `
+      UPDATE job_posts SET deleted_at = NOW()
+      WHERE id = $1 AND recruiter_id = $2 AND deleted_at IS NULL
+      RETURNING id
+    `;
+    const result = await this.db.executeQuery(rawQuery, [id, employer_id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Job post not found"));
+    return wrapper.data("Job post deleted successfully");
+  }
+
+  async updateEmployerSubscription(payload) {
+    const { employer_id, id, expires_at, is_active } = payload;
+    const rawQuery = `
+      UPDATE recruiter_subscriptions
+      SET expires_at = COALESCE($1, expires_at),
+          is_active = COALESCE($2, is_active),
+          updated_at = NOW()
+      WHERE id = $3 AND recruiter_id = $4
+      RETURNING id, plan_id, payment_order_id, starts_at, expires_at, is_active, updated_at
+    `;
+    const result = await this.db.executeQuery(rawQuery, [expires_at, is_active, id, employer_id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Subscription not found"));
+    return wrapper.data(result.rows[0]);
+  }
+
+  async deleteEmployerSubscription(payload) {
+    const { employer_id, id } = payload;
+    const rawQuery = `DELETE FROM recruiter_subscriptions WHERE id = $1 AND recruiter_id = $2 RETURNING id`;
+    const result = await this.db.executeQuery(rawQuery, [id, employer_id]);
+    if (result.rowCount === 0) return wrapper.error(new NotFoundError("Subscription not found"));
+    return wrapper.data("Subscription deleted successfully");
   }
 
   // ==================== PAYMENT ORDERS ====================

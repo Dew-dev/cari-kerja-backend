@@ -166,6 +166,21 @@ const deleteWorkerSavedJob = async (payload) => {
   return await adminCommand.deleteWorkerSavedJob(payload);
 };
 
+const deleteEmployerJobPost = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.deleteEmployerJobPost(payload);
+};
+
+const updateEmployerSubscription = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.updateEmployerSubscription(payload);
+};
+
+const deleteEmployerSubscription = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.deleteEmployerSubscription(payload);
+};
+
 const updatePaymentOrderStatus = async (payload) => {
   const adminCommand = new Domain();
   return await adminCommand.updatePaymentOrderStatus(payload);
@@ -259,5 +274,8 @@ module.exports = {
   deleteWorkerApplication,
   updateWorkerJobPostAnswer,
   deleteWorkerJobPostAnswer,
-  deleteWorkerSavedJob
+  deleteWorkerSavedJob,
+  deleteEmployerJobPost,
+  updateEmployerSubscription,
+  deleteEmployerSubscription
 };

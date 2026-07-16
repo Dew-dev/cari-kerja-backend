@@ -484,6 +484,47 @@ const deleteWorkerSavedJob = async (req, res) => {
   return sendResponse(result, res);
 };
 
+// employer sub-resources
+const makeGetEmployerSubResource = (queryFn) => async (req, res) => {
+  const payload = { employer_id: req.params.employer_id };
+  const validatePayload = validator.isValidPayload(payload, queryModel.getEmployerSubResourceParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler[queryFn](validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const getEmployerJobPosts = makeGetEmployerSubResource("getEmployerJobPosts");
+const getEmployerSubscriptions = makeGetEmployerSubResource("getEmployerSubscriptions");
+const getEmployerPaymentOrders = makeGetEmployerSubResource("getEmployerPaymentOrders");
+
+const deleteEmployerJobPost = async (req, res) => {
+  const payload = { employer_id: req.params.employer_id, id: req.params.id };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteEmployerJobPostParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteEmployerJobPost(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const updateEmployerSubscription = async (req, res) => {
+  const payload = { employer_id: req.params.employer_id, id: req.params.id, ...req.body };
+  const validatePayload = validator.isValidPayload(payload, commandModel.updateEmployerSubscriptionParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updateEmployerSubscription(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const deleteEmployerSubscription = async (req, res) => {
+  const payload = { employer_id: req.params.employer_id, id: req.params.id };
+  const validatePayload = validator.isValidPayload(payload, commandModel.deleteEmployerSubscriptionParamType);
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.deleteEmployerSubscription(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 // payment orders
 const getPaymentOrders = async (req, res) => {
   const payload = { ...req.query };
@@ -701,5 +742,11 @@ module.exports = {
   deleteWorkerApplication,
   updateWorkerJobPostAnswer,
   deleteWorkerJobPostAnswer,
-  deleteWorkerSavedJob
+  deleteWorkerSavedJob,
+  getEmployerJobPosts,
+  getEmployerSubscriptions,
+  getEmployerPaymentOrders,
+  deleteEmployerJobPost,
+  updateEmployerSubscription,
+  deleteEmployerSubscription
 };

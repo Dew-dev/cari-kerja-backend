@@ -87,6 +87,14 @@ module.exports = (server) => {
   server.put("/api/v1/admin/employers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateEmployer);
   server.delete("/api/v1/admin/employers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteEmployer);
   server.put("/api/v1/admin/employers/:id/verify", verifyToken, verifyRole(allowedRoles), adminHandler.verifyEmployer);
+
+  // Employer sub-resources
+  server.get("/api/v1/admin/employers/:employer_id/job-posts", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployerJobPosts);
+  server.delete("/api/v1/admin/employers/:employer_id/job-posts/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteEmployerJobPost);
+  server.get("/api/v1/admin/employers/:employer_id/subscriptions", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployerSubscriptions);
+  server.put("/api/v1/admin/employers/:employer_id/subscriptions/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateEmployerSubscription);
+  server.delete("/api/v1/admin/employers/:employer_id/subscriptions/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteEmployerSubscription);
+  server.get("/api/v1/admin/employers/:employer_id/payment-orders", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployerPaymentOrders);
   
   server.get("/api/v1/admin/jobs", verifyToken, verifyRole(allowedRoles), adminHandler.getJobs);
   server.get("/api/v1/admin/jobs/:id", verifyToken, verifyRole(allowedRoles), adminHandler.getJobById);

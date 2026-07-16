@@ -418,6 +418,64 @@ class AdminQuery {
     return wrapper.data(result?.rows || []);
   }
 
+  // ==================== EMPLOYER SUB-RESOURCES ====================
+  async findEmployer(employer_id) {
+    const employer = await this.db.findOne({ id: employer_id }, { id: 1 }, "recruiters");
+    if (employer.err) return null;
+    return employer.data;
+  }
+
+  async getEmployerJobPosts(payload) {
+    const { employer_id } = payload;
+    if (!(await this.findEmployer(employer_id))) return wrapper.error(new NotFoundError("Employer not found"));
+
+    const rawQuery = `
+      SELECT jp.id, jp.title, jp.city, jp.province, s.name AS status_name, jp.created_at
+      FROM job_posts jp
+      JOIN job_post_statuses s ON jp.status_id = s.id
+      WHERE jp.recruiter_id = $1 AND jp.deleted_at IS NULL
+      ORDER BY jp.created_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [employer_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getEmployerSubscriptions(payload) {
+    const { employer_id } = payload;
+    if (!(await this.findEmployer(employer_id))) return wrapper.error(new NotFoundError("Employer not found"));
+
+    const rawQuery = `
+      SELECT rs.id, rs.plan_id, sp.display_name AS plan_display_name, sp.price_idr,
+             rs.payment_order_id, rs.starts_at, rs.expires_at, rs.is_active, rs.created_at, rs.updated_at
+      FROM recruiter_subscriptions rs
+      JOIN subscription_plans sp ON rs.plan_id = sp.id
+      WHERE rs.recruiter_id = $1
+      ORDER BY rs.created_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [employer_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
+  async getEmployerPaymentOrders(payload) {
+    const { employer_id } = payload;
+    if (!(await this.findEmployer(employer_id))) return wrapper.error(new NotFoundError("Employer not found"));
+
+    const rawQuery = `
+      SELECT po.id, po.order_type, po.plan_id, po.plan_type, po.job_post_id,
+             po.xendit_invoice_id, po.xendit_external_id, po.amount, po.status,
+             po.paid_at, po.invoice_expires_at, po.created_at, po.updated_at,
+             COALESCE(sp.display_name, spp.display_name, bp.display_name) AS plan_name
+      FROM payment_orders po
+      LEFT JOIN subscription_plans sp ON po.plan_type = 'subscription_plans' AND po.plan_id = sp.id
+      LEFT JOIN single_post_plans spp ON po.plan_type = 'single_post_plans' AND po.plan_id = spp.id
+      LEFT JOIN boost_plans bp ON po.plan_type = 'boost_plans' AND po.plan_id = bp.id
+      WHERE po.recruiter_id = $1
+      ORDER BY po.created_at DESC
+    `;
+    const result = await this.db.executeQuery(rawQuery, [employer_id]);
+    return wrapper.data(result?.rows || []);
+  }
+
   // ==================== PAYMENT ORDERS ====================
   async getPaymentOrders(payload) {
     const { page, limit, search, status, order_type } = payload;
@@ -580,7 +638,8 @@ class AdminQuery {
   async getEmployerById(payload) {
     const { id } = payload;
     const rawQuery = `
-      SELECT id, user_id, company_name, contact_name, contact_phone, company_email, company_website, company_address, industry_id, company_description, company_logo, is_vip, is_verified, created_at
+      SELECT id, user_id, company_name, contact_name, contact_phone, company_website, address, description, avatar_url,
+             employee_count, instagram_url, tiktok_url, industry_id, is_vip, is_verified, created_at
       FROM recruiters
       WHERE id = $1 AND deleted_at IS NULL
     `;

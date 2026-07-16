@@ -74,7 +74,10 @@ const updateWorkerParamType = joi.object({
   current_salary: joi.number().optional(),
   expected_salary: joi.number().optional(),
   gender_id: joi.number().optional(),
-  date_of_birth: joi.date().iso().optional()
+  date_of_birth: joi.date().iso().optional(),
+  nationality_id: joi.number().optional(),
+  religion_id: joi.number().optional(),
+  marriage_status_id: joi.number().optional()
 });
 
 const deleteWorkerParamType = joi.object({
@@ -87,15 +90,19 @@ const updateEmployerParamType = joi.object({
   company_name: joi.string().optional(),
   contact_name: joi.string().optional(),
   contact_phone: joi.string().optional(),
-  company_email: joi.string().email().optional(),
   company_website: joi.string().allow("").optional(),
-  company_address: joi.string().allow("").optional(),
-  company_description: joi.string().allow("").optional(),
+  address: joi.string().allow("").optional(),
+  description: joi.string().allow("").optional(),
+  employee_count: joi.string().max(50).allow("").optional(),
+  instagram_url: joi.string().allow("").optional(),
+  tiktok_url: joi.string().allow("").optional(),
   is_vip: joi.boolean().optional(),
   is_verified: joi.boolean().optional(),
   industry_id: joi.number().optional(),
+  // kompatibilitas payload lama (dipetakan di domain)
   website: joi.string().allow("").optional(),
-  description: joi.string().allow("").optional()
+  company_address: joi.string().allow("").optional(),
+  company_description: joi.string().allow("").optional()
 });
 
 const deleteEmployerParamType = joi.object({
@@ -332,6 +339,24 @@ const deleteWorkerSavedJobParamType = joi.object({
   id: joi.string().guid().required()
 });
 
+// ==================== EMPLOYER SUB-RESOURCES ====================
+const deleteEmployerJobPostParamType = joi.object({
+  employer_id: joi.string().guid().required(),
+  id: joi.string().guid().required()
+});
+
+const updateEmployerSubscriptionParamType = joi.object({
+  employer_id: joi.string().guid().required(),
+  id: joi.string().guid().required(),
+  expires_at: joi.date().iso().optional(),
+  is_active: joi.boolean().optional()
+});
+
+const deleteEmployerSubscriptionParamType = joi.object({
+  employer_id: joi.string().guid().required(),
+  id: joi.string().guid().required()
+});
+
 module.exports = {
   updateUserStatusParamType,
   verifyEmployerParamType,
@@ -375,5 +400,8 @@ module.exports = {
   deleteWorkerApplicationParamType,
   updateWorkerJobPostAnswerParamType,
   deleteWorkerJobPostAnswerParamType,
-  deleteWorkerSavedJobParamType
+  deleteWorkerSavedJobParamType,
+  deleteEmployerJobPostParamType,
+  updateEmployerSubscriptionParamType,
+  deleteEmployerSubscriptionParamType
 };

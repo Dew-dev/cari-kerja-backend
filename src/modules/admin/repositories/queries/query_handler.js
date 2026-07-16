@@ -131,6 +131,21 @@ const getWorkerSavedJobs = async (payload) => {
   return await adminQuery.getWorkerSavedJobs(payload);
 };
 
+const getEmployerJobPosts = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getEmployerJobPosts(payload);
+};
+
+const getEmployerSubscriptions = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getEmployerSubscriptions(payload);
+};
+
+const getEmployerPaymentOrders = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getEmployerPaymentOrders(payload);
+};
+
 const getPaymentOrders = async (payload) => {
   const adminQuery = new Domain();
   return await adminQuery.getPaymentOrders(payload);
@@ -181,5 +196,8 @@ module.exports = {
   getWorkerSkills,
   getWorkerApplications,
   getWorkerJobPostAnswers,
-  getWorkerSavedJobs
+  getWorkerSavedJobs,
+  getEmployerJobPosts,
+  getEmployerSubscriptions,
+  getEmployerPaymentOrders
 };
