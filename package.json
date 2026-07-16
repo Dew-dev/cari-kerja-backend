@@ -5,6 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
+    "test:qa": "jest --testPathPatterns=qa.test.js --testPathIgnorePatterns=/node_modules/",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "start": "node index.js",

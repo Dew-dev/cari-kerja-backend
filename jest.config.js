@@ -3,6 +3,10 @@ module.exports = {
   testEnvironment: "node",
   roots: ["<rootDir>/test"],
   testMatch: ["**/*.test.js"],
+  testPathIgnorePatterns: [
+    "<rootDir>/node_modules/",
+    "/qa\\.test\\.js$",
+  ],
   collectCoverageFrom: [
     "src/modules/categories/**/*.js",
     "src/modules/certifications/**/*.js",
