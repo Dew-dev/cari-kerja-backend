@@ -332,6 +332,17 @@ Merge ke `develop` hanya melalui Pull Request setelah proses review.
 
 ---
 
+# Backend & Frontend Scope
+
+User memiliki agen terpisah untuk frontend. Batasi ruang lingkup kerja pada backend saja.
+
+## Aturan
+
+1. **Hanya Fokus pada Backend**: Agen tidak diperbolehkan mengubah kode atau file apapun yang berada di direktori frontend. Terhadap direktori `../cari-kerja-frontend` (relatif terhadap root workspace backend), agen hanya diberikan akses **Read-Only** (hanya untuk membaca dan memahami konteks), tanpa izin untuk menambah, memodifikasi, atau menghapus file apa pun.
+2. **Berikan Instruksi Khusus**: Jika ada perubahan fitur yang memerlukan penyesuaian di frontend, agen harus mendeskripsikan secara spesifik apa saja yang perlu dilakukan pada sisi frontend, dan menyerahkannya sebagai **Instruksi untuk Agen Frontend** yang dapat disalin oleh pengguna.
+
+---
+
 # Code Quality
 
 Setiap implementasi harus:
@@ -367,3 +378,4 @@ Sebelum menyelesaikan implementasi, AI wajib memastikan:
 * Mengikuti Git Workflow.
 * Menggunakan Conventional Commits.
 * Tidak ada perubahan langsung pada branch `develop`.
+* Tidak ada perubahan pada direktori frontend (`../cari-kerja-frontend`).

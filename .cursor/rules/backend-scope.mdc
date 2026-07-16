@@ -1,0 +1,24 @@
+---
+description: Backend-only scope; frontend directory is read-only, provide instructions for the frontend agent instead
+alwaysApply: true
+---
+
+# Backend-Only Scope
+
+User memiliki agen terpisah untuk frontend. Batasi ruang lingkup kerja pada backend saja.
+
+## Aturan
+
+1. **Hanya backend**: Jangan menambah, memodifikasi, atau menghapus file di direktori frontend
+   `../cari-kerja-frontend` (relatif terhadap root workspace backend). Direktori itu **Read-Only** —
+   boleh dibaca hanya untuk memahami konteks.
+2. **Berikan instruksi khusus**: Jika sebuah fitur butuh penyesuaian frontend, deskripsikan secara
+   spesifik apa yang harus dilakukan dan serahkan sebagai blok **Instruksi untuk Agen Frontend**
+   yang bisa langsung disalin user (endpoint, payload/response, perubahan kontrak API, dsb).
+
+## Contoh format instruksi frontend
+
+> **Instruksi untuk Agen Frontend**
+> - Endpoint baru: `GET /api/jobs?salaryMin=&salaryMax=`
+> - Response: `{ data: Job[], total: number }`
+> - Tambahkan input filter rentang gaji di halaman pencarian dan kirim query param di atas.
