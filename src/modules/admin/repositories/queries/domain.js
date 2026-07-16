@@ -2,6 +2,7 @@ const wrapper = require("../../../../helpers/utils/wrapper");
 const DB = require("../../../../helpers/databases/postgresql/db");
 const config = require("../../../../config/global_config");
 const { NotFoundError } = require("../../../../helpers/errors");
+const { LOOKUP_CONFIG } = require("../../helpers/lookup_config");
 
 class AdminQuery {
   constructor() {
@@ -244,28 +245,12 @@ class AdminQuery {
 
   async getLookupTable(payload) {
     const { table } = payload;
-    const LOOKUP_CONFIG = {
-      genders: "gender_name",
-      marriage_statuses: "status_name",
-      religions: "religion_name",
-      employment_types: "type_name",
-      experience_levels: "level_name",
-      salary_types: "type_name",
-      job_post_statuses: "name",
-      application_statuses: "name",
-      question_types: "name",
-      industries: "name",
-      proficiency_levels: "name",
-      job_tags: "name",
-      skills: "skill_name",
-      nationalities: "country_name"
-    };
 
     if (!LOOKUP_CONFIG[table]) {
       return wrapper.error(new NotFoundError("Invalid lookup table"));
     }
 
-    const rawQuery = `SELECT * FROM ${table} ORDER BY id ASC`;
+    const rawQuery = `SELECT ${LOOKUP_CONFIG[table].select} FROM ${table} ORDER BY id ASC`;
     const result = await this.db.executeQuery(rawQuery);
     return wrapper.data(result.rows);
   }

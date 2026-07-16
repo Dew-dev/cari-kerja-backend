@@ -23,22 +23,25 @@ const updateSystemSettingsParamType = joi.object({
   allow_employer_registration: joi.boolean().optional()
 });
 
+// Lookup ids: serial (number) untuk tabel master biasa, UUID untuk skills & job_tags
+const lookupIdType = joi.alternatives().try(joi.number(), joi.string().guid());
+
 const insertLookupTableParamType = joi.object({
   table: joi.string().required(),
-  name: joi.string().required()
+  name: joi.string().required(),
+  iso_alpha2: joi.string().length(2).uppercase().optional().allow(""),
+  iso_alpha3: joi.string().length(3).uppercase().optional().allow("")
 });
-
-
 
 const updateLookupTableParamType = joi.object({
   table: joi.string().required(),
-  id: joi.number().required(),
+  id: lookupIdType.required(),
   name: joi.string().required()
 });
 
 const deleteLookupTableParamType = joi.object({
   table: joi.string().required(),
-  id: joi.number().required()
+  id: lookupIdType.required()
 });
 
 const insertUserParamType = joi.object({

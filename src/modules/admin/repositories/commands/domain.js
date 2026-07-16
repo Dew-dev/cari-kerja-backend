@@ -1,7 +1,8 @@
 const wrapper = require("../../../../helpers/utils/wrapper");
 const DB = require("../../../../helpers/databases/postgresql/db");
 const config = require("../../../../config/global_config");
-const { NotFoundError, InternalServerError, BadRequestError } = require("../../../../helpers/errors");
+const { NotFoundError, InternalServerError, BadRequestError, ConflictError } = require("../../../../helpers/errors");
+const { LOOKUP_CONFIG } = require("../../helpers/lookup_config");
 
 class AdminCommand {
   constructor() {
@@ -61,20 +62,18 @@ class AdminCommand {
   }
 
   async insertLookupTable(payload) {
-    const { table, name } = payload;
-    const LOOKUP_CONFIG = {
-      genders: "gender_name", marriage_statuses: "status_name", religions: "religion_name",
-      employment_types: "type_name", experience_levels: "level_name", salary_types: "type_name",
-      job_post_statuses: "name", application_statuses: "name", question_types: "name",
-      industries: "name", proficiency_levels: "name",
-      job_tags: "name", skills: "skill_name", nationalities: "country_name"
-    };
+    const { table, name, iso_alpha2, iso_alpha3 } = payload;
     if (!LOOKUP_CONFIG[table]) return wrapper.error(new BadRequestError("Invalid lookup table"));
-    
-    const colName = LOOKUP_CONFIG[table];
-    const rawQuery = `INSERT INTO ${table} (${colName}) VALUES ($1) RETURNING *`;
+
+    const { column, select } = LOOKUP_CONFIG[table];
+    let rawQuery = `INSERT INTO ${table} (${column}) VALUES ($1) RETURNING ${select}`;
+    let values = [name];
+    if (table === "nationalities") {
+      rawQuery = `INSERT INTO nationalities (country_name, iso_alpha2, iso_alpha3) VALUES ($1, $2, $3) RETURNING ${select}`;
+      values = [name, iso_alpha2 || "", iso_alpha3 || ""];
+    }
     try {
-      const result = await this.db.executeQuery(rawQuery, [name]);
+      const result = await this.db.executeQuery(rawQuery, values);
       return wrapper.data(result.rows[0]);
     } catch(err) {
       return wrapper.error(new InternalServerError("Failed to insert"));
@@ -83,17 +82,10 @@ class AdminCommand {
 
   async updateLookupTable(payload) {
     const { table, id, name } = payload;
-    const LOOKUP_CONFIG = {
-      genders: "gender_name", marriage_statuses: "status_name", religions: "religion_name",
-      employment_types: "type_name", experience_levels: "level_name", salary_types: "type_name",
-      job_post_statuses: "name", application_statuses: "name", question_types: "name",
-      industries: "name", proficiency_levels: "name",
-      job_tags: "name", skills: "skill_name", nationalities: "country_name"
-    };
     if (!LOOKUP_CONFIG[table]) return wrapper.error(new BadRequestError("Invalid lookup table"));
-    
-    const colName = LOOKUP_CONFIG[table];
-    const rawQuery = `UPDATE ${table} SET ${colName} = $1 WHERE id = $2 RETURNING *`;
+
+    const { column, select } = LOOKUP_CONFIG[table];
+    const rawQuery = `UPDATE ${table} SET ${column} = $1 WHERE id = $2 RETURNING ${select}`;
     try {
       const result = await this.db.executeQuery(rawQuery, [name, id]);
       if(result.rowCount === 0) return wrapper.error(new NotFoundError("Record not found"));
@@ -105,16 +97,9 @@ class AdminCommand {
 
   async deleteLookupTable(payload) {
     const { table, id } = payload;
-    const LOOKUP_CONFIG = {
-      genders: "gender_name", marriage_statuses: "status_name", religions: "religion_name",
-      employment_types: "type_name", experience_levels: "level_name", salary_types: "type_name",
-      job_post_statuses: "name", application_statuses: "name", question_types: "name",
-      industries: "name", proficiency_levels: "name",
-      job_tags: "name", skills: "skill_name", nationalities: "country_name"
-    };
     if (!LOOKUP_CONFIG[table]) return wrapper.error(new BadRequestError("Invalid lookup table"));
-    
-    const rawQuery = `DELETE FROM ${table} WHERE id = $1 RETURNING *`;
+
+    const rawQuery = `DELETE FROM ${table} WHERE id = $1 RETURNING id`;
     try {
       const result = await this.db.executeQuery(rawQuery, [id]);
       if(result.rowCount === 0) return wrapper.error(new NotFoundError("Record not found"));
