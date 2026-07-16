@@ -83,7 +83,7 @@ class Query {
         this.db.executeQuery(
           `
         SELECT l.id, l.language_name, pl.name, l.is_primary
-        FROM languages l
+        FROM worker_languages l
         JOIN proficiency_levels pl ON l.proficiency_level_id = pl.id
         WHERE l.worker_id = $1
       `,
@@ -192,7 +192,7 @@ class Query {
         this.db.executeQuery(
           `
         SELECT l.id, l.language_name, pl.name, l.is_primary
-        FROM languages l
+        FROM worker_languages l
         JOIN proficiency_levels pl ON l.proficiency_level_id = pl.id
         WHERE l.worker_id = $1
       `,

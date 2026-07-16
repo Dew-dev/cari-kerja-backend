@@ -18,6 +18,7 @@ const LOOKUP_CONFIG = {
   roles: { column: "name", select: "id, name" },
   currencies: { column: "name", select: "id, code, numeric_code, name, symbol" },
   categories: { column: "name", select: "id, name" },
+  languages: { column: "name", select: "id, name" },
 };
 
 module.exports = { LOOKUP_CONFIG };
