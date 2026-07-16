@@ -11,9 +11,31 @@ const {
 } = require("../errors");
 const { ERROR: httpError } = require("../http-status/status_code");
 
-const data = (data) => ({ err: null, data });
+const data = (data, message = null, code = null) => {
+  const result = { err: null, data };
+  if (message != null) {
+    result.message = message;
+  }
+  if (code != null) {
+    result.code = code;
+  }
+  return result;
+};
 
 const paginationData = (data, meta) => ({ err: null, data, meta });
+
+const buildPaginationMeta = (page, limit, totalData) => {
+  const pageNum = Number(page) || 1;
+  const limitNum = Number(limit) || 10;
+  const total = Math.max(parseInt(totalData, 10) || 0, 0);
+
+  return {
+    page: pageNum,
+    per_page: limitNum,
+    total_data: total,
+    total_pages: limitNum > 0 ? Math.ceil(total / limitNum) : 0,
+  };
+};
 
 const error = (err) => ({ err, data: null });
 
@@ -102,6 +124,7 @@ const checkErrorCode = (error) => {
 module.exports = {
   data,
   paginationData,
+  buildPaginationMeta,
   error,
   response,
   paginationResponse,

@@ -47,12 +47,12 @@ class Query {
 
   async countAll(worker_id) {
     try {
-      const query = `SELECT COUNT(id) FROM ${collection} WHERE worker_id = $1;`;
+      const query = `SELECT COUNT(id)::int AS total FROM ${collection} WHERE worker_id = $1;`;
       const result = await this.db.executeQuery(query, [worker_id]);
       if (!result || result.rows.length === 0) {
         return wrapper.error(errorEmptyMessage);
       }
-      return wrapper.data(result.rows[0].count);
+      return wrapper.data(parseInt(result.rows[0].total, 10) || 0);
     } catch (error) {
       logger.error(ctx, errorQueryMessage, "countAllCertification", error);
       return wrapper.error(errorQueryMessage);

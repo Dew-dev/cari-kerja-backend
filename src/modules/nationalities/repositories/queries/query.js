@@ -51,10 +51,12 @@ class Query {
       const countQuery = `
       SELECT COUNT(*) AS total
       FROM ${collection}
-      WHERE name ILIKE $1;
+      WHERE country_name ILIKE $1
+      OR iso_alpha2 ILIKE $1
+      OR iso_alpha3 ILIKE $1;
     `;
       const countResult = await this.db.executeQuery(countQuery, [searchQuery]);
-      return wrapper.data(countResult.rows[0].count);
+      return wrapper.data(countResult.rows[0].total);
     } catch (error) {
       logger.error(ctx, errorQueryMessage, "countAllNationalities", error);
       return wrapper.error(errorQueryMessage);

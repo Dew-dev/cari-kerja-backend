@@ -1,7 +1,7 @@
 const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError } = require("../../../../helpers/errors");
+const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
 const ctx = "Categories-Query-Domain";
 
 class Categories {
@@ -41,14 +41,12 @@ class Categories {
       return wrapper.error(new NotFoundError("Can not find categories"));
     }
 
-    const totalData = count.data;
-    const totalPages = Math.ceil(totalData / limit);
-    const meta = {
-      page: page,
-      per_page: limit,
-      total_data: Math.max(totalData, 0),
-      total_pages: totalPages,
-    };
+    if (count.err) {
+      logger.error(ctx, "getAllCategories", "Can not count Categories", count.err);
+      return wrapper.error(new InternalServerError("Can not count categories"));
+    }
+
+    const meta = wrapper.buildPaginationMeta(page, limit, count.data);
 
     return wrapper.paginationData(categories.data, meta);
   }

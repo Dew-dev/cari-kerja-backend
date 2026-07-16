@@ -10,8 +10,11 @@ class Resume {
   }
 
   async getResume(payload) {
-    const { id } = payload;
-    const resume = await this.query.findOne({ id }, { id: 1, worker_id: 1, resume_url: 1, title: 1, updated_at: 1 });
+    const { id, worker_id } = payload;
+    const resume = await this.query.findOne(
+      { id, worker_id },
+      { id: 1, worker_id: 1, resume_url: 1, title: 1, updated_at: 1 }
+    );
 
     if (resume.err) {
       logger.error(ctx, "getResume", "Can not find resume", resume.err);
