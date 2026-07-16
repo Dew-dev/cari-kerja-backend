@@ -6,6 +6,7 @@ const validator = require("../../../helpers/utils/validator");
 const { sendResponse, paginationResponse } = require("../../../helpers/utils/response");
 const { ForbiddenError } = require("../../../helpers/errors");
 const wrapper = require("../../../helpers/utils/wrapper");
+const { getIO } = require("../../../helpers/socket");
 
 /**
  * POST /api/v1/chat/start
@@ -106,6 +107,12 @@ const sendMessage = async (req, res) => {
   }
 
   const result = await commandHandler.sendMessage(validatePayload.data);
+
+  if (!result.err) {
+    const io = getIO();
+    io?.to(String(validatePayload.data.conversation_id)).emit("receive_message", result.data);
+  }
+
   return sendResponse(result, res, 201);
 };
 
@@ -126,6 +133,15 @@ const markAsRead = async (req, res) => {
   }
 
   const result = await commandHandler.markAsRead(validatePayload.data);
+
+  if (!result.err) {
+    const io = getIO();
+    io?.to(String(validatePayload.data.conversation_id)).emit("read_message", {
+      conversation_id: validatePayload.data.conversation_id,
+      reader_id: validatePayload.data.user_id,
+    });
+  }
+
   return sendResponse(result, res);
 };
 

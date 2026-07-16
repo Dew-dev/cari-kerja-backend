@@ -6,25 +6,36 @@ const logger = require("../utils/logger");
 
 const ctx = "Socket-Server";
 
+/** @type {import("socket.io").Server | null} */
+let ioInstance = null;
+
 /**
  * Attach a Socket.IO server to the given HTTP server instance.
  * @param {import("http").Server} httpServer
  * @returns {import("socket.io").Server}
  */
 const initSocket = (httpServer) => {
-  const allowedOrigins = String(config.get("/cors/origins") || "*").split(",");
+  const allowedOrigins = String(config.get("/cors/origins") || "*")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
   const io = new Server(httpServer, {
     cors: {
+      // credentials + "*" is invalid in browsers; reflect origin in dev instead
       origin:
         process.env.NODE_ENV !== "production"
-          ? "*"
-          : allowedOrigins,
+          ? true
+          : allowedOrigins.includes("*")
+            ? true
+            : allowedOrigins,
       credentials: true,
       methods: ["GET", "POST"],
     },
     transports: ["websocket", "polling"],
   });
+
+  ioInstance = io;
 
   // ─── JWT Authentication Middleware ───────────────────────────────────────
   io.use(async (socket, next) => {
@@ -61,4 +72,7 @@ const initSocket = (httpServer) => {
   return io;
 };
 
-module.exports = { initSocket };
+/** @returns {import("socket.io").Server | null} */
+const getIO = () => ioInstance;
+
+module.exports = { initSocket, getIO };
