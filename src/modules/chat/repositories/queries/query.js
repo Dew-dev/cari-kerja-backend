@@ -43,8 +43,20 @@ class Query {
   async getConversationByIdForParticipant(id, user_id) {
     try {
       const query = `
-        SELECT c.*
+        SELECT
+          c.*,
+          wu.username        AS worker_username,
+          wr.name            AS worker_name,
+          wr.avatar_url      AS worker_avatar,
+          ru.username        AS recruiter_username,
+          rc.company_name    AS recruiter_company,
+          rc.contact_name    AS recruiter_name,
+          rc.avatar_url      AS recruiter_avatar
         FROM conversations c
+        JOIN users wu ON c.worker_id = wu.id
+        LEFT JOIN workers wr ON wr.user_id = wu.id
+        JOIN users ru ON c.recruiter_id = ru.id
+        LEFT JOIN recruiters rc ON rc.user_id = ru.id
         WHERE c.id = $1
           AND (c.worker_id = $2 OR c.recruiter_id = $2)
         LIMIT 1
@@ -130,9 +142,15 @@ class Query {
       const query = `
         SELECT
           m.*,
-          u.username AS sender_username
+          u.username AS sender_username,
+          u.role_id  AS sender_role_id,
+          COALESCE(wr.name, rc.contact_name, u.username) AS sender_name,
+          COALESCE(wr.avatar_url, rc.avatar_url) AS sender_avatar,
+          rc.company_name AS sender_company
         FROM messages m
         JOIN users u ON m.sender_id = u.id
+        LEFT JOIN workers wr ON wr.user_id = u.id
+        LEFT JOIN recruiters rc ON rc.user_id = u.id
         WHERE m.conversation_id = $1
         ORDER BY m.created_at ASC
         LIMIT $2 OFFSET $3
@@ -154,6 +172,34 @@ class Query {
     } catch (err) {
       logger.error(ctx, "getMessagesByConversationId failed", "query", err);
       return wrapper.error(new InternalServerError("Error querying messages"));
+    }
+  }
+
+  async getMessageById(id) {
+    try {
+      const query = `
+        SELECT
+          m.*,
+          u.username AS sender_username,
+          u.role_id  AS sender_role_id,
+          COALESCE(wr.name, rc.contact_name, u.username) AS sender_name,
+          COALESCE(wr.avatar_url, rc.avatar_url) AS sender_avatar,
+          rc.company_name AS sender_company
+        FROM messages m
+        JOIN users u ON m.sender_id = u.id
+        LEFT JOIN workers wr ON wr.user_id = u.id
+        LEFT JOIN recruiters rc ON rc.user_id = u.id
+        WHERE m.id = $1
+        LIMIT 1
+      `;
+      const result = await this.db.executeQuery(query, [id]);
+      if (!result || result.rows.length === 0) {
+        return wrapper.error(new NotFoundError("Message not found"));
+      }
+      return wrapper.data(result.rows[0]);
+    } catch (err) {
+      logger.error(ctx, "getMessageById failed", "query", err);
+      return wrapper.error(new InternalServerError("Error querying message"));
     }
   }
 }

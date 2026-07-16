@@ -15,5 +15,5 @@ module.exports = (server) => {
   server.post("/api/v1/chat/:conversationId/messages", verifyToken, chatHandler.sendMessage);
 
   // Mark all messages in a conversation as read
-  server.patch("/api/v1/chat/:conversationId/read", verifyToken, chatHandler.markAsRead);
+  server.put("/api/v1/chat/:conversationId/read", verifyToken, chatHandler.markAsRead);
 };

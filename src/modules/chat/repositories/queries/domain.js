@@ -1,7 +1,8 @@
 const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError, ForbiddenError } = require("../../../../helpers/errors");
+const { ForbiddenError } = require("../../../../helpers/errors");
+const { formatConversation, formatMessage } = require("../../helpers/format");
 
 const ctx = "Chat-Query-Domain";
 
@@ -18,7 +19,9 @@ class ChatQueryDomain {
       return wrapper.error(result.err);
     }
     logger.info(ctx, "getConversations", "fetched conversations", { user_id });
-    return wrapper.data(result.data);
+    return wrapper.data(
+      (result.data || []).map((row) => formatConversation(row, user_id))
+    );
   }
 
   async getConversationById(payload) {
@@ -28,7 +31,7 @@ class ChatQueryDomain {
       logger.error(ctx, "getConversationById failed", "domain", result.err);
       return wrapper.error(result.err);
     }
-    return wrapper.data(result.data);
+    return wrapper.data(formatConversation(result.data, user_id));
   }
 
   async getMessages(payload) {
@@ -49,11 +52,14 @@ class ChatQueryDomain {
     }
 
     logger.info(ctx, "getMessages", "fetched messages", { conversation_id, page, limit });
-    return wrapper.paginationData(result.data, {
-      ...result.meta,
-      page,
-      total_pages: Math.ceil(result.meta.total / limit),
-    });
+    return wrapper.paginationData(
+      (result.data || []).map(formatMessage),
+      {
+        ...result.meta,
+        page,
+        total_pages: Math.ceil(result.meta.total / limit),
+      }
+    );
   }
 }
 

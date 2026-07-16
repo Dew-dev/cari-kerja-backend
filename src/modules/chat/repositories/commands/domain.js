@@ -4,11 +4,10 @@ const Query = require("../queries/query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const {
-  NotFoundError,
   ForbiddenError,
   BadRequestError,
-  InternalServerError,
 } = require("../../../../helpers/errors");
+const { formatConversation, formatMessage } = require("../../helpers/format");
 
 const ctx = "Chat-Command-Domain";
 
@@ -19,7 +18,8 @@ class ChatCommandDomain {
   }
 
   async startConversation(payload) {
-    const { worker_id, recruiter_id, job_id, role_id } = payload;
+    const { worker_id, recruiter_id, job_id } = payload;
+    const viewerUserId = payload.role_id === 1 ? worker_id : recruiter_id;
 
     // Validate that worker and recruiter are not the same user
     if (worker_id === recruiter_id) {
@@ -35,26 +35,31 @@ class ChatCommandDomain {
     if (existing.err) {
       return wrapper.error(existing.err);
     }
-    if (existing.data) {
+
+    let conversationId = existing.data?.id;
+    if (!conversationId) {
+      conversationId = uuidv4();
+      const created = await this.command.createConversation({
+        id: conversationId,
+        worker_id,
+        recruiter_id,
+        job_id: job_id || null,
+      });
+      if (created.err) {
+        logger.error(ctx, "startConversation - create failed", "domain", created.err);
+        return wrapper.error(created.err);
+      }
+      logger.info(ctx, "startConversation", "conversation created", { id: conversationId, worker_id, recruiter_id });
+    } else {
       logger.info(ctx, "startConversation", "conversation already exists", { worker_id, recruiter_id });
-      return wrapper.data(existing.data);
     }
 
-    // Create new conversation
-    const id = uuidv4();
-    const created = await this.command.createConversation({
-      id,
-      worker_id,
-      recruiter_id,
-      job_id: job_id || null,
-    });
-    if (created.err) {
-      logger.error(ctx, "startConversation - create failed", "domain", created.err);
-      return wrapper.error(created.err);
+    const full = await this.query.getConversationByIdForParticipant(conversationId, viewerUserId);
+    if (full.err) {
+      return wrapper.error(full.err);
     }
 
-    logger.info(ctx, "startConversation", "conversation created", { id, worker_id, recruiter_id });
-    return wrapper.data(created.data);
+    return wrapper.data(formatConversation(full.data, viewerUserId));
   }
 
   async sendMessage(payload) {
@@ -84,8 +89,15 @@ class ChatCommandDomain {
       return wrapper.error(result.err);
     }
 
+    const enriched = await this.query.getMessageById(messageId);
+    if (enriched.err) {
+      // Fallback to raw insert row if enrich query somehow fails
+      logger.error(ctx, "sendMessage - enrich failed", "domain", enriched.err);
+      return wrapper.data(formatMessage({ ...result.data, sender_username: null, sender_name: null, sender_avatar: null }));
+    }
+
     logger.info(ctx, "sendMessage", "message sent", { messageId, conversation_id, sender_id });
-    return wrapper.data(result.data);
+    return wrapper.data(formatMessage(enriched.data));
   }
 
   async markAsRead(payload) {
