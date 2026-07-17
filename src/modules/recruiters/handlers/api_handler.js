@@ -3,9 +3,12 @@ const queryModel = require("../repositories/queries/query_model");
 const commandHandler = require("../repositories/commands/command_handler");
 const commandModel = require("../repositories/commands/command_model");
 const validator = require("../../../helpers/utils/validator");
+const wrapper = require("../../../helpers/utils/wrapper");
+const { ForbiddenError } = require("../../../helpers/errors");
 const { sendResponse, paginationResponse } = require("../../../helpers/utils/response");
 
-// query
+const SUPER_ADMIN_ROLE_ID = 3;
+
 const getRecruiterByUserId = async (req, res) => {
   const payload = req.params;
   const validatePayload = validator.isValidPayload(
@@ -49,6 +52,17 @@ const getAllCompanies = async (req, res) => {
 
 const updateOneRecruiter = async (req, res) => {
   const payload = { ...req.body, ...req.params };
+
+  const isSuperAdmin = req.userMeta?.role_id === SUPER_ADMIN_ROLE_ID;
+  if (!isSuperAdmin && req.userMeta?.id !== payload.user_id) {
+    return sendResponse(
+      wrapper.error(
+        new ForbiddenError("You are not allowed to update this recruiter profile")
+      ),
+      res
+    );
+  }
+
   const validatePayload = validator.isValidPayload(
     payload,
     commandModel.updateRecruiterParamType
@@ -69,7 +83,6 @@ const updateOneRecruiterSelf = async (req, res) => {
   if (req.file) {
     payload.avatar_url = `/uploads/avatars/recruiter/${req.file.filename}`;
   }
-  ////console.log("payload \n", payload);
   const validatePayload = validator.isValidPayload(
     payload,
     commandModel.updateRecruiterParamType

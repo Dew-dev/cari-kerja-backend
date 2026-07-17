@@ -82,8 +82,9 @@ describe("Recruiters API Handler", () => {
   describe("updateOneRecruiter", () => {
     it("should update recruiter on valid request", async () => {
       const req = createMockRequest({
-        params: { id: recruiterId },
-        body: { user_id: userId, company_name: "Acme Updated" },
+        userMeta: { id: userId, recruiter_id: recruiterId },
+        params: { user_id: userId, id: recruiterId },
+        body: { company_name: "Acme Updated" },
       });
       commandHandler.updateOneRecruiter.mockResolvedValue(wrapper.data({ id: recruiterId }));
 

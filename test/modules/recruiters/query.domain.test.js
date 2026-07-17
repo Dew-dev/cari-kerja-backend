@@ -127,6 +127,16 @@ describe("Recruiters Query Domain", () => {
       expect(result.err.message).toBe("Cannot find companies");
     });
 
+    it("should return empty paginated list when no companies found", async () => {
+      mockQuery.findAllCompanies.mockResolvedValue({ err: "Data Not Found", data: null });
+      mockQuery.countAll.mockResolvedValue({ err: null, data: 0 });
+
+      const result = await domain.getAllCompanies({ page: 1, limit: 10, search: "" });
+
+      expect(result.err).toBeNull();
+      expect(result.data).toEqual([]);
+    });
+
     it("should return NotFoundError when count query fails", async () => {
       mockQuery.findAllCompanies.mockResolvedValue({ err: null, data: [{ id: "rec-1" }] });
       mockQuery.countAll.mockResolvedValue({ err: new Error("count failed"), data: null });

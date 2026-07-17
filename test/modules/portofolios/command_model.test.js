@@ -37,18 +37,18 @@ describe("Portofolios Command Model", () => {
   describe("updatePortfoliosParamType", () => {
     it("should validate valid payload", () => {
       const { error, value } = commandModel.updatePortfoliosParamType.validate({
-        id: "pf-uuid",
+        id: "550e8400-e29b-41d4-a716-446655440001",
         worker_id: workerId,
         title: "Updated",
         link: "https://updated.com",
       });
       expect(error).toBeUndefined();
-      expect(value.id).toBe("pf-uuid");
+      expect(value.id).toBe("550e8400-e29b-41d4-a716-446655440001");
     });
 
     it("should reject missing title", () => {
       const { error } = commandModel.updatePortfoliosParamType.validate({
-        id: "pf-uuid",
+        id: "550e8400-e29b-41d4-a716-446655440001",
         worker_id: workerId,
         link: "https://updated.com",
       });
@@ -60,10 +60,10 @@ describe("Portofolios Command Model", () => {
     it("should validate valid payload", () => {
       const { error, value } = commandModel.deletePortfoliosParamType.validate({
         worker_id: workerId,
-        id: "pf-uuid",
+        id: "550e8400-e29b-41d4-a716-446655440001",
       });
       expect(error).toBeUndefined();
-      expect(value.id).toBe("pf-uuid");
+      expect(value.id).toBe("550e8400-e29b-41d4-a716-446655440001");
     });
 
     it("should reject missing id", () => {
