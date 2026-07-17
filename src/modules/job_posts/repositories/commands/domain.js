@@ -97,6 +97,16 @@ class Jobpost {
 
     const actualJobPostId = result.id || jobPostId;
 
+    const failNestedCreate = async (message, err) => {
+      logger.error(ctx, message, "Job Posts Commands", err);
+      try {
+        await this.command.deleteJobPost(actualJobPostId);
+      } catch (rollbackErr) {
+        logger.error(ctx, "Rollback job post after nested insert failure", "Job Posts Commands", rollbackErr);
+      }
+      return wrapper.error(new InternalServerError(message));
+    };
+
     // Insert requirements if provided
     if (requirements && Array.isArray(requirements) && requirements.length > 0) {
       const requirementsData = requirements.map((req) => ({
@@ -108,7 +118,7 @@ class Jobpost {
       
       const reqResult = await this.command.insertMany(requirementsData, "job_post_requirements");
       if (reqResult.err) {
-        logger.error(ctx, "Create job post requirements", "Job Posts Commands", reqResult.err);
+        return failNestedCreate("Create job post requirements failed", reqResult.err);
       }
     }
 
@@ -123,7 +133,7 @@ class Jobpost {
       
       const benResult = await this.command.insertMany(benefitsData, "job_post_benefits");
       if (benResult.err) {
-        logger.error(ctx, "Create job post benefits", "Job Posts Commands", benResult.err);
+        return failNestedCreate("Create job post benefits failed", benResult.err);
       }
     }
 
@@ -138,7 +148,7 @@ class Jobpost {
       
       const respResult = await this.command.insertMany(responsibilitiesData, "job_post_responsibilities");
       if (respResult.err) {
-        logger.error(ctx, "Create job post responsibilities", "Job Posts Commands", respResult.err);
+        return failNestedCreate("Create job post responsibilities failed", respResult.err);
       }
     }
 
@@ -153,9 +163,8 @@ class Jobpost {
       }));
       
       const skillResult = await this.command.insertMany(skillsData, "job_post_skills");
-      //console.log("skillResult:", skillResult);
       if (skillResult.err) {
-        logger.error(ctx, "Create job post skills", "Job Posts Commands", skillResult.err);
+        return failNestedCreate("Create job post skills failed", skillResult.err);
       }
     }
 
@@ -164,7 +173,6 @@ class Jobpost {
       : Array.isArray(questions)
         ? questions
         : null;
-    //console.log("questionPayload:", questionPayload);
     if (questionPayload && questionPayload.length > 0) {
       const questionResult = await this.createJobPostQuestions(
         questionPayload,
@@ -172,12 +180,7 @@ class Jobpost {
         ctx,
       );
       if (questionResult.err) {
-        logger.error(
-          ctx,
-          "Create job post questions",
-          "Job Posts Commands",
-          questionResult.err,
-        );
+        return failNestedCreate("Create job post questions failed", questionResult.err);
       }
     }
 
@@ -596,7 +599,9 @@ class Jobpost {
     });
 
     if (result.rowCount === 0) {
-      return wrapper.error("Application not found or already withdrawn");
+      return wrapper.error(
+        new NotFoundError("Application not found or already withdrawn"),
+      );
     }
 
     return wrapper.data("Application withdrawn successfully");
@@ -644,7 +649,7 @@ class Jobpost {
       return wrapper.error(new NotFoundError("Application not found"));
     }
 
-    // kirim email (NON-BLOCKING OPTIONAL)
+    // Email is best-effort; status update already committed successfully
     try {
       await addEmailJob({
         to: app.data.email,
@@ -657,9 +662,6 @@ class Jobpost {
       });
     } catch (e) {
       logger.error(ctx, "changeApplicationStatus", "Send email failed", e);
-      return wrapper.error(
-        new InternalServerError(e.message),
-      );
     }
 
     return wrapper.data("Application status updated successfully");

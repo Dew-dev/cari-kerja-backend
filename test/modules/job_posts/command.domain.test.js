@@ -102,7 +102,7 @@ describe("Job Posts Command Domain", () => {
       expect(result.data).toBe("Application withdrawn successfully");
     });
 
-    it("should return error when application not found", async () => {
+    it("should return NotFoundError when application not found", async () => {
       mockCommand.deleteAppliedJobpost.mockResolvedValue({ rowCount: 0 });
 
       const result = await domain.deleteAppliedJobpost({
@@ -110,7 +110,7 @@ describe("Job Posts Command Domain", () => {
         worker_id: workerId,
       });
 
-      expect(result.err).toBeTruthy();
+      expect(result.err).toBeInstanceOf(NotFoundError);
     });
   });
 

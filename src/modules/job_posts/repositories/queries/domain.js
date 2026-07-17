@@ -5,6 +5,8 @@ const { NotFoundError } = require("../../../../helpers/errors");
 const WorkerSkillsQuery = require("../../../worker-skills/repositories/queries/query");
 const ctx = "Jobposts-Query-Domain";
 
+const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
+
 class Jobposts {
   constructor(db) {
     this.query = new Query(db);
@@ -320,10 +322,15 @@ class Jobposts {
     if (user_id !== undefined && user_id !== null && user_id !== "") {
       finalData = { ...data, user_id };
     }
-    console.log("finalData", finalData)
     const jobposts = await this.query.findAll(finalData);
 
     if (jobposts.err) {
+      if (jobposts.err === EMPTY_RESULT_MESSAGE) {
+        return wrapper.paginationData(
+          [],
+          wrapper.buildPaginationMeta(page, limit, totalData),
+        );
+      }
       logger.error(ctx, "getJobposts", "Can not find jobposts", jobposts.err);
       return wrapper.error(new NotFoundError("Can not find jobposts"));
     }
