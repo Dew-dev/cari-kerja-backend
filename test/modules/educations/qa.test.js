@@ -86,7 +86,10 @@ describe("[QA] educations module", () => {
     it("[BUG-ED-004] updateOne should set end_date null when is_current is true", async () => {
       const domain = new EducationsCommandDomain({});
       domain.query = {
-        findOne: jest.fn().mockResolvedValue({ err: null, data: { id: educationId } }),
+        findOne: jest.fn().mockResolvedValue({
+          err: null,
+          data: { id: educationId, worker_id: workerId },
+        }),
       };
       domain.command = {
         updateOneNew: jest.fn().mockResolvedValue({ err: null, data: true }),
@@ -153,7 +156,10 @@ describe("[QA] educations module", () => {
     it("[BUG-ED-007] updateOne findOne should include worker_id in lookup", async () => {
       const domain = new EducationsCommandDomain({});
       domain.query = {
-        findOne: jest.fn().mockResolvedValue({ err: null, data: { id: educationId } }),
+        findOne: jest.fn().mockResolvedValue({
+          err: null,
+          data: { id: educationId, worker_id: workerId },
+        }),
       };
       domain.command = {
         updateOneNew: jest.fn().mockResolvedValue({ err: null, data: true }),

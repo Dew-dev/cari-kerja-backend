@@ -31,13 +31,25 @@ describe("Educations Query Domain", () => {
       expect(mockQuery.getAllByWorkerId).toHaveBeenCalledWith(workerId);
     });
 
-    it("should return NotFoundError when no educations found", async () => {
+    it("should return NotFoundError when query fails with unexpected error", async () => {
       mockQuery.getAllByWorkerId.mockResolvedValue({ err: new Error("not found"), data: null });
 
       const result = await domain.getAllEducationsByWorkerId({ worker_id: workerId });
 
       expect(result.err).toBeInstanceOf(NotFoundError);
       expect(result.err.message).toBe("No educations found");
+    });
+
+    it("should return empty array when query reports empty result", async () => {
+      mockQuery.getAllByWorkerId.mockResolvedValue({
+        err: "Data Not Found Please Try Another Input",
+        data: null,
+      });
+
+      const result = await domain.getAllEducationsByWorkerId({ worker_id: workerId });
+
+      expect(result.err).toBeNull();
+      expect(result.data).toEqual([]);
     });
   });
 

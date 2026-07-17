@@ -83,7 +83,7 @@ describe("Educations Command Domain", () => {
       );
     });
 
-    it("should keep end_date when is_current is true and end_date is provided", async () => {
+    it("should set end_date to null when is_current is true even if end_date is provided", async () => {
       mockCommand.insertOne.mockResolvedValue({
         err: null,
         data: { id: "education-uuid-1234" },
@@ -98,7 +98,7 @@ describe("Educations Command Domain", () => {
       expect(mockCommand.insertOne).toHaveBeenCalledWith(
         expect.objectContaining({
           is_current: true,
-          end_date: "2025-06-01",
+          end_date: null,
         })
       );
     });
@@ -149,13 +149,20 @@ describe("Educations Command Domain", () => {
     };
 
     it("should return id when update succeeds", async () => {
-      mockQuery.findOne.mockResolvedValue({ err: null, data: { id: "education-uuid-1234" } });
+      mockQuery.findOne.mockResolvedValue({
+        err: null,
+        data: { id: "education-uuid-1234", worker_id: payload.worker_id },
+      });
       mockCommand.updateOneNew.mockResolvedValue({ err: null, data: true });
 
       const result = await domain.updateOne(payload);
 
       expect(result.err).toBeNull();
       expect(result.data).toEqual({ id: "education-uuid-1234" });
+      expect(mockQuery.findOne).toHaveBeenCalledWith(
+        { id: payload.id, worker_id: payload.worker_id },
+        expect.any(Object)
+      );
       expect(mockCommand.updateOneNew).toHaveBeenCalledWith(
         { id: "education-uuid-1234", worker_id: payload.worker_id },
         expect.objectContaining({
@@ -176,7 +183,10 @@ describe("Educations Command Domain", () => {
     });
 
     it("should return InternalServerError when update fails", async () => {
-      mockQuery.findOne.mockResolvedValue({ err: null, data: { id: "education-uuid-1234" } });
+      mockQuery.findOne.mockResolvedValue({
+        err: null,
+        data: { id: "education-uuid-1234", worker_id: payload.worker_id },
+      });
       mockCommand.updateOneNew.mockResolvedValue({ err: new Error("update failed"), data: null });
 
       const result = await domain.updateOne(payload);
