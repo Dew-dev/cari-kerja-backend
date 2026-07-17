@@ -1,7 +1,7 @@
 const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError } = require("../../../../helpers/errors");
+const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
 const ctx = "Skills-Query-Domain";
 
 class Skill {
@@ -13,7 +13,7 @@ class Skill {
     const { id } = payload;
     const skill = await this.query.findOne(
       { id },
-      { id: 1, skills_name: 1, created_at: 1 }
+      { id: 1, skill_name: 1, created_at: 1 }
     );
     if (skill.err) {
       logger.error(ctx, "getSkill", "Can not find skill", skill.err);
@@ -36,8 +36,14 @@ class Skill {
       return wrapper.error(new NotFoundError("Can not find skills"));
     }
 
+    if (count.err) {
+      logger.error(ctx, "getAllSkills", "Can not count skills", count.err);
+      return wrapper.error(new InternalServerError("Can not count skills"));
+    }
+
     const totalData = count.data;
-    const totalPages = Math.ceil(totalData / limit);
+    const limitNum = Number(limit) || 0;
+    const totalPages = limitNum > 0 ? Math.ceil(totalData / limitNum) : 0;
     const meta = {
       page: page,
       per_page: limit,
