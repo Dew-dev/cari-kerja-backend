@@ -6,7 +6,6 @@ const { v4: uuidv4 } = require("uuid");
 const {
   NotFoundError,
   InternalServerError,
-  BadRequestError,
 } = require("../../../../helpers/errors");
 const ctx = "WorkerExperience-Domain";
 
@@ -24,7 +23,7 @@ class WorkExperience {
       company_name: payload.company_name,
       job_title: payload.job_title,
       start_date: payload.start_date,
-      end_date: payload.end_date || (payload.is_current ? null : payload.end_date),
+      end_date: payload.is_current ? null : (payload.end_date || null),
       is_current: payload.is_current || false,
       description: payload.description || null,
     };
@@ -40,8 +39,8 @@ class WorkExperience {
   // UPDATE one work experience
   async updateOne(payload) {
     const { id, worker_id } = payload;
-    const existing = await this.query.findOne({ id }, { id: 1 });
-    if (!existing.data) {
+    const existing = await this.query.findOne({ id }, { id: 1, worker_id: 1 });
+    if (!existing.data || existing.data.worker_id !== worker_id) {
       return wrapper.error(new NotFoundError("Worker experience not found"));
     }
 
@@ -49,7 +48,7 @@ class WorkExperience {
       company_name: payload.company_name,
       job_title: payload.job_title,
       start_date: payload.start_date,
-      end_date: payload.end_date || null,
+      end_date: payload.is_current ? null : (payload.end_date || null),
       is_current: payload.is_current || false,
       description: payload.description || null,
     };
@@ -66,13 +65,13 @@ class WorkExperience {
 
   // DELETE one work experience
   async deleteOne(payload) {
-    const { id } = payload;
-    const existing = await this.query.findOne({ id }, { id: 1 });
-    if (existing.err) {
+    const { id, worker_id } = payload;
+    const existing = await this.query.findOne({ id, worker_id }, { id: 1 });
+    if (existing.err || !existing.data) {
       return wrapper.error(new NotFoundError("Worker experience not found"));
     }
 
-    const result = await this.command.deleteOne({ id });
+    const result = await this.command.deleteOne({ id, worker_id });
     if (result.err) {
       logger.error(ctx, "Failed delete exp", "Domain", result.err);
       return wrapper.error(
