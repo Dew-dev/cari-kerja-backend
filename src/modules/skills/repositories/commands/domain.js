@@ -7,6 +7,7 @@ const {
   NotFoundError,
   InternalServerError,
   BadRequestError,
+  ConflictError,
 } = require("../../../../helpers/errors");
 const ctx = "Certification-Command-Domain";
 
@@ -24,6 +25,13 @@ class Skill {
 
     const result = await this.command.insertOne(newPayload);
     if (result.err) {
+      const isDuplicate =
+        result.err.code === "23505" ||
+        /duplicate key|unique constraint/i.test(result.err.message || "");
+      if (isDuplicate) {
+        return wrapper.error(new ConflictError("Skill already exists"));
+      }
+
       return wrapper.error(new InternalServerError("Failed insert skill"));
     }
 
@@ -40,7 +48,7 @@ class Skill {
 
     const result = await this.command.updateOneNew(
       { id },
-      { skills_name: payload.skills_name }
+      { skill_name: payload.skill_name }
     );
     if (result.err) {
       return wrapper.error(new InternalServerError("Update skill failed"));
