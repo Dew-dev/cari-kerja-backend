@@ -72,14 +72,15 @@ describe("Employment Types Query Domain", () => {
       expect(result.err.message).toBe("Can not find EmploymentTypes");
     });
 
-    it("should leave total_pages undefined when limit is not provided", async () => {
+    it("should default pagination meta when limit is not provided", async () => {
       mockQuery.findAllEmploymentTypes.mockResolvedValue({ err: null, data: [{ id: 1 }] });
       mockQuery.countAllEmploymentTypes.mockResolvedValue(mockCountResult(5));
 
       const result = await domain.getAllEmploymentTypes({ page: 1, search: "" });
 
       expect(result.meta.total_data).toBe(5);
-      expect(result.meta.total_pages).toBeUndefined();
+      expect(result.meta.per_page).toBe(10);
+      expect(Number.isFinite(result.meta.total_pages)).toBe(true);
     });
   });
 });

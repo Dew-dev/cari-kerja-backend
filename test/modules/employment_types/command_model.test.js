@@ -12,6 +12,16 @@ describe("Employment Types Command Model", () => {
       const { error } = commandModel.addEmploymentTypeType.validate({});
       expect(error).toBeDefined();
     });
+
+    it("should reject whitespace-only name", () => {
+      const { error } = commandModel.addEmploymentTypeType.validate({ name: "   " });
+      expect(error).toBeDefined();
+    });
+
+    it("should reject name exceeding max length", () => {
+      const { error } = commandModel.addEmploymentTypeType.validate({ name: "a".repeat(256) });
+      expect(error).toBeDefined();
+    });
   });
 
   describe("updateEmploymentTypeType", () => {
