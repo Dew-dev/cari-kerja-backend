@@ -1,8 +1,18 @@
 const basicAuth = require("../middlewares/basicAuth");
 const verifyToken = require("../middlewares/verifyToken");
+const verifyRole = require("../middlewares/verifyRole");
 const userHandler = require("../modules/users/handlers/api_handler");
 const { authGoogle, authGoogleCallback } = require("../helpers/auth/google_oauth");
 const forgotPasswordLimiter = require("../middlewares/rateLimitForgotPassword");
+
+// User account management (login, logout, register, password/email flows) is
+// intentionally NOT role-gated here: it must remain reachable by every role
+// (worker, recruiter, super_admin, admin) since it is how each of them
+// authenticates and manages their own account. `getUserById` is protected by
+// an ownership check inside the handler (self or super_admin) instead.
+// super_admin (3) and admin (4) — deleting another user's account is an
+// account-management action, not a worker/recruiter feature.
+const userManagementRoles = [3, 4];
 
 module.exports = (server) => {
   server.post("/api/v1/users/register-worker", basicAuth.isAuthenticated, userHandler.registerWorker);
@@ -25,7 +35,12 @@ module.exports = (server) => {
   server.delete("/api/v1/users/logout", verifyToken, userHandler.logout);
   server.put("/api/v1/users/refresh-token", basicAuth.isAuthenticated, userHandler.refreshToken);
   server.get("/api/v1/users/:id", verifyToken, userHandler.getUserById);
-  server.delete("/api/v1/users/:id", verifyToken, userHandler.deleteUser);
+  server.delete(
+    "/api/v1/users/:id",
+    verifyToken,
+    verifyRole(userManagementRoles),
+    userHandler.deleteUser
+  );
   server.post("/api/v1/auth/forgot-password", forgotPasswordLimiter, userHandler.forgotPassword);
   server.post("/api/v1/auth/reset-password", userHandler.resetPassword);
 
