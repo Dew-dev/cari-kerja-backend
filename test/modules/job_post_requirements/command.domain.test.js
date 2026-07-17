@@ -4,7 +4,7 @@ const JobPostRequirementsDomain = require("../../../src/modules/job_post_require
 const {
   NotFoundError,
   InternalServerError,
-  UnauthorizedError,
+  ForbiddenError,
 } = require("../../../src/helpers/errors");
 
 describe("Job Post Requirements Command Domain", () => {
@@ -50,7 +50,7 @@ describe("Job Post Requirements Command Domain", () => {
       );
     });
 
-    it("should return UnauthorizedError when recruiter does not own job post", async () => {
+    it("should return ForbiddenError when recruiter does not own job post", async () => {
       mockJobPostsDomain.getJobpostById.mockResolvedValue({
         err: null,
         data: { recruiter_id: "other-recruiter" },
@@ -63,7 +63,7 @@ describe("Job Post Requirements Command Domain", () => {
         order_index: 1,
       });
 
-      expect(result.err).toBeInstanceOf(UnauthorizedError);
+      expect(result.err).toBeInstanceOf(ForbiddenError);
     });
 
     it("should return InternalServerError when insert fails", async () => {
@@ -85,13 +85,18 @@ describe("Job Post Requirements Command Domain", () => {
   });
 
   describe("updateOne", () => {
-    it("should update requirement when record exists", async () => {
+    it("should update requirement when record exists and recruiter owns job post", async () => {
       mockQuery.findOne.mockResolvedValue({ err: null, data: { id: "req-1" } });
+      mockJobPostsDomain.getJobpostById.mockResolvedValue({
+        err: null,
+        data: { recruiter_id: recruiterId },
+      });
       mockCommand.updateOneNew.mockResolvedValue({ err: null, data: true });
 
       const result = await domain.updateOne({
         id: "req-1",
         job_post_id: jobPostId,
+        recruiter_id: recruiterId,
         requirement: "Updated requirement",
         order_index: 2,
       });
@@ -103,7 +108,11 @@ describe("Job Post Requirements Command Domain", () => {
     it("should return NotFoundError when requirement not found", async () => {
       mockQuery.findOne.mockResolvedValue({ err: new Error("not found"), data: null });
 
-      const result = await domain.updateOne({ id: "req-1", job_post_id: jobPostId });
+      const result = await domain.updateOne({
+        id: "req-1",
+        job_post_id: jobPostId,
+        recruiter_id: recruiterId,
+      });
 
       expect(result.err).toBeInstanceOf(NotFoundError);
       expect(result.err.message).toBe("JobPostRequirement not found");
@@ -111,11 +120,19 @@ describe("Job Post Requirements Command Domain", () => {
   });
 
   describe("deleteOne", () => {
-    it("should delete requirement when record exists", async () => {
+    it("should delete requirement when record exists and recruiter owns job post", async () => {
       mockQuery.findOne.mockResolvedValue({ err: null, data: { id: "req-1" } });
+      mockJobPostsDomain.getJobpostById.mockResolvedValue({
+        err: null,
+        data: { recruiter_id: recruiterId },
+      });
       mockCommand.deleteOne.mockResolvedValue({ err: null, data: true });
 
-      const result = await domain.deleteOne({ id: "req-1", job_post_id: jobPostId });
+      const result = await domain.deleteOne({
+        id: "req-1",
+        job_post_id: jobPostId,
+        recruiter_id: recruiterId,
+      });
 
       expect(result.err).toBeNull();
       expect(result.data).toBe("Successfully deleted");
