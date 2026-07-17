@@ -139,7 +139,10 @@ describe("Resumes API Handler", () => {
 
       await apiHandler.deleteResume(req, res);
 
-      expect(commandHandler.deleteResume).toHaveBeenCalledWith({ id: resumeId });
+      expect(commandHandler.deleteResume).toHaveBeenCalledWith({
+        id: resumeId,
+        worker_id: workerId,
+      });
       expect(res.status).toHaveBeenCalledWith(200);
     });
 

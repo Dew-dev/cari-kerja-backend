@@ -8,6 +8,7 @@ const {
   NotFoundError,
   InternalServerError,
   BadRequestError,
+  ForbiddenError,
 } = require("../../../../helpers/errors");
 const ctx = "Resume-Command-Domain";
 
@@ -25,11 +26,6 @@ class Resume {
     if (worker.err) {
       return wrapper.error(new NotFoundError("Worker not found"));
     }
-
-    const resumeDefault = await this.query.findOne(
-      { is_default: true, worker_id },
-      { id: 1 }
-    );
 
     if (is_default) {
       const defaultResume = await this.query.findOne(
@@ -69,15 +65,15 @@ class Resume {
       return wrapper.error(new BadRequestError("Id not define"));
     }
 
-    // Cek apakah resume dengan id tersebut ada
-    const resume = await this.query.findOne({ id }, { id: 1, is_default: 1 });
+    const resume = await this.query.findOne(
+      { id },
+      { id: 1, worker_id: 1, is_default: 1 }
+    );
     if (resume.err || !resume.data) {
       return wrapper.error(new NotFoundError("Resume not found"));
     }
 
-    // Daftar field yang bisa diupdate
     const updatableFields = ["resume_url", "title", "is_default"];
-
     const updateData = {};
     for (const field of updatableFields) {
       if (payload[field] !== undefined && payload[field] !== null) {
@@ -88,6 +84,17 @@ class Resume {
     if (Object.keys(updateData).length === 0) {
       return wrapper.error(
         new BadRequestError("Tidak ada data untuk diupdate")
+      );
+    }
+
+    // Scope update by worker_id to prevent IDOR (WHERE id AND worker_id)
+    const updateParameter = { id, worker_id };
+
+    if (resume.data.worker_id && resume.data.worker_id !== worker_id) {
+      // Ensure update path is always worker-scoped; do not apply foreign resume changes
+      await this.command.updateOneNew(updateParameter, updateData);
+      return wrapper.error(
+        new ForbiddenError("You are not allowed to update this resume")
       );
     }
 
@@ -109,8 +116,10 @@ class Resume {
       }
     }
 
-    // Lakukan update
-    const updateResult = await this.command.updateOneNew({ id }, updateData);
+    const updateResult = await this.command.updateOneNew(
+      updateParameter,
+      updateData
+    );
     if (updateResult.err) {
       return wrapper.error(new InternalServerError("Update resume failed"));
     }
@@ -119,14 +128,23 @@ class Resume {
   }
 
   async deleteResume(payload) {
-    const { id } = payload;
+    const { id, worker_id } = payload;
 
-    const resume = await this.query.findOne({ id }, { id: 1 });
+    const resume = await this.query.findOne(
+      { id },
+      { id: 1, worker_id: 1 }
+    );
     if (resume.err || !resume.data) {
       return wrapper.error(new NotFoundError("resume not found"));
     }
 
-    const result = await this.command.deleteOne({ id });
+    if (resume.data.worker_id && resume.data.worker_id !== worker_id) {
+      return wrapper.error(
+        new ForbiddenError("You are not allowed to delete this resume")
+      );
+    }
+
+    const result = await this.command.deleteOne({ id, worker_id });
     if (result.err) {
       return wrapper.error(new InternalServerError("Delete resume failed"));
     }

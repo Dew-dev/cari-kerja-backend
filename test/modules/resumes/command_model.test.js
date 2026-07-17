@@ -47,13 +47,16 @@ describe("Resumes Command Model", () => {
 
   describe("deleteResumeType", () => {
     it("should validate valid payload", () => {
-      const { error, value } = commandModel.deleteResumeType.validate({ id: "resume-uuid" });
+      const { error, value } = commandModel.deleteResumeType.validate({
+        id: "resume-uuid",
+        worker_id: workerId,
+      });
       expect(error).toBeUndefined();
       expect(value.id).toBe("resume-uuid");
     });
 
     it("should reject missing id", () => {
-      const { error } = commandModel.deleteResumeType.validate({});
+      const { error } = commandModel.deleteResumeType.validate({ worker_id: workerId });
       expect(error).toBeDefined();
     });
   });

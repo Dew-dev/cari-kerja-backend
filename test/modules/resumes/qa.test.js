@@ -77,11 +77,18 @@ describe("[QA] resumes module", () => {
           err: null,
           data: [{ id: resumeId, worker_id: workerId, title: "CV 1" }],
         }),
-        countAll: jest.fn().mockResolvedValue({ err: null, data: 50 }),
+        // Global count would be 50; worker-scoped count must be used instead
+        countAll: jest.fn().mockImplementation((scopedWorkerId) => {
+          if (scopedWorkerId === workerId) {
+            return Promise.resolve({ err: null, data: 1 });
+          }
+          return Promise.resolve({ err: null, data: 50 });
+        }),
       };
 
       const result = await domain.getAllResumes({ worker_id: workerId, page: 1, limit: 10 });
 
+      expect(domain.query.countAll).toHaveBeenCalledWith(workerId);
       expect(result.meta.total_data).toBe(1);
     });
   });

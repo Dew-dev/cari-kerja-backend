@@ -130,7 +130,7 @@ describe("Resumes Command Domain", () => {
       expect(result.err).toBeNull();
       expect(result.data).toEqual({ id: payload.id });
       expect(mockCommand.updateOneNew).toHaveBeenCalledWith(
-        { id: payload.id },
+        { id: payload.id, worker_id: payload.worker_id },
         { title: "Updated CV" }
       );
     });
@@ -183,16 +183,26 @@ describe("Resumes Command Domain", () => {
   });
 
   describe("deleteResume", () => {
-    const payload = { id: "resume-uuid-1234" };
+    const payload = {
+      id: "resume-uuid-1234",
+      worker_id: "550e8400-e29b-41d4-a716-446655440000",
+    };
 
     it("should return success message when delete succeeds", async () => {
-      mockQuery.findOne.mockResolvedValue({ err: null, data: { id: payload.id } });
+      mockQuery.findOne.mockResolvedValue({
+        err: null,
+        data: { id: payload.id, worker_id: payload.worker_id },
+      });
       mockCommand.deleteOne.mockResolvedValue({ err: null, data: true });
 
       const result = await domain.deleteResume(payload);
 
       expect(result.err).toBeNull();
       expect(result.data).toBe("Success deleted resume");
+      expect(mockCommand.deleteOne).toHaveBeenCalledWith({
+        id: payload.id,
+        worker_id: payload.worker_id,
+      });
     });
 
     it("should return NotFoundError when resume not found", async () => {
@@ -205,7 +215,10 @@ describe("Resumes Command Domain", () => {
     });
 
     it("should return InternalServerError when delete fails", async () => {
-      mockQuery.findOne.mockResolvedValue({ err: null, data: { id: payload.id } });
+      mockQuery.findOne.mockResolvedValue({
+        err: null,
+        data: { id: payload.id, worker_id: payload.worker_id },
+      });
       mockCommand.deleteOne.mockResolvedValue({ err: new Error("delete failed"), data: null });
 
       const result = await domain.deleteResume(payload);
