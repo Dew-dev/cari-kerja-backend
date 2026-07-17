@@ -4,6 +4,8 @@ const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError } = require("../../../../helpers/errors");
 const ctx = "Resume-Query-Domain";
 
+const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
+
 class Resume {
   constructor(db) {
     this.query = new Query(db);
@@ -25,23 +27,23 @@ class Resume {
   }
 
   async getAllResumes(payload) {
-    const { worker_id, page, limit } = payload;
+    const { worker_id, page = 1, limit = 10 } = payload;
     const resumes = await this.query.findAll(worker_id, page, limit);
-    const count = await this.query.countAll();
+    const count = await this.query.countAll(worker_id);
 
     if (resumes.err) {
+      if (resumes.err === EMPTY_RESULT_MESSAGE) {
+        return wrapper.paginationData(
+          [],
+          wrapper.buildPaginationMeta(page, limit, 0)
+        );
+      }
       logger.error(ctx, "getResumes", "Can not find resumes", resumes.err);
       return wrapper.error(new NotFoundError("Can not find resumes"));
     }
 
-    const totalData = count.data;
-    const totalPages = Math.ceil(totalData / limit);
-    const meta = {
-      page: page,
-      per_page: limit,
-      total_data: Math.max(totalData, 0),
-      total_pages: totalPages,
-    };
+    const totalData = Math.max(Number(count?.data) || 0, 0);
+    const meta = wrapper.buildPaginationMeta(page, limit, totalData);
 
     return wrapper.paginationData(resumes.data, meta);
   }

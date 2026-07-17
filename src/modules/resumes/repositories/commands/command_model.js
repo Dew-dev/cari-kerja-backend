@@ -17,6 +17,7 @@ const updateResumeType = joi.object({
 
 const deleteResumeType = joi.object({
   id: joi.string().required(),
+  worker_id: joi.string().required(),
 });
 
 module.exports = {

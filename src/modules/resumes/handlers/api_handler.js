@@ -74,7 +74,10 @@ const updateResume = async (req, res) => {
 };
 
 const deleteResume = async (req, res) => {
-  const payload = { id: req.params.id };
+  const payload = {
+    id: req.params.id,
+    worker_id: req.userMeta.worker_id,
+  };
   const validatePayload = validator.isValidPayload(
     payload,
     commandModel.deleteResumeType

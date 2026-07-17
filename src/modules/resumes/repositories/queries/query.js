@@ -42,10 +42,10 @@ class Query {
     }
   }
 
-  async countAll() {
+  async countAll(worker_id) {
     try {
-      const query = `SELECT COUNT(id) FROM ${collection};`;
-      const result = await this.db.executeQuery(query);
+      const query = `SELECT COUNT(id) FROM ${collection} WHERE worker_id = $1;`;
+      const result = await this.db.executeQuery(query, [worker_id]);
       if (!result || result.rows.length === 0) {
         return wrapper.error(errorEmptyMessage);
       }

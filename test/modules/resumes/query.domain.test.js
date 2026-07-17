@@ -70,6 +70,7 @@ describe("Resumes Query Domain", () => {
         total_pages: 1,
       });
       expect(mockQuery.findAll).toHaveBeenCalledWith(payload.worker_id, 1, 10);
+      expect(mockQuery.countAll).toHaveBeenCalledWith(payload.worker_id);
     });
 
     it("should return NotFoundError when query fails", async () => {
@@ -80,6 +81,20 @@ describe("Resumes Query Domain", () => {
 
       expect(result.err).toBeInstanceOf(NotFoundError);
       expect(result.err.message).toBe("Can not find resumes");
+    });
+
+    it("should return empty paginated list when no resumes found", async () => {
+      mockQuery.findAll.mockResolvedValue({
+        err: "Data Not Found Please Try Another Input",
+        data: null,
+      });
+      mockQuery.countAll.mockResolvedValue({ err: null, data: 0 });
+
+      const result = await domain.getAllResumes(payload);
+
+      expect(result.err).toBeNull();
+      expect(result.data).toEqual([]);
+      expect(result.meta.total_data).toBe(0);
     });
 
     it("should clamp total_data to zero when count is invalid", async () => {
