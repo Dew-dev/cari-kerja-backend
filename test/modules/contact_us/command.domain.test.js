@@ -11,11 +11,13 @@ const ContactUsCommandDomain = require("../../../src/modules/contact_us/reposito
 const {
   InternalServerError,
   BadRequestError,
+  NotFoundError,
 } = require("../../../src/helpers/errors");
 
 describe("Contact Us Command Domain", () => {
   let domain;
   let mockCommand;
+  let mockQuery;
 
   beforeEach(() => {
     domain = new ContactUsCommandDomain({});
@@ -23,7 +25,11 @@ describe("Contact Us Command Domain", () => {
       insertOne: jest.fn(),
       deleteOne: jest.fn(),
     };
+    mockQuery = {
+      findOne: jest.fn(),
+    };
     domain.command = mockCommand;
+    domain.query = mockQuery;
     addEmailJob.mockClear();
     process.env.MAIL_USER = "admin@example.com";
   });
@@ -125,6 +131,10 @@ describe("Contact Us Command Domain", () => {
 
   describe("deleteContactMessage", () => {
     it("should return deleted data when delete succeeds", async () => {
+      mockQuery.findOne.mockResolvedValue({
+        err: null,
+        data: { id: "contact-uuid-1234" },
+      });
       mockCommand.deleteOne.mockResolvedValue({ err: null, data: { id: "contact-uuid-1234" } });
 
       const result = await domain.deleteContactMessage({ id: "contact-uuid-1234" });
@@ -142,7 +152,20 @@ describe("Contact Us Command Domain", () => {
       expect(mockCommand.deleteOne).not.toHaveBeenCalled();
     });
 
+    it("should return NotFoundError when contact message does not exist", async () => {
+      mockQuery.findOne.mockResolvedValue({ err: new Error("not found"), data: null });
+
+      const result = await domain.deleteContactMessage({ id: "contact-uuid-1234" });
+
+      expect(result.err).toBeInstanceOf(NotFoundError);
+      expect(mockCommand.deleteOne).not.toHaveBeenCalled();
+    });
+
     it("should return InternalServerError when delete fails", async () => {
+      mockQuery.findOne.mockResolvedValue({
+        err: null,
+        data: { id: "contact-uuid-1234" },
+      });
       mockCommand.deleteOne.mockResolvedValue({ err: new Error("delete failed"), data: null });
 
       const result = await domain.deleteContactMessage({ id: "contact-uuid-1234" });

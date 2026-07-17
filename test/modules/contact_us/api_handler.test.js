@@ -37,7 +37,9 @@ describe("Contact Us API Handler", () => {
 
       await apiHandler.createContactMessage(req, res);
 
-      expect(commandHandler.createContactMessage).toHaveBeenCalledWith(validBody);
+      expect(commandHandler.createContactMessage).toHaveBeenCalledWith(
+        expect.objectContaining(validBody)
+      );
       expect(res.status).toHaveBeenCalledWith(201);
       expect(res.send).toHaveBeenCalledWith(
         expect.objectContaining({ success: true, data: createdData })

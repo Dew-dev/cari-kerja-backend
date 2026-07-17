@@ -72,7 +72,18 @@ describe("Contact Us Query Domain", () => {
 
       expect(result.err).toBeNull();
       expect(result.data).toEqual(message);
-      expect(mockQuery.findOne).toHaveBeenCalledWith({ id: "contact-uuid" }, { "*": 1 });
+      expect(mockQuery.findOne).toHaveBeenCalledWith(
+        { id: "contact-uuid" },
+        {
+          id: 1,
+          name: 1,
+          email: 1,
+          subject: 1,
+          message: 1,
+          phone: 1,
+          created_at: 1,
+        }
+      );
     });
 
     it("should return NotFoundError when message not found", async () => {
