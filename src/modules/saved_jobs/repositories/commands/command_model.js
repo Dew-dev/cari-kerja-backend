@@ -7,6 +7,7 @@ const createSavedJobParamType = joi.object({
 
 const deleteSavedJobParamType = joi.object({
   id: joi.string().required(),
+  worker_id: joi.string().required(),
 });
 
 
