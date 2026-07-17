@@ -49,7 +49,7 @@ const updateCertification = async (req, res) => {
 };
 
 const deleteCertification = async (req, res) => {
-  const payload = { id: req.params.id };
+  const payload = { id: req.params.id, worker_id: req.userMeta.worker_id };
   const validatePayload = validator.isValidPayload(payload, commandModel.deleteCertification);
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);

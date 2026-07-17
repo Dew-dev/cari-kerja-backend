@@ -4,6 +4,8 @@ const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
 const ctx = "Certification-Query-Domain";
 
+const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
+
 class Certification {
   constructor(db) {
     this.query = new Query(db);
@@ -45,7 +47,17 @@ class Certification {
 
     const certifications = await this.query.findAll(worker_id, page, limit);
     const count = await this.query.countAll(worker_id);
+
     if (certifications.err) {
+      if (certifications.err === EMPTY_RESULT_MESSAGE) {
+        if (count.err) {
+          logger.error(ctx, "getAllCertifications", "Can not count certifications", count.err);
+          return wrapper.error(new InternalServerError("Can not count certifications"));
+        }
+        const meta = wrapper.buildPaginationMeta(page, limit, count.data);
+        return wrapper.paginationData([], meta);
+      }
+
       logger.error(
         ctx,
         "getCertifications",

@@ -79,16 +79,27 @@ describe("Certifications Command Model", () => {
   });
 
   describe("deleteCertification", () => {
-    it("should validate valid id", () => {
+    it("should validate valid id and worker_id", () => {
       const { error, value } = commandModel.deleteCertification.validate({
         id: "550e8400-e29b-41d4-a716-446655440001",
+        worker_id: "550e8400-e29b-41d4-a716-446655440000",
       });
       expect(error).toBeUndefined();
       expect(value.id).toBe("550e8400-e29b-41d4-a716-446655440001");
+      expect(value.worker_id).toBe("550e8400-e29b-41d4-a716-446655440000");
     });
 
     it("should reject missing id", () => {
-      const { error } = commandModel.deleteCertification.validate({});
+      const { error } = commandModel.deleteCertification.validate({
+        worker_id: "550e8400-e29b-41d4-a716-446655440000",
+      });
+      expect(error).toBeDefined();
+    });
+
+    it("should reject missing worker_id", () => {
+      const { error } = commandModel.deleteCertification.validate({
+        id: "550e8400-e29b-41d4-a716-446655440001",
+      });
       expect(error).toBeDefined();
     });
   });
