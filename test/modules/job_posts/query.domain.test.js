@@ -41,6 +41,19 @@ describe("Job Posts Query Domain", () => {
 
       expect(result.err).toBeInstanceOf(NotFoundError);
     });
+
+    it("should return empty paginated list when no jobs found", async () => {
+      mockQuery.countAllJobPosts.mockResolvedValue({ data: { rowCount: 0 } });
+      mockQuery.findAll.mockResolvedValue({
+        err: "Data Not Found Please Try Another Input",
+        data: null,
+      });
+
+      const result = await domain.getJobPostsLogic({ page: 1, limit: 10 });
+
+      expect(result.err).toBeNull();
+      expect(result.data).toEqual([]);
+    });
   });
 
   describe("getJobpostById", () => {

@@ -58,10 +58,20 @@ const createJobPost = async (req, res) => {
 };
 
 const createJobPostQuestions = async (req, res) => {
-  const payload = req.body;
   const { id } = req.params;
-  // return payload;
-  const result = await commandHandler.createJobPostQuestions(payload, id);
+  const payloadArray = Array.isArray(req.body) ? req.body : [req.body];
+
+  for (const item of payloadArray) {
+    const validatePayload = validator.isValidPayload(
+      { ...item, job_post_id: id },
+      commandModel.jobPostQuestionParamType,
+    );
+    if (validatePayload.err) {
+      return sendResponse(validatePayload, res);
+    }
+  }
+
+  const result = await commandHandler.createJobPostQuestions(payloadArray, id);
   return sendResponse(result, res, 201);
 };
 
