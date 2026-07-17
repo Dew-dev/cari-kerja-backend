@@ -4,6 +4,8 @@ const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
 const ctx = "Categories-Query-Domain";
 
+const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
+
 class Categories {
   constructor(db) {
     this.query = new Query(db);
@@ -29,9 +31,16 @@ class Categories {
     const categories = await this.query.findAllCategories(page, limit, search);
     const count = await this.query.countAllCategories(search);
 
-    ////console.log(industries);
-
     if (categories.err) {
+      if (categories.err === EMPTY_RESULT_MESSAGE) {
+        if (count.err) {
+          logger.error(ctx, "getAllCategories", "Can not count Categories", count.err);
+          return wrapper.error(new InternalServerError("Can not count categories"));
+        }
+        const meta = wrapper.buildPaginationMeta(page, limit, count.data);
+        return wrapper.paginationData([], meta);
+      }
+
       logger.error(
         ctx,
         "getAllCategories",
@@ -52,10 +61,13 @@ class Categories {
   }
 
   async getAllCategoriesWithJobcount() {
-
     const categories = await this.query.findAllCategoriesWithJobcount();
 
     if (categories.err) {
+      if (categories.err === EMPTY_RESULT_MESSAGE) {
+        return wrapper.data([]);
+      }
+
       logger.error(
         ctx,
         "getAllCategories",

@@ -1,4 +1,11 @@
+const verifyToken = require("../middlewares/verifyToken");
+const verifyRole = require("../middlewares/verifyRole");
 const categoryHandler = require("../modules/categories/handlers/api_handler");
+
+// Category mutations are admin-only. GET stays public so worker/recruiter
+// UIs (and public job filters) can load category dropdowns without auth.
+// super_admin (3) and admin (4) may create/update/delete categories.
+const adminRoles = [3, 4];
 
 module.exports = (server) => {
   server.get(
@@ -15,11 +22,20 @@ module.exports = (server) => {
   );
   server.put(
     "/api/v1/categories/:id",
+    verifyToken,
+    verifyRole(adminRoles),
     categoryHandler.updateCategory
   );
-  server.post("/api/v1/categories", categoryHandler.addCategory);
+  server.post(
+    "/api/v1/categories",
+    verifyToken,
+    verifyRole(adminRoles),
+    categoryHandler.addCategory
+  );
   server.delete(
     "/api/v1/categories/:id",
+    verifyToken,
+    verifyRole(adminRoles),
     categoryHandler.deleteCategory
   );
 };
