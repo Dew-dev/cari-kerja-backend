@@ -419,6 +419,8 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       const query = `
       SELECT
         ja.id,
+        ja.job_post_id,
+        ja.application_status_id,
         j.recruiter_id
       FROM job_applications ja
       JOIN job_posts j ON j.id = ja.job_post_id
@@ -432,6 +434,24 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
     } catch (error) {
       logger.error(ctx, "findOneJobApplication", "Query failed", error);
       return wrapper.error("Failed to fetch job application");
+    }
+  }
+
+  async findStageForValidation({ id, job_post_id }) {
+    try {
+      const query = `
+      SELECT id
+      FROM application_statuses
+      WHERE id = $1 AND job_post_id = $2
+      LIMIT 1;
+    `;
+
+      const result = await this.db.executeQuery(query, [id, job_post_id]);
+
+      return wrapper.data(result.rows[0]);
+    } catch (error) {
+      logger.error(ctx, "findStageForValidation", "Query failed", error);
+      return wrapper.error("Failed to validate stage");
     }
   }
 

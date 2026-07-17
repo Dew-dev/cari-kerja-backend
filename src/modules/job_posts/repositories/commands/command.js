@@ -65,6 +65,28 @@ class Command {
     return result;
   }
 
+  async insertApplicationStageHistory({
+    application_id,
+    from_stage_id,
+    to_stage_id,
+    changed_by_recruiter_id,
+    note,
+  }) {
+    const query = `
+      INSERT INTO application_stage_history (application_id, from_stage_id, to_stage_id, changed_by_recruiter_id, note)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id;
+    `;
+
+    return this.db.executeQuery(query, [
+      application_id,
+      from_stage_id ?? null,
+      to_stage_id,
+      changed_by_recruiter_id ?? null,
+      note ?? null,
+    ]);
+  }
+
   async updateJobPost({
     id,
     title,

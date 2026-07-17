@@ -608,6 +608,20 @@ class Jobpost {
       );
     }
 
+    // 2.5. Pastikan stage tujuan milik job post yang sama dengan aplikasi ini
+    const stage = await this.query.findStageForValidation({
+      id: application_status_id,
+      job_post_id: application.data.job_post_id,
+    });
+
+    if (stage.err || !stage.data) {
+      return wrapper.error(
+        new BadRequestError("Stage tidak ditemukan untuk job post ini"),
+      );
+    }
+
+    const previousStatusId = application.data.application_status_id;
+
     // 3. Update status
     const result = await this.command.updateJobApplicationStatus({
       id,
@@ -625,6 +639,15 @@ class Jobpost {
         new InternalServerError("Failed to update application status"),
       );
     }
+
+    // 3.5. Catat riwayat perpindahan stage
+    await this.command.insertApplicationStageHistory({
+      application_id: id,
+      from_stage_id: previousStatusId,
+      to_stage_id: application_status_id,
+      changed_by_recruiter_id: recruiter_id,
+      note: null,
+    });
 
     const app = await this.query.findApplicationWithUser(id);
     if (app.err || !app.data) {
