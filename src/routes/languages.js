@@ -1,34 +1,38 @@
 const verifyToken = require("../middlewares/verifyToken");
+const verifyRole = require("../middlewares/verifyRole");
 const languagesHandler = require("../modules/languages/handlers/api_handler");
 
+// Languages are worker self-scoped resources. Master list stays public.
+const workerRoles = [1, 3]; // worker (1), super_admin (3)
+
 module.exports = (server) => {
-  /**
-   * GET master languages untuk dropdown (publik, pola seperti nationalities)
-   * Endpoint: /api/v1/languages?search=<keyword>
-   */
   server.get("/api/v1/languages", languagesHandler.getMasterLanguages);
 
-  /**
-   * GET all languages by worker_id
-   * Endpoint: /api/v1/workers/languages
-   */
-  server.get("/api/v1/workers/languages", verifyToken, languagesHandler.getAllLanguages);
+  server.get(
+    "/api/v1/workers/languages",
+    verifyToken,
+    verifyRole(workerRoles),
+    languagesHandler.getAllLanguages
+  );
 
-  /**
-   * POST insert one language
-   * Endpoint: /api/v1/workers/languages
-   */
-  server.post("/api/v1/workers/languages", verifyToken, languagesHandler.insertLanguages);
+  server.post(
+    "/api/v1/workers/languages",
+    verifyToken,
+    verifyRole(workerRoles),
+    languagesHandler.insertLanguages
+  );
 
-  /**
-   * PUT update one language by id
-   * Endpoint: /api/v1/workers/languages/:id
-   */
-  server.put("/api/v1/workers/languages/:id", verifyToken, languagesHandler.updateLanguages);
+  server.put(
+    "/api/v1/workers/languages/:id",
+    verifyToken,
+    verifyRole(workerRoles),
+    languagesHandler.updateLanguages
+  );
 
-  /**
-   * DELETE one language by id
-   * Endpoint: /api/v1/workers/languages/:id
-   */
-  server.delete("/api/v1/workers/languages/:id", verifyToken, languagesHandler.deleteLanguages);
+  server.delete(
+    "/api/v1/workers/languages/:id",
+    verifyToken,
+    verifyRole(workerRoles),
+    languagesHandler.deleteLanguages
+  );
 };

@@ -1,5 +1,5 @@
 const LocationsQueryDomain = require("../../../src/modules/locations/repositories/queries/domain");
-const { NotFoundError } = require("../../../src/helpers/errors");
+const { NotFoundError, BadRequestError } = require("../../../src/helpers/errors");
 
 describe("Locations Query Domain", () => {
   let domain;
@@ -37,6 +37,15 @@ describe("Locations Query Domain", () => {
 
       expect(result.err).toBeInstanceOf(NotFoundError);
       expect(result.err.message).toBe("Cannot find provinces");
+    });
+
+    it("should return empty array when no provinces found", async () => {
+      mockQuery.getAllProvinces.mockResolvedValue({ err: "Data Not Found", data: null });
+
+      const result = await domain.getAllProvinces();
+
+      expect(result.err).toBeNull();
+      expect(result.data).toEqual([]);
     });
   });
 
@@ -118,10 +127,10 @@ describe("Locations Query Domain", () => {
   });
 
   describe("searchLocations", () => {
-    it("should return NotFoundError when search term is empty", async () => {
+    it("should return BadRequestError when search term is empty", async () => {
       const result = await domain.searchLocations({ search: "   " });
 
-      expect(result.err).toBeInstanceOf(NotFoundError);
+      expect(result.err).toBeInstanceOf(BadRequestError);
       expect(result.err.message).toBe("Search term is required");
     });
 

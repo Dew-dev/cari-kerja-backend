@@ -4,6 +4,8 @@ const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
 const ctx = "Nationalities-Query-Domain";
 
+const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
+
 class Nationality {
   constructor(db) {
     this.query = new Query(db);
@@ -38,9 +40,11 @@ class Nationality {
     );
     const count = await this.query.countAllNationalities(search);
 
-    ////console.log(nationalities);
-
     if (nationalities.err) {
+      if (nationalities.err === EMPTY_RESULT_MESSAGE) {
+        const emptyMeta = wrapper.buildPaginationMeta(page, limit, count?.data ?? 0);
+        return wrapper.paginationData([], emptyMeta);
+      }
       logger.error(
         ctx,
         "getAllNationalities",
