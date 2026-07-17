@@ -23,7 +23,7 @@ describe("Job Post Responsibilities Query Domain", () => {
     expect(result.data).toEqual(data);
   });
 
-  it("should return NotFoundError when not found", async () => {
+  it("should return NotFoundError when query fails with unexpected error", async () => {
     mockQuery.getAllByJobPostId.mockResolvedValue({ err: new Error("not found"), data: null });
 
     const result = await domain.getAllJobPostResponsibilitiesByJobPostId({
@@ -31,5 +31,19 @@ describe("Job Post Responsibilities Query Domain", () => {
     });
 
     expect(result.err).toBeInstanceOf(NotFoundError);
+  });
+
+  it("should return empty array when query reports empty result", async () => {
+    mockQuery.getAllByJobPostId.mockResolvedValue({
+      err: "Data Not Found Please Try Another Input",
+      data: null,
+    });
+
+    const result = await domain.getAllJobPostResponsibilitiesByJobPostId({
+      job_post_id: "550e8400-e29b-41d4-a716-446655440000",
+    });
+
+    expect(result.err).toBeNull();
+    expect(result.data).toEqual([]);
   });
 });
