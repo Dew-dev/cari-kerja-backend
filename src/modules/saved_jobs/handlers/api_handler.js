@@ -5,14 +5,26 @@ const wrapper = require("../../../helpers/utils/wrapper");
 const commandHandler = require("../repositories/commands/command_handler");
 const commandModel = require("../repositories/commands/command_model");
 const validator = require("../../../helpers/utils/validator");
+const { ForbiddenError } = require("../../../helpers/errors");
 const {
   sendResponse,
   paginationResponse,
 } = require("../../../helpers/utils/response");
 
+// super_admin (role_id 3) is allowed to access data belonging to any worker
+const SUPER_ADMIN_ROLE_ID = 3;
+
 const getSavedJobsByWorkerId = async (req, res) => {
   const payload = {...req.params, ...req.query};
-  
+
+  const isSuperAdmin = req.userMeta?.role_id === SUPER_ADMIN_ROLE_ID;
+  if (!isSuperAdmin && req.userMeta?.worker_id !== payload.worker_id) {
+    return paginationResponse(
+      wrapper.error(new ForbiddenError("You are not allowed to access this resource")),
+      res
+    );
+  }
+
   const validatePayload = validator.isValidPayload(
     payload,
     queryModel.getSavedJobsByWorkerIdParamType
@@ -82,7 +94,7 @@ const createSavedJob = async (req, res) => {
 };
 
 const deleteJobPost = async (req, res) => {
-  const payload = { ...req.params };
+  const payload = { ...req.params, worker_id: req.userMeta.worker_id };
   const validatePayload = validator.isValidPayload(
     payload,
     commandModel.deleteSavedJobParamType

@@ -136,7 +136,11 @@ class SavedJobs {
       idx += 1;
     }
 
-    if (employment_type !== undefined && status !== null && status !== "") {
+    if (
+      employment_type !== undefined &&
+      employment_type !== null &&
+      employment_type !== ""
+    ) {
       conditions.push(` AND et.name = $${idx}`);
       values.push(employment_type);
       idx += 1;
@@ -164,7 +168,7 @@ class SavedJobs {
 
     if (location !== undefined && location !== null && location !== "") {
       conditions.push(` AND j.location ILIKE $${idx}`);
-      values.push(location);
+      values.push(`%${location}%`);
       idx += 1;
     }
 
@@ -285,7 +289,11 @@ class SavedJobs {
       idx += 1;
     }
 
-    if (employment_type !== undefined && status !== null && status !== "") {
+    if (
+      employment_type !== undefined &&
+      employment_type !== null &&
+      employment_type !== ""
+    ) {
       conditions.push(` AND et.name = $${idx}`);
       values.push(employment_type);
       idx += 1;
@@ -313,7 +321,7 @@ class SavedJobs {
 
     if (location !== undefined && location !== null && location !== "") {
       conditions.push(` AND j.location ILIKE $${idx}`);
-      values.push(location);
+      values.push(`%${location}%`);
       idx += 1;
     }
 
