@@ -20,6 +20,7 @@ describe("Job Posts Command Domain", () => {
   let mockCommand;
   let mockQuery;
   let mockPaymentQuery;
+  let mockCandidatePipelineQuery;
 
   beforeEach(() => {
     domain = new JobPostsCommandDomain({});
@@ -39,12 +40,23 @@ describe("Job Posts Command Domain", () => {
       findOneJobPost: jest.fn(),
       findOneJobApplication: jest.fn(),
       findApplicationWithUser: jest.fn(),
+      findAllByJobPostId: jest.fn().mockResolvedValue({ err: null, data: [] }),
       findStageForValidation: jest.fn().mockResolvedValue({ err: null, data: { id: 2 } }),
     };
     mockPaymentQuery = {};
+    mockCandidatePipelineQuery = {
+      ensureStagesForJobPost: jest.fn().mockResolvedValue({
+        err: null,
+        data: [
+          { id: 10, stage_type: "applied" },
+          { id: 11, stage_type: "screening" },
+        ],
+      }),
+    };
     domain.command = mockCommand;
     domain.query = mockQuery;
     domain.paymentQuery = mockPaymentQuery;
+    domain.candidatePipelineQuery = mockCandidatePipelineQuery;
     domain._checkPostingQuota = jest.fn().mockResolvedValue({ err: null });
   });
 
@@ -217,6 +229,48 @@ describe("Job Posts Command Domain", () => {
 
       expect(result.err).toBeInstanceOf(BadRequestError);
       expect(mockCommand.updateJobApplicationStatus).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("createJobApplication", () => {
+    it("should always resolve application_status_id to the job post's 'applied' stage, ignoring client value", async () => {
+      mockQuery.findOne.mockResolvedValue({ err: null, data: null });
+      mockCommand.insertOne.mockResolvedValue({ err: null });
+
+      const result = await domain.createJobApplication({
+        job_post_id: jobPostId,
+        worker_id: workerId,
+        resume_id: null,
+        cover_letter: "Halo",
+        application_status_id: 999, // nilai client, harus diabaikan
+        answers: [],
+      });
+
+      expect(mockCandidatePipelineQuery.ensureStagesForJobPost).toHaveBeenCalledWith(
+        jobPostId,
+      );
+      expect(result.err).toBeNull();
+      expect(mockCommand.insertOne).toHaveBeenCalledWith(
+        expect.objectContaining({ application_status_id: 10 }),
+        "job_applications",
+      );
+      expect(result.data.job_application.application_status_id).toBe(10);
+    });
+
+    it("should return InternalServerError when 'applied' stage is not configured", async () => {
+      mockQuery.findOne.mockResolvedValue({ err: null, data: null });
+      mockCandidatePipelineQuery.ensureStagesForJobPost.mockResolvedValue({
+        err: null,
+        data: [{ id: 11, stage_type: "screening" }],
+      });
+
+      const result = await domain.createJobApplication({
+        job_post_id: jobPostId,
+        worker_id: workerId,
+      });
+
+      expect(result.err).toBeInstanceOf(InternalServerError);
+      expect(mockCommand.insertOne).not.toHaveBeenCalled();
     });
   });
 });

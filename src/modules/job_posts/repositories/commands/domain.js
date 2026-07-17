@@ -11,6 +11,7 @@ const {
   ForbiddenError,
 } = require("../../../../helpers/errors");
 const PaymentQuery = require("../../../payments/repositories/queries/query");
+const CandidatePipelineQuery = require("../../../candidate_pipeline/repositories/queries/query");
 const ctx = "Jobposts-Command-Domain";
 const joi = require("joi");
 const commandModel = require("../../repositories/commands/command_model");
@@ -30,6 +31,7 @@ class Jobpost {
     this.command = new Command(db);
     this.query = new Query(db);
     this.paymentQuery = new PaymentQuery(db);
+    this.candidatePipelineQuery = new CandidatePipelineQuery(db);
   }
 
   async createJobPost(payload) {
@@ -411,7 +413,6 @@ class Jobpost {
         worker_id,
         resume_id,
         cover_letter,
-        application_status_id,
         answers, // array of { question_id, answer_text }
       } = payload;
 
@@ -426,13 +427,46 @@ class Jobpost {
         return wrapper.error(new Error("Anda sudah melamar pekerjaan ini."));
       }
 
+      // application_status_id selalu di-resolve oleh backend, tidak pernah
+      // dipercayakan ke client. Pastikan stage default (6 stage) sudah
+      // ter-seed untuk job post ini, lalu ambil stage dengan stage_type='applied'.
+      const stagesResult = await this.candidatePipelineQuery.ensureStagesForJobPost(
+        job_post_id,
+      );
+      if (stagesResult.err) {
+        logger.error(
+          ctx,
+          "Create Job Application",
+          "Failed to ensure stages for job post",
+          stagesResult.err,
+        );
+        return wrapper.error(
+          new InternalServerError("Failed to resolve application stage"),
+        );
+      }
+
+      const appliedStage = (stagesResult.data || []).find(
+        (stage) => stage.stage_type === "applied",
+      );
+      if (!appliedStage) {
+        logger.error(
+          ctx,
+          "Create Job Application",
+          "Applied stage not found for job post",
+          { job_post_id },
+        );
+        return wrapper.error(
+          new InternalServerError("Applied stage not configured for this job post"),
+        );
+      }
+
       const data = {
         id: uuidv4(),
         job_post_id,
         worker_id,
         resume_id,
         cover_letter,
-        application_status_id,
+        application_status_id: appliedStage.id,
         applied_at: new Date(),
         updated_at: new Date(),
       };

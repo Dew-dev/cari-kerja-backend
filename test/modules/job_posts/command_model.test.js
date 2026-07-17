@@ -38,6 +38,25 @@ describe("Job Posts Command Model", () => {
     });
     expect(error).toBeUndefined();
   });
+
+  it("should strip application_status_id from createJobApplication payload even if sent by client", () => {
+    const { error, value } = commandModel.createJobApplicationParamType.validate({
+      job_post_id: jobPostId,
+      worker_id: workerId,
+      application_status_id: 999,
+    });
+    expect(error).toBeUndefined();
+    expect(value.application_status_id).toBeUndefined();
+  });
+
+  it("should validate createJobApplication payload without application_status_id", () => {
+    const { error, value } = commandModel.createJobApplicationParamType.validate({
+      job_post_id: jobPostId,
+      worker_id: workerId,
+    });
+    expect(error).toBeUndefined();
+    expect(value.application_status_id).toBeUndefined();
+  });
 });
 
 describe("Job Posts Query Model", () => {
