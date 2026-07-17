@@ -4,7 +4,7 @@ const JobPostBenefitsDomain = require("../../../src/modules/job_post_benefits/re
 const {
   NotFoundError,
   InternalServerError,
-  UnauthorizedError,
+  ForbiddenError,
 } = require("../../../src/helpers/errors");
 
 describe("Job Post Benefits Command Domain", () => {
@@ -46,12 +46,13 @@ describe("Job Post Benefits Command Domain", () => {
         expect.objectContaining({
           id: "benefit-uuid-1234",
           job_post_id: jobPostId,
+          benefit: "Health Insurance",
           order_index: 1,
         })
       );
     });
 
-    it("should return UnauthorizedError when recruiter does not own job post", async () => {
+    it("should return ForbiddenError when recruiter does not own job post", async () => {
       mockJobPostsDomain.getJobpostById.mockResolvedValue({
         err: null,
         data: { recruiter_id: "other-recruiter" },
@@ -64,7 +65,7 @@ describe("Job Post Benefits Command Domain", () => {
         order_index: 1,
       });
 
-      expect(result.err).toBeInstanceOf(UnauthorizedError);
+      expect(result.err).toBeInstanceOf(ForbiddenError);
       expect(mockCommand.insertOne).not.toHaveBeenCalled();
     });
 
@@ -87,13 +88,18 @@ describe("Job Post Benefits Command Domain", () => {
   });
 
   describe("updateOne", () => {
-    it("should update benefit when record exists", async () => {
+    it("should update benefit when record exists and recruiter owns job post", async () => {
       mockQuery.findOne.mockResolvedValue({ err: null, data: { id: "benefit-1" } });
+      mockJobPostsDomain.getJobpostById.mockResolvedValue({
+        err: null,
+        data: { recruiter_id: recruiterId },
+      });
       mockCommand.updateOneNew.mockResolvedValue({ err: null, data: true });
 
       const result = await domain.updateOne({
         id: "benefit-1",
         job_post_id: jobPostId,
+        recruiter_id: recruiterId,
         benefit: "Updated Benefit",
         order_index: 2,
       });
@@ -105,18 +111,30 @@ describe("Job Post Benefits Command Domain", () => {
     it("should return NotFoundError when benefit not found", async () => {
       mockQuery.findOne.mockResolvedValue({ err: new Error("not found"), data: null });
 
-      const result = await domain.updateOne({ id: "benefit-1", job_post_id: jobPostId });
+      const result = await domain.updateOne({
+        id: "benefit-1",
+        job_post_id: jobPostId,
+        recruiter_id: recruiterId,
+      });
 
       expect(result.err).toBeInstanceOf(NotFoundError);
     });
   });
 
   describe("deleteOne", () => {
-    it("should delete benefit when record exists", async () => {
+    it("should delete benefit when record exists and recruiter owns job post", async () => {
       mockQuery.findOne.mockResolvedValue({ err: null, data: { id: "benefit-1" } });
+      mockJobPostsDomain.getJobpostById.mockResolvedValue({
+        err: null,
+        data: { recruiter_id: recruiterId },
+      });
       mockCommand.deleteOne.mockResolvedValue({ err: null, data: true });
 
-      const result = await domain.deleteOne({ id: "benefit-1", job_post_id: jobPostId });
+      const result = await domain.deleteOne({
+        id: "benefit-1",
+        job_post_id: jobPostId,
+        recruiter_id: recruiterId,
+      });
 
       expect(result.err).toBeNull();
       expect(result.data).toBe("Successfully deleted");
@@ -125,7 +143,11 @@ describe("Job Post Benefits Command Domain", () => {
     it("should return NotFoundError when benefit not found", async () => {
       mockQuery.findOne.mockResolvedValue({ err: new Error("not found"), data: null });
 
-      const result = await domain.deleteOne({ id: "benefit-1", job_post_id: jobPostId });
+      const result = await domain.deleteOne({
+        id: "benefit-1",
+        job_post_id: jobPostId,
+        recruiter_id: recruiterId,
+      });
 
       expect(result.err).toBeInstanceOf(NotFoundError);
     });
