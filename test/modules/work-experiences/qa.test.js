@@ -119,7 +119,10 @@ describe("[QA] work-experiences module", () => {
 
     it("[BUG-WE-006] update should set end_date null when is_current is true", async () => {
       domain.command.updateOneNew = jest.fn().mockResolvedValue({ err: null, data: true });
-      domain.query.findOne = jest.fn().mockResolvedValue({ err: null, data: { id: expId } });
+      domain.query.findOne = jest.fn().mockResolvedValue({
+        err: null,
+        data: { id: expId, worker_id: workerId },
+      });
 
       await domain.updateOne({
         id: expId,

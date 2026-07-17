@@ -33,7 +33,7 @@ const updateWorkerParamType = joi.object({
   religion_id: joi.number().optional(),
   marriage_status_id: joi.number().optional(),
   address: joi.string().optional(),
-  profile_summary: joi.string().required(),
+  profile_summary: joi.string().optional(),
   current_salary: joi.number().optional(),
   current_salary_currency_id: joi.number().optional(),
   expected_salary: joi.number().optional(),
