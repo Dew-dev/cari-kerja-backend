@@ -1,5 +1,4 @@
 const collection = "worker_skills"; //nama tabel
-const errorEmptyMessage = "Data Not Found Please Try Another Input";
 const errorQueryMessage = "Error querying PostgreSQL";
 const logger = require("../../../../helpers/utils/logger");
 const wrapper = require("../../../../helpers/utils/wrapper");
@@ -34,8 +33,8 @@ class Query {
 
             const result = await this.db.executeQuery(query, [worker_id]);
 
-            if (!result || result.rows.length === 0) {
-                return wrapper.error(errorEmptyMessage);
+            if (!result) {
+                return wrapper.error(errorQueryMessage);
             }
 
             return wrapper.data(result.rows);

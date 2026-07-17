@@ -28,6 +28,12 @@ describe("[QA] worker-skills module", () => {
         }),
       };
       domain.query = { findOne: jest.fn() };
+      domain.skillQuery = {
+        findOne: jest.fn().mockResolvedValue({
+          err: null,
+          data: { id: skillId, skill_name: "JavaScript" },
+        }),
+      };
 
       const result = await domain.insertOne({ worker_id: workerId, skill_id: skillId });
 
@@ -47,6 +53,12 @@ describe("[QA] worker-skills module", () => {
         }),
       };
       domain.query = { findOne: jest.fn() };
+      domain.skillQuery = {
+        findOne: jest.fn().mockResolvedValue({
+          err: null,
+          data: { id: skillId, skill_name: "JavaScript" },
+        }),
+      };
 
       const result = await domain.insertOne({ worker_id: workerId, skill_id: skillId });
 
@@ -63,6 +75,14 @@ describe("[QA] worker-skills module", () => {
         }),
       };
       domain.query = { findOne: jest.fn() };
+      // Skill lookup itself succeeds here to exercise the FK-violation branch
+      // inside the insert error handling, not the upfront existence check.
+      domain.skillQuery = {
+        findOne: jest.fn().mockResolvedValue({
+          err: null,
+          data: { id: "00000000-0000-0000-0000-000000000000", skill_name: "Ghost Skill" },
+        }),
+      };
 
       const result = await domain.insertOne({
         worker_id: workerId,
