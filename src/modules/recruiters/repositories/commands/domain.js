@@ -5,6 +5,7 @@ const logger = require("../../../../helpers/utils/logger");
 const {
   NotFoundError,
   InternalServerError,
+  ForbiddenError,
 } = require("../../../../helpers/errors");
 const ctx = "Recruiter-Command-Domain";
 
@@ -15,11 +16,17 @@ class Recruiter {
   }
 
   async updateOneRecruiter(payload) {
-    const { id } = payload;
-    const recruiter = await this.query.findOne({ id }, { id: 1 });
+    const { id, user_id } = payload;
+    const recruiter = await this.query.findOne({ id }, { id: 1, user_id: 1 });
 
-    if (recruiter.err) {
+    if (recruiter.err || !recruiter.data) {
       return wrapper.error(new NotFoundError("Recruiter Not Found!"));
+    }
+
+    if (recruiter.data.user_id && recruiter.data.user_id !== user_id) {
+      return wrapper.error(
+        new ForbiddenError("You are not allowed to update this recruiter profile")
+      );
     }
 
     const updatableFields = [
@@ -41,10 +48,9 @@ class Recruiter {
         updateData[field] = payload[field];
       }
     }
-    // ////console.log("update data", updateData);
+
     const updateResult = await this.command.updateOneNew({ id }, updateData);
     if (updateResult.err) {
-      ////console.log("update err", updateResult.err);
       logger.error(
         ctx,
         "Failed to update",

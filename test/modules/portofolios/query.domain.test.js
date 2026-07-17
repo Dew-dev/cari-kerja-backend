@@ -35,5 +35,17 @@ describe("Portofolios Query Domain", () => {
       expect(result.err).toBeInstanceOf(NotFoundError);
       expect(result.err.message).toBe("No portofolio found");
     });
+
+    it("should return empty array when worker has no portfolios", async () => {
+      mockQuery.getAllByWorkerId.mockResolvedValue({
+        err: "Data Not Found Please Try Another Input",
+        data: null,
+      });
+
+      const result = await domain.getAllPortfoliosByWorkerId({ worker_id: workerId });
+
+      expect(result.err).toBeNull();
+      expect(result.data).toEqual([]);
+    });
   });
 });
