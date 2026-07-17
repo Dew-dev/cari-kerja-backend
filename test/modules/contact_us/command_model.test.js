@@ -53,6 +53,16 @@ describe("Contact Us Command Model", () => {
       });
       expect(error).toBeDefined();
     });
+
+    it("should reject subject exceeding max length", () => {
+      const { error } = commandModel.createContactMessageParamType.validate({
+        name: "John Doe",
+        email: "john@example.com",
+        subject: "s".repeat(300),
+        message: "Hello",
+      });
+      expect(error).toBeDefined();
+    });
   });
 
   describe("deleteContactMessageParamType", () => {
