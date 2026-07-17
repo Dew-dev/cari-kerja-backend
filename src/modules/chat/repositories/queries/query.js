@@ -14,9 +14,11 @@ class Query {
       const query = `
         SELECT
           c.*,
+          wr.id              AS worker_profile_id,
           wu.username        AS worker_username,
           wr.name            AS worker_name,
           wr.avatar_url      AS worker_avatar,
+          rc.id              AS recruiter_profile_id,
           ru.username        AS recruiter_username,
           rc.company_name    AS recruiter_company,
           rc.contact_name    AS recruiter_name,
@@ -45,9 +47,11 @@ class Query {
       const query = `
         SELECT
           c.*,
+          wr.id              AS worker_profile_id,
           wu.username        AS worker_username,
           wr.name            AS worker_name,
           wr.avatar_url      AS worker_avatar,
+          rc.id              AS recruiter_profile_id,
           ru.username        AS recruiter_username,
           rc.company_name    AS recruiter_company,
           rc.contact_name    AS recruiter_name,
@@ -106,9 +110,11 @@ class Query {
       const query = `
         SELECT
           c.*,
+          wr.id              AS worker_profile_id,
           wu.username        AS worker_username,
           wr.name            AS worker_name,
           wr.avatar_url      AS worker_avatar,
+          rc.id              AS recruiter_profile_id,
           ru.username        AS recruiter_username,
           rc.company_name    AS recruiter_company,
           rc.contact_name    AS recruiter_name,
@@ -144,6 +150,8 @@ class Query {
           m.*,
           u.username AS sender_username,
           u.role_id  AS sender_role_id,
+          wr.id AS sender_worker_id,
+          rc.id AS sender_recruiter_id,
           COALESCE(wr.name, rc.contact_name, u.username) AS sender_name,
           COALESCE(wr.avatar_url, rc.avatar_url) AS sender_avatar,
           rc.company_name AS sender_company
@@ -182,6 +190,8 @@ class Query {
           m.*,
           u.username AS sender_username,
           u.role_id  AS sender_role_id,
+          wr.id AS sender_worker_id,
+          rc.id AS sender_recruiter_id,
           COALESCE(wr.name, rc.contact_name, u.username) AS sender_name,
           COALESCE(wr.avatar_url, rc.avatar_url) AS sender_avatar,
           rc.company_name AS sender_company

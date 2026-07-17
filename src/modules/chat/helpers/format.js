@@ -1,16 +1,20 @@
 /**
  * Shape raw chat query rows into FE-friendly payloads with user profile data.
+ * `id` = workers.id / recruiters.id (same as login `user.id`)
+ * `user_id` = users.id (used internally by chat tables / JWT)
  */
 
 const mapWorker = (row) => ({
-  id: row.worker_id,
+  id: row.worker_profile_id || null,
+  user_id: row.worker_id,
   username: row.worker_username || null,
   name: row.worker_name || row.worker_username || null,
   avatar_url: row.worker_avatar || null,
 });
 
 const mapRecruiter = (row) => ({
-  id: row.recruiter_id,
+  id: row.recruiter_profile_id || null,
+  user_id: row.recruiter_id,
   username: row.recruiter_username || null,
   name: row.recruiter_name || row.recruiter_company || row.recruiter_username || null,
   company_name: row.recruiter_company || null,
@@ -53,6 +57,14 @@ const formatConversation = (row, viewerUserId) => {
 const formatMessage = (row) => {
   if (!row) return null;
 
+  // Prefer profile id (workers.id / recruiters.id) so FE can match login `user.id`
+  const senderProfileId =
+    row.sender_role_id === 1
+      ? row.sender_worker_id
+      : row.sender_role_id === 2
+        ? row.sender_recruiter_id
+        : null;
+
   return {
     id: row.id,
     conversation_id: row.conversation_id,
@@ -61,7 +73,8 @@ const formatMessage = (row) => {
     is_read: row.is_read ?? false,
     created_at: row.created_at,
     sender: {
-      id: row.sender_id,
+      id: senderProfileId || null,
+      user_id: row.sender_id,
       username: row.sender_username || null,
       name: row.sender_name || row.sender_username || null,
       avatar_url: row.sender_avatar || null,
