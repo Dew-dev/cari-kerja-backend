@@ -91,15 +91,19 @@ const createJobApplicationParamType = joi.object({
   resume_id: joi.string().uuid().allow(null),
   cover_letter: joi.string().allow(null, ""),
   application_status_id: joi.number().required(),
-  // answers: joi
-  //   .array()
-  //   .items(
-  //     joi.object({
-  //       question_id: joi.string().uuid().required(),
-  //       answer: joi.object().allow(null, "").optional(),
-  //     })
-  //   )
-  //   .optional(), // boleh kosong, misal ga ada pertanyaan
+  answers: joi
+    .array()
+    .items(
+      joi.object({
+        question_id: joi.string().uuid().required(),
+        answer: joi
+          .alternatives()
+          .try(joi.string(), joi.object(), joi.number(), joi.boolean())
+          .allow(null, "")
+          .optional(),
+      })
+    )
+    .optional(), // boleh kosong, misal ga ada pertanyaan
   applied_at: joi.date().default(() => new Date().toISOString()),
   updated_at: joi.date().default(() => new Date().toISOString()),
 });
@@ -113,8 +117,8 @@ const updateJobApplicationParamType = joi.object({
 });
 
 const addApplicationNoteParamType = joi.object({
-  application_id: joi.string().required(),
-  recruiter_id: joi.string().required(),
+  application_id: joi.string().uuid().required(),
+  recruiter_id: joi.string().uuid().required(),
   note: joi.string().min(1).required(),
 });
 
