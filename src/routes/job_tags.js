@@ -1,5 +1,13 @@
 const jobtagsHandler = require("../modules/job_tags/handlers/api_handler");
 const verifyToken = require("../middlewares/verifyToken");
+const verifyRole = require("../middlewares/verifyRole");
+
+// Tag mutations are recruiter-owned; GET endpoints stay public for job detail.
+const recruiterRoles = [2, 3]; // recruiter (2), super_admin (3)
+
+function verifyRecruiterRole(req, res, next) {
+  return verifyRole(recruiterRoles)(req, res, next);
+}
 
 module.exports = (server) => {
   server.get(
@@ -15,12 +23,19 @@ module.exports = (server) => {
   server.post(
     "/api/v1/tags/:job_post_id",
     verifyToken,
+    verifyRecruiterRole,
     jobtagsHandler.createJobPostTag
   );
   server.delete(
     "/api/v1/tags/:job_post_id",
     verifyToken,
+    verifyRecruiterRole,
     jobtagsHandler.deleteJobPostTag
   );
-  server.post("/api/v1/tags", verifyToken, jobtagsHandler.createJobTag);
+  server.post(
+    "/api/v1/tags",
+    verifyToken,
+    verifyRecruiterRole,
+    jobtagsHandler.createJobTag
+  );
 };

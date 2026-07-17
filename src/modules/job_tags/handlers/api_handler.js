@@ -77,8 +77,10 @@ const createJobPostTag = async (req, res) => {
 };
 
 const createJobTag = async (req, res) => {
-  const { name } = req.body;
-  const payload = { name };
+  const payload = {
+    name: req.body.name,
+    role_id: req.userMeta.role_id,
+  };
   const validatePayload = validator.isValidPayload(
     payload,
     commandModel.createJobTagParamType

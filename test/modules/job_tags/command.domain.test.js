@@ -14,7 +14,7 @@ const jobPostsQueryHandler = require("../../../src/modules/job_posts/repositorie
 const JobTagsCommandDomain = require("../../../src/modules/job_tags/repositories/commands/domain");
 const {
   NotFoundError,
-  InternalServerError,
+  ConflictError,
   UnauthorizedError,
 } = require("../../../src/helpers/errors");
 
@@ -47,7 +47,7 @@ describe("Job Tags Command Domain", () => {
       expect(result.data).toEqual({ id: "tag-uuid-1234", name: "Remote" });
     });
 
-    it("should return error when tag already exists", async () => {
+    it("should return ConflictError when tag already exists", async () => {
       jobTagsQueryHandler.getOneTagByName.mockResolvedValue({
         err: null,
         data: { id: tagId, name: "Remote" },
@@ -55,7 +55,7 @@ describe("Job Tags Command Domain", () => {
 
       const result = await domain.createJobTag({ name: "Remote" });
 
-      expect(result.err).toBeInstanceOf(InternalServerError);
+      expect(result.err).toBeInstanceOf(ConflictError);
       expect(result.err.message).toBe("Create Job Tag Failed: Tag already exists");
     });
   });

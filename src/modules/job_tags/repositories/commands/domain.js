@@ -9,8 +9,15 @@ const {
   NotFoundError,
   InternalServerError,
   UnauthorizedError,
+  ConflictError,
 } = require("../../../../helpers/errors");
 const ctx = "Jobtags-Command-Domain";
+
+const RECRUITER_ROLE_ID = 2;
+const SUPER_ADMIN_ROLE_ID = 3;
+
+const isRecruiterOrSuperAdmin = (role_id) =>
+  role_id === RECRUITER_ROLE_ID || role_id === SUPER_ADMIN_ROLE_ID;
 
 class JobPostTags {
   constructor(db) {
@@ -21,14 +28,16 @@ class JobPostTags {
   async createJobPostTag(payload) {
     const { job_post_id, name, role_id, recruiter_id } = payload;
     let tag_id = null;
-    // Check first if the job post belong to the logged in recruiter id
+
     const getJobPostResult = await queryHandlerJobPosts.getJobpostById({
       id: job_post_id,
     });
     if (
       getJobPostResult.err ||
-      role_id !== 2 ||
-      getJobPostResult.data.recruiter_id !== recruiter_id
+      !getJobPostResult.data ||
+      !isRecruiterOrSuperAdmin(role_id) ||
+      (role_id === RECRUITER_ROLE_ID &&
+        getJobPostResult.data.recruiter_id !== recruiter_id)
     ) {
       logger.error(
         ctx,
@@ -40,13 +49,14 @@ class JobPostTags {
         new UnauthorizedError("Create Job Post Tag Failed due to Unauthorized")
       );
     }
+
     const getJobtagsResult = await queryHandler.getOneTagByName({ name });
-    if (
-      getJobtagsResult.err ||
-      (!getJobtagsResult && getJobtagsResult.rows.length === 0)
-    ) {
-      // const insertJobtagsResult = await this.db.executeQuery(insertjobtagsQuery, [tag_id, name]);
+    // Tag missing when lookup errors OR returns null/empty data (do not touch .id on null)
+    if (getJobtagsResult.err || !getJobtagsResult.data) {
       const insertJobTagResult = await this.createJobTag({ name });
+      if (insertJobTagResult.err) {
+        return insertJobTagResult;
+      }
       tag_id = insertJobTagResult.data.id;
     } else {
       tag_id = getJobtagsResult.data.id;
@@ -57,6 +67,15 @@ class JobPostTags {
       job_post_id
     );
     if (insertJobPostTagResult.err) {
+      const message = insertJobPostTagResult.err.message || String(insertJobPostTagResult.err);
+      const isDuplicate =
+        insertJobPostTagResult.err.code === "23505" ||
+        /duplicate key|unique constraint/i.test(message);
+      if (isDuplicate) {
+        return wrapper.error(
+          new ConflictError("Tag is already linked to this job post")
+        );
+      }
       logger.error(
         ctx,
         "Create Job Post Tag",
@@ -71,19 +90,22 @@ class JobPostTags {
   }
 
   async createJobTag(payload) {
-    const { name } = payload;
+    const { name, role_id } = payload;
 
-    // 2. Cek apakah name sudah ada
-    const existing = await queryHandler.getOneTagByName({
-      name,
-    });
-    if (existing?.data) {
+    // Standalone create must be recruiter-only (role_id 2). Internal calls omit role_id.
+    if (role_id !== undefined && role_id !== RECRUITER_ROLE_ID) {
       return wrapper.error(
-        new InternalServerError("Create Job Tag Failed: Tag already exists")
+        new UnauthorizedError("Only recruiters can create tags")
       );
     }
 
-    // 3. Jika tidak ada → insert
+    const existing = await queryHandler.getOneTagByName({ name });
+    if (existing?.data) {
+      return wrapper.error(
+        new ConflictError("Create Job Tag Failed: Tag already exists")
+      );
+    }
+
     const data = {
       id: uuidv4(),
       name,
@@ -91,6 +113,15 @@ class JobPostTags {
 
     const insertJobTagResult = await this.command.insertJobTag(data);
     if (insertJobTagResult.err) {
+      const message = insertJobTagResult.err.message || String(insertJobTagResult.err);
+      const isDuplicate =
+        insertJobTagResult.err.code === "23505" ||
+        /duplicate key|unique constraint/i.test(message);
+      if (isDuplicate) {
+        return wrapper.error(
+          new ConflictError("Create Job Tag Failed: Tag already exists")
+        );
+      }
       logger.error(
         ctx,
         "Create Job Tag",
@@ -111,8 +142,10 @@ class JobPostTags {
     });
     if (
       getJobPostResult.err ||
-      role_id !== 2 ||
-      getJobPostResult.data.recruiter_id !== recruiter_id
+      !getJobPostResult.data ||
+      !isRecruiterOrSuperAdmin(role_id) ||
+      (role_id === RECRUITER_ROLE_ID &&
+        getJobPostResult.data.recruiter_id !== recruiter_id)
     ) {
       logger.error(
         ctx,

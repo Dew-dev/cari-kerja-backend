@@ -16,6 +16,7 @@ const deleteJobPostTagParamType = joi.object({
 
 const createJobTagParamType = joi.object({
   name: joi.string().required(),
+  role_id: joi.number().integer().optional(),
 });
 
 module.exports = {
