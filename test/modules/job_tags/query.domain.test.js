@@ -47,6 +47,20 @@ describe("Job Tags Query Domain", () => {
       expect(result.err).toBeNull();
       expect(result.data).toEqual(tags);
     });
+
+    it("should return empty array when job has no tags", async () => {
+      mockQuery.findtagsPerJobPost.mockResolvedValue({
+        err: "Data Not Found Please Try Another Input",
+        data: null,
+      });
+
+      const result = await domain.getTagsPerJobPost({
+        job_post_id: "550e8400-e29b-41d4-a716-446655440000",
+      });
+
+      expect(result.err).toBeNull();
+      expect(result.data).toEqual([]);
+    });
   });
 
   describe("getOneJobPostTagByTagIdAndJobPostId", () => {
