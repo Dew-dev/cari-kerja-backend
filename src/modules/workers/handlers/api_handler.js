@@ -4,6 +4,10 @@ const queryHandler = require("../repositories/queries/query_handler");
 const queryModel = require("../repositories/queries/query_model");
 const validator = require("../../../helpers/utils/validator");
 const { sendResponse, paginationResponse } = require("../../../helpers/utils/response");
+const wrapper = require("../../../helpers/utils/wrapper");
+const { ForbiddenError } = require("../../../helpers/errors");
+
+const SUPER_ADMIN_ROLE_ID = 3;
 
 // query
 const getWorkerByUserId = async (req, res) => {
@@ -48,13 +52,24 @@ const getWorkers = async (req, res) => {
 // command
 const updateOneWorker = async (req, res) => {
   const payload = { ...req.body, ...req.params };
+
+  const isSuperAdmin = req.userMeta?.role_id === SUPER_ADMIN_ROLE_ID;
+  if (!isSuperAdmin && req.userMeta?.id !== payload.user_id) {
+    return sendResponse(
+      wrapper.error(new ForbiddenError("You are not allowed to update this worker profile")),
+      res
+    );
+  }
+
+  // Avatar must be attached before validation so it is included in validated payload
+  if (req.file) {
+    payload.avatar_url = `/uploads/avatars/worker/${req.file.filename}`;
+  }
+
   const validatePayload = validator.isValidPayload(
     payload,
     commandModel.updateWorkerParamType
   );
-  if (req.file) {
-    payload.avatar_url = `/uploads/avatars/worker/${req.file.filename}`;
-  }
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }

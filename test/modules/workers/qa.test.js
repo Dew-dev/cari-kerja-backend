@@ -67,6 +67,7 @@ describe("[QA] workers module", () => {
     it("[BUG-WK-003] updateOneWorker should include avatar_url from uploaded file in validated payload", async () => {
       const res = createMockResponse();
       const req = createMockRequest({
+        userMeta: { id: userId, worker_id: workerId },
         params: { user_id: userId, id: workerId },
         body: {
           profile_summary: "Profile summary text long enough to satisfy validation rules here.",

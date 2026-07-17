@@ -53,6 +53,9 @@ class Worker {
     const values = [];
     let idx = 1;
 
+    // Soft-deleted workers must never appear in public/list results
+    conditions.push(` AND w.deleted_at IS NULL`);
+
     // Search by name or profile summary
     if (search !== undefined && search !== null && search !== "" && search.length >= 2) {
       conditions.push(`
