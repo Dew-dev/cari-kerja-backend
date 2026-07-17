@@ -40,7 +40,7 @@ const getAllCategories = async (req, res) => {
 
 const getAllCategoriesWithJobcount = async (req, res) => {
   const result = await queryHandler.getAllCategoriesWithJobcount();
-  return paginationResponse(result, res);
+  return sendResponse(result, res);
 };
 
 //command
