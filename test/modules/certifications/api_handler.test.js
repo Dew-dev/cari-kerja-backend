@@ -165,19 +165,22 @@ describe("Certifications API Handler", () => {
 
   describe("deleteCertification", () => {
     it("should delete certification on valid request", async () => {
-      const req = createMockRequest({ params: { id: certId } });
+      const req = createWorkerRequest({ params: { id: certId } });
       commandHandler.deleteCertification.mockResolvedValue(
         wrapper.data("Success deleted certification")
       );
 
       await apiHandler.deleteCertification(req, res);
 
-      expect(commandHandler.deleteCertification).toHaveBeenCalledWith({ id: certId });
+      expect(commandHandler.deleteCertification).toHaveBeenCalledWith({
+        id: certId,
+        worker_id: workerId,
+      });
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
     it("should return validation error when id is missing", async () => {
-      const req = createMockRequest({ params: {} });
+      const req = createWorkerRequest({ params: {} });
 
       await apiHandler.deleteCertification(req, res);
 

@@ -96,10 +96,10 @@ describe("Certifications Command Domain", () => {
       const result = await domain.updateCertification(basePayload);
 
       expect(result.err).toBeNull();
-      expect(result.data).toEqual({ name: "Updated Name" });
+      expect(result.data).toEqual({ name: "Updated Name", link: "https://example.com" });
       expect(mockCommand.updateOneNew).toHaveBeenCalledWith(
         { id: "cert-uuid", worker_id: "worker-uuid" },
-        { name: "Updated Name" }
+        { name: "Updated Name", link: "https://example.com" }
       );
     });
 
@@ -119,6 +119,27 @@ describe("Certifications Command Domain", () => {
       expect(result.err.message).toBe("Certification not found");
     });
 
+    it("should update link when only link is provided", async () => {
+      mockQuery.findOne.mockResolvedValue({
+        err: null,
+        data: { id: "cert-uuid", worker_id: "worker-uuid" },
+      });
+      mockCommand.updateOneNew.mockResolvedValue({ err: null, data: true });
+
+      const result = await domain.updateCertification({
+        id: "cert-uuid",
+        worker_id: "worker-uuid",
+        link: "https://example.com",
+      });
+
+      expect(result.err).toBeNull();
+      expect(result.data).toEqual({ link: "https://example.com" });
+      expect(mockCommand.updateOneNew).toHaveBeenCalledWith(
+        { id: "cert-uuid", worker_id: "worker-uuid" },
+        { link: "https://example.com" }
+      );
+    });
+
     it("should return BadRequestError when no updatable fields provided", async () => {
       mockQuery.findOne.mockResolvedValue({
         err: null,
@@ -128,7 +149,6 @@ describe("Certifications Command Domain", () => {
       const result = await domain.updateCertification({
         id: "cert-uuid",
         worker_id: "worker-uuid",
-        link: "https://example.com",
       });
 
       expect(result.err).toBeInstanceOf(BadRequestError);
@@ -152,7 +172,7 @@ describe("Certifications Command Domain", () => {
 
       expect(mockCommand.updateOneNew).toHaveBeenCalledWith(
         { id: "cert-uuid", worker_id: "worker-uuid" },
-        { issuer: "Google", is_active: false }
+        { issuer: "Google", is_active: false, link: "https://example.com" }
       );
     });
 
@@ -172,30 +192,48 @@ describe("Certifications Command Domain", () => {
 
   describe("deleteCertification", () => {
     it("should return success message when delete succeeds", async () => {
-      mockQuery.findOne.mockResolvedValue({ err: null, data: { id: "cert-uuid" } });
+      mockQuery.findOne.mockResolvedValue({
+        err: null,
+        data: { id: "cert-uuid", worker_id: "worker-uuid" },
+      });
       mockCommand.deleteOne.mockResolvedValue({ err: null, data: true });
 
-      const result = await domain.deleteCertification({ id: "cert-uuid" });
+      const result = await domain.deleteCertification({
+        id: "cert-uuid",
+        worker_id: "worker-uuid",
+      });
 
       expect(result.err).toBeNull();
       expect(result.data).toBe("Success deleted certification");
-      expect(mockCommand.deleteOne).toHaveBeenCalledWith({ id: "cert-uuid" });
+      expect(mockCommand.deleteOne).toHaveBeenCalledWith({
+        id: "cert-uuid",
+        worker_id: "worker-uuid",
+      });
     });
 
     it("should return NotFoundError when certification not found", async () => {
       mockQuery.findOne.mockResolvedValue({ err: new Error("not found"), data: null });
 
-      const result = await domain.deleteCertification({ id: "cert-uuid" });
+      const result = await domain.deleteCertification({
+        id: "cert-uuid",
+        worker_id: "worker-uuid",
+      });
 
       expect(result.err).toBeInstanceOf(NotFoundError);
       expect(result.err.message).toBe("Certification not found");
     });
 
     it("should return InternalServerError when delete fails", async () => {
-      mockQuery.findOne.mockResolvedValue({ err: null, data: { id: "cert-uuid" } });
+      mockQuery.findOne.mockResolvedValue({
+        err: null,
+        data: { id: "cert-uuid", worker_id: "worker-uuid" },
+      });
       mockCommand.deleteOne.mockResolvedValue({ err: new Error("delete failed"), data: null });
 
-      const result = await domain.deleteCertification({ id: "cert-uuid" });
+      const result = await domain.deleteCertification({
+        id: "cert-uuid",
+        worker_id: "worker-uuid",
+      });
 
       expect(result.err).toBeInstanceOf(InternalServerError);
       expect(result.err.message).toBe("Delete certification failed");

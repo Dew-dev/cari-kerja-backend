@@ -8,6 +8,8 @@ const {
   NotFoundError,
   InternalServerError,
   BadRequestError,
+  ConflictError,
+  ForbiddenError,
 } = require("../../../../helpers/errors");
 const ctx = "Certification-Command-Domain";
 
@@ -33,6 +35,13 @@ class Certification {
 
     const result = await this.command.insertOne(newPayload);
     if (result.err) {
+      const message = result.err.message || "";
+      const isDuplicate =
+        result.err.code === "23505" ||
+        /duplicate key|unique constraint/i.test(message);
+      if (isDuplicate) {
+        return wrapper.error(new ConflictError("Certification already exists"));
+      }
       return wrapper.error(
         new InternalServerError("Failed insert certification")
       );
@@ -74,6 +83,7 @@ class Certification {
       "expiry_date",
       "credential_id",
       "is_active",
+      "link",
     ];
 
     const updateData = {};
@@ -103,15 +113,28 @@ class Certification {
   }
 
   async deleteCertification(payload) {
-    const { id } = payload;
+    const { id, worker_id } = payload;
 
-    const certification = await this.query.findOne({ id }, { id: 1 });
+    const certification = await this.query.findOne(
+      { id, worker_id },
+      { id: 1, worker_id: 1 }
+    );
     if (certification.err || !certification.data) {
       return wrapper.error(new NotFoundError("Certification not found"));
     }
 
-    const result = await this.command.deleteOne({ id });
+    if (
+      certification.data.worker_id &&
+      certification.data.worker_id !== worker_id
+    ) {
+      return wrapper.error(
+        new ForbiddenError("You are not allowed to delete this certification")
+      );
+    }
+
+    const result = await this.command.deleteOne({ id, worker_id });
     if (result.err) {
+      logger.error(ctx, "deleteCertification", "Delete failed", result.err);
       return wrapper.error(
         new InternalServerError("Delete certification failed")
       );
