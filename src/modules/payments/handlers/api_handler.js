@@ -6,17 +6,29 @@ const validator = require("../../../helpers/utils/validator");
 const logger = require("../../../helpers/utils/logger");
 const wrapper = require("../../../helpers/utils/wrapper");
 const xenditHelper = require("../../../helpers/xendit/xendit_helper");
+const { ForbiddenError } = require("../../../helpers/errors");
 const {
   sendResponse,
   paginationResponse,
 } = require("../../../helpers/utils/response");
 
 const ctx = "Payments-API-Handler";
+const WORKER_ROLE_ID = 1;
+const RECRUITER_ROLE_ID = 2;
+const SUPER_ADMIN_ROLE_ID = 3;
 
-// ----------------------------
-// GET /api/v1/payments/plans
-// Ambil semua paket yang tersedia
-// ----------------------------
+const assertRecruiterAccess = (req, res) => {
+  const roleId = req.userMeta?.role_id;
+  if (roleId !== RECRUITER_ROLE_ID && roleId !== SUPER_ADMIN_ROLE_ID) {
+    sendResponse(
+      wrapper.error(new ForbiddenError("Only recruiters can access payment features")),
+      res
+    );
+    return false;
+  }
+  return true;
+};
+
 const getAllPlans = async (req, res) => {
   const payload = { type: req.query.type };
   const validatePayload = validator.isValidPayload(payload, queryModel.getPlansParamType);
@@ -27,11 +39,11 @@ const getAllPlans = async (req, res) => {
   return sendResponse(result, res);
 };
 
-// ----------------------------
-// POST /api/v1/payments/create-invoice
-// Buat invoice pembayaran
-// ----------------------------
 const createInvoice = async (req, res) => {
+  if (!assertRecruiterAccess(req, res)) {
+    return;
+  }
+
   const payload = {
     ...req.body,
     recruiter_id: req.userMeta.recruiter_id,
@@ -47,11 +59,11 @@ const createInvoice = async (req, res) => {
   return sendResponse(result, res, 201);
 };
 
-// ----------------------------
-// GET /api/v1/payments/orders
-// Riwayat order recruiter
-// ----------------------------
 const getPaymentOrders = async (req, res) => {
+  if (!assertRecruiterAccess(req, res)) {
+    return;
+  }
+
   const payload = {
     ...req.query,
     recruiter_id: req.userMeta.recruiter_id,
@@ -66,11 +78,11 @@ const getPaymentOrders = async (req, res) => {
   return paginationResponse(result, res);
 };
 
-// ----------------------------
-// GET /api/v1/payments/orders/:id
-// Detail satu order
-// ----------------------------
 const getOrderDetail = async (req, res) => {
+  if (!assertRecruiterAccess(req, res)) {
+    return;
+  }
+
   const payload = {
     id: req.params.id,
     recruiter_id: req.userMeta.recruiter_id,
@@ -85,11 +97,11 @@ const getOrderDetail = async (req, res) => {
   return sendResponse(result, res);
 };
 
-// ----------------------------
-// GET /api/v1/payments/active-plan
-// Cek paket aktif recruiter
-// ----------------------------
 const getActivePlan = async (req, res) => {
+  if (!assertRecruiterAccess(req, res)) {
+    return;
+  }
+
   const payload = { recruiter_id: req.userMeta.recruiter_id };
 
   const validatePayload = validator.isValidPayload(payload, queryModel.getActivePlanParamType);
@@ -101,12 +113,7 @@ const getActivePlan = async (req, res) => {
   return sendResponse(result, res);
 };
 
-// ----------------------------
-// POST /api/v1/payments/webhook/xendit
-// Endpoint callback dari Xendit (tanpa auth JWT)
-// ----------------------------
 const handleXenditWebhook = async (req, res) => {
-  // 1. Verifikasi webhook token dari Xendit
   const callbackToken = req.headers["x-callback-token"];
   if (!xenditHelper.verifyWebhookToken(callbackToken)) {
     logger.error(ctx, "handleXenditWebhook", "Invalid webhook token", callbackToken);
@@ -117,7 +124,6 @@ const handleXenditWebhook = async (req, res) => {
     });
   }
 
-  // 2. Validasi payload
   const payload = req.body;
   const validatePayload = validator.isValidPayload(payload, commandModel.xenditWebhookParamType);
   if (validatePayload.err) {
@@ -128,10 +134,8 @@ const handleXenditWebhook = async (req, res) => {
     });
   }
 
-  // 3. Proses webhook
   const result = await commandHandler.handleXenditWebhook(validatePayload.data);
 
-  // Xendit expects 200 response even if processing fails internally
   if (result.err) {
     logger.error(ctx, "handleXenditWebhook", "Webhook processing error", result.err);
     return res.status(200).send({
@@ -149,11 +153,11 @@ const handleXenditWebhook = async (req, res) => {
   });
 };
 
-// ----------------------------
-// POST /api/v1/payments/single-post/apply
-// Terapkan slot satuan ke job post
-// ----------------------------
 const applySinglePostToJob = async (req, res) => {
+  if (!assertRecruiterAccess(req, res)) {
+    return;
+  }
+
   const payload = {
     ...req.body,
     recruiter_id: req.userMeta.recruiter_id,

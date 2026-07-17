@@ -55,9 +55,37 @@ class Command {
   }
 
   /**
-   * Update status payment order
+   * Update status payment order.
+   * When expected_current_status is set, transition is atomic (CAS) to prevent races.
    */
-  async updateOrderStatus({ id, status, paid_at, xendit_invoice_id }) {
+  async updateOrderStatus({
+    id,
+    status,
+    paid_at,
+    xendit_invoice_id,
+    expected_current_status,
+  }) {
+    if (expected_current_status) {
+      const query = `
+        UPDATE payment_orders
+        SET
+          status = $2,
+          paid_at = $3,
+          xendit_invoice_id = COALESCE($4, xendit_invoice_id),
+          updated_at = NOW()
+        WHERE id = $1
+          AND status = $5
+        RETURNING id, status, recruiter_id, order_type, plan_id, plan_type, job_post_id, metadata;
+      `;
+      return this.db.executeQuery(query, [
+        id,
+        status,
+        paid_at || null,
+        xendit_invoice_id || null,
+        expected_current_status,
+      ]);
+    }
+
     const query = `
       UPDATE payment_orders
       SET
