@@ -56,18 +56,9 @@ class PaymentQueryDomain {
       ]);
 
       const total = parseInt(countResult?.rows?.[0]?.count || 0, 10);
-      const totalPages = Math.ceil(total / limit);
+      const meta = wrapper.buildPaginationMeta(page, limit, total);
 
-      return {
-        err: null,
-        data: orders?.rows || [],
-        meta: {
-          page,
-          limit,
-          total,
-          totalPages,
-        },
-      };
+      return wrapper.paginationData(orders?.rows || [], meta);
     } catch (err) {
       logger.error(ctx, "getPaymentOrders", "Failed to get payment orders", err);
       return wrapper.error(err);
@@ -104,11 +95,12 @@ class PaymentQueryDomain {
       const activeSubscription = subscriptionResult?.rows?.[0] || null;
       const availableSinglePosts = singlePostResult?.rows || [];
 
-      // Hitung total max post dari semua sumber aktif
-      let maxActivePosts = 1; // default free plan
+      // Free default = 1; subscription max + each unused single-post slot
+      let maxActivePosts = 1;
       if (activeSubscription) {
-        maxActivePosts = activeSubscription.max_active_posts;
+        maxActivePosts = Number(activeSubscription.max_active_posts) || 1;
       }
+      maxActivePosts += availableSinglePosts.length;
 
       return wrapper.data({
         subscription: activeSubscription,

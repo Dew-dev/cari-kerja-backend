@@ -13,6 +13,12 @@ const xenditHelper = require("../../../../helpers/xendit/xendit_helper");
 
 const ctx = "Payments-Command-Domain";
 
+const FAILED_WEBHOOK_STATUSES = new Set([
+  "FAILED",
+  "PAYMENT_FAILED",
+  "FAILURE",
+]);
+
 class PaymentCommandDomain {
   constructor(db) {
     this.command = new Command(db);
@@ -25,7 +31,6 @@ class PaymentCommandDomain {
    */
   async createInvoice({ recruiter_id, user_email, order_type, plan_id, job_post_id }) {
     try {
-      // 1. Validasi plan berdasarkan tipe order
       let plan = null;
       let planType = null;
       let amount = 0;
@@ -62,7 +67,6 @@ class PaymentCommandDomain {
           );
         }
 
-        // Validasi job post milik recruiter
         const jobPostResult = await this.query.getJobPostOwner(job_post_id);
         if (!jobPostResult?.rows?.length) {
           return wrapper.error(new NotFoundError("Job post not found"));
@@ -83,11 +87,9 @@ class PaymentCommandDomain {
         description = `Boost ${plan.display_name} untuk job post`;
       }
 
-      // 2. Buat payment order dengan status pending
       const orderId = uuidv4();
       const externalId = `CK-${order_type.toUpperCase()}-${orderId}`;
 
-      // 3. Buat Xendit invoice
       const xenditResult = await xenditHelper.createInvoice({
         external_id: externalId,
         amount,
@@ -103,13 +105,11 @@ class PaymentCommandDomain {
       }
 
       const xenditInvoice = xenditResult.data;
-
-      // 4. Simpan order ke database
       const invoiceExpiresAt = xenditInvoice.expiry_date
         ? new Date(xenditInvoice.expiry_date)
-        : new Date(Date.now() + 24 * 60 * 60 * 1000); // +24 jam fallback
+        : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
-      await this.command.insertPaymentOrder({
+      const insertResult = await this.command.insertPaymentOrder({
         id: orderId,
         recruiter_id,
         order_type,
@@ -128,6 +128,16 @@ class PaymentCommandDomain {
         },
       });
 
+      if (!insertResult?.rows?.length) {
+        logger.error(ctx, "createInvoice", "Payment order insert returned empty", {
+          orderId,
+          xenditInvoiceId: xenditInvoice.id,
+        });
+        return wrapper.error(
+          new InternalServerError("Gagal menyimpan payment order")
+        );
+      }
+
       return wrapper.data({
         order_id: orderId,
         xendit_invoice_id: xenditInvoice.id,
@@ -145,16 +155,19 @@ class PaymentCommandDomain {
   }
 
   /**
-   * Handle webhook Xendit — aktivasi paket setelah pembayaran berhasil
+   * Handle webhook Xendit — PAID / EXPIRED / FAILED / PENDING
    */
   async handleXenditWebhook(webhookPayload) {
     try {
-      const { id: xenditInvoiceId, external_id, status, paid_at } = webhookPayload;
+      const {
+        id: xenditInvoiceId,
+        external_id,
+        status,
+        paid_at,
+        paid_amount,
+      } = webhookPayload;
 
-      // 1. Log webhook masuk
       const logId = uuidv4();
-
-      // 2. Cari order berdasarkan external_id
       const orderResult = await this.query.getOrderByExternalId(external_id);
 
       await this.command.insertPaymentLog({
@@ -171,56 +184,116 @@ class PaymentCommandDomain {
       }
 
       const order = orderResult.rows[0];
+      const normalizedStatus = String(status || "").toUpperCase();
 
-      // 3. Jika status bukan PAID, update saja status dan return
-      if (status !== "PAID") {
-        const newStatus = status === "EXPIRED" ? "expired" : "failed";
+      // PENDING — keep order pending; do not mark failed
+      if (normalizedStatus === "PENDING") {
+        return wrapper.data({ order_id: order.id, status: "pending" });
+      }
+
+      // EXPIRED — mark order expired
+      if (normalizedStatus === "EXPIRED") {
         await this.command.updateOrderStatus({
           id: order.id,
-          status: newStatus,
+          status: "expired",
           paid_at: null,
           xendit_invoice_id: xenditInvoiceId,
+          expected_current_status: "pending",
         });
-        return wrapper.data({ order_id: order.id, status: newStatus });
+        return wrapper.data({ order_id: order.id, status: "expired" });
       }
 
-      // 4. Jika sudah PAID sebelumnya, skip (idempotent)
+      // FAILED / payment failure — mark order failed
+      if (FAILED_WEBHOOK_STATUSES.has(normalizedStatus)) {
+        await this.command.updateOrderStatus({
+          id: order.id,
+          status: "failed",
+          paid_at: null,
+          xendit_invoice_id: xenditInvoiceId,
+          expected_current_status: "pending",
+        });
+        return wrapper.data({ order_id: order.id, status: "failed" });
+      }
+
+      // Only PAID (and SETTLED as paid confirmation) activate plans
+      if (normalizedStatus !== "PAID" && normalizedStatus !== "SETTLED") {
+        logger.error(ctx, "handleXenditWebhook", "Unhandled webhook status", normalizedStatus);
+        return wrapper.data({
+          order_id: order.id,
+          status: order.status,
+          message: `Unhandled status: ${normalizedStatus}`,
+        });
+      }
+
+      // Cross-check Xendit invoice id against stored order
+      if (
+        order.xendit_invoice_id &&
+        xenditInvoiceId &&
+        order.xendit_invoice_id !== xenditInvoiceId
+      ) {
+        return wrapper.error(
+          new BadRequestError("Webhook invoice id does not match stored order")
+        );
+      }
+
+      // Validate paid amount covers order amount
+      if (
+        paid_amount !== undefined &&
+        paid_amount !== null &&
+        Number(paid_amount) < Number(order.amount)
+      ) {
+        return wrapper.error(
+          new BadRequestError("Paid amount is less than order amount")
+        );
+      }
+
       if (order.status === "paid") {
-        return wrapper.data({ order_id: order.id, status: "paid", message: "Already processed" });
+        return wrapper.data({
+          order_id: order.id,
+          status: "paid",
+          message: "Already processed",
+        });
       }
 
-      // 5. Update order status jadi paid
-      await this.command.updateOrderStatus({
+      // Atomic pending → paid transition (prevents double activation)
+      const updateResult = await this.command.updateOrderStatus({
         id: order.id,
         status: "paid",
         paid_at: paid_at ? new Date(paid_at) : new Date(),
         xendit_invoice_id: xenditInvoiceId,
+        expected_current_status: "pending",
       });
 
-      // 6. Aktivasi paket berdasarkan order_type
+      if (!updateResult?.rows?.length) {
+        return wrapper.data({
+          order_id: order.id,
+          status: "paid",
+          message: "Already processed",
+        });
+      }
+
       const activationResult = await this._activatePlan(order);
       if (activationResult.err) {
         logger.error(ctx, "handleXenditWebhook", "Plan activation failed", activationResult.err);
-        // Tetap return success karena pembayaran sudah tercatat — aktivasi bisa di-retry
       }
 
-      return wrapper.data({ order_id: order.id, status: "paid", activated: !activationResult.err });
+      return wrapper.data({
+        order_id: order.id,
+        status: "paid",
+        activated: !activationResult.err,
+      });
     } catch (err) {
       logger.error(ctx, "handleXenditWebhook", "Unexpected error", err);
       return wrapper.error(new InternalServerError(err.message));
     }
   }
 
-  /**
-   * Aktivasi paket setelah pembayaran berhasil (internal)
-   */
   async _activatePlan(order) {
     try {
       const { recruiter_id, order_type, plan_id, job_post_id, id: payment_order_id } = order;
       const now = new Date();
 
       if (order_type === "subscription") {
-        // Ambil detail plan
         const planResult = await this.query.getSubscriptionPlanById(plan_id);
         if (!planResult?.rows?.length) {
           return wrapper.error(new NotFoundError("Subscription plan not found"));
@@ -228,10 +301,7 @@ class PaymentCommandDomain {
         const plan = planResult.rows[0];
         const expiresAt = new Date(now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
 
-        // Nonaktifkan subscription lama
         await this.command.deactivateOldSubscriptions(recruiter_id);
-
-        // Aktifkan subscription baru
         await this.command.insertRecruiterSubscription({
           id: uuidv4(),
           recruiter_id,
@@ -240,9 +310,7 @@ class PaymentCommandDomain {
           starts_at: now,
           expires_at: expiresAt,
         });
-
       } else if (order_type === "single_post") {
-        // Ambil detail plan
         const planResult = await this.query.getSinglePostPlanById(plan_id);
         if (!planResult?.rows?.length) {
           return wrapper.error(new NotFoundError("Single post plan not found"));
@@ -250,7 +318,6 @@ class PaymentCommandDomain {
         const plan = planResult.rows[0];
         const expiresAt = new Date(now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
 
-        // Buat slot satuan
         await this.command.insertRecruiterSinglePost({
           id: uuidv4(),
           recruiter_id,
@@ -258,20 +325,15 @@ class PaymentCommandDomain {
           payment_order_id,
           expires_at: expiresAt,
         });
-
       } else if (order_type === "boost") {
-        // Ambil detail plan
         const planResult = await this.query.getBoostPlanById(plan_id);
         if (!planResult?.rows?.length) {
           return wrapper.error(new NotFoundError("Boost plan not found"));
         }
         const plan = planResult.rows[0];
         const expiresAt = new Date(now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
-
-        // Tentukan boost_type berdasarkan priority
         const boostType = plan.boost_priority === 1 ? "hot" : "top10";
 
-        // Aktifkan boost
         await this.command.insertJobPostBoost({
           id: uuidv4(),
           job_post_id,
@@ -282,13 +344,11 @@ class PaymentCommandDomain {
           expires_at: expiresAt,
         });
 
-        // Update job_posts tabel
         await this.command.updateJobPostBoostStatus({
           job_post_id,
           boost_type: boostType,
           boost_expires_at: expiresAt,
         });
-
       }
 
       return wrapper.data("Plan activated successfully");
@@ -298,12 +358,8 @@ class PaymentCommandDomain {
     }
   }
 
-  /**
-   * Apply slot satuan ke job post tertentu (setelah recruiter memposting)
-   */
   async applySinglePostToJob({ recruiter_id, single_post_slot_id, job_post_id }) {
     try {
-      // Ambil slot
       const query = `
         SELECT rsp.id, rsp.recruiter_id, rsp.plan_id, rsp.is_used, rsp.is_active, rsp.expires_at,
                spp.is_hot
@@ -332,10 +388,19 @@ class PaymentCommandDomain {
         return wrapper.error(new BadRequestError("Slot sudah kadaluarsa"));
       }
 
-      // Tandai slot sebagai digunakan
+      // Verify job post ownership (IDOR protection)
+      const jobPostResult = await this.query.getJobPostOwner(job_post_id);
+      if (!jobPostResult?.rows?.length) {
+        return wrapper.error(new NotFoundError("Job post not found"));
+      }
+      if (jobPostResult.rows[0].recruiter_id !== recruiter_id) {
+        return wrapper.error(
+          new ForbiddenError("Job post ini bukan milik Anda")
+        );
+      }
+
       await this.command.markSinglePostAsUsed({ id: single_post_slot_id, job_post_id });
 
-      // Jika plan hot, update is_hot di job_posts
       if (slot.is_hot) {
         await this.command.updateJobPostHotStatus({ job_post_id, is_hot: true });
       }
