@@ -47,7 +47,8 @@ describe("[QA] users module", () => {
 
     it("[BUG-US-001] login handler must not store auth cookies when login fails", async () => {
       const req = createMockRequest({
-        body: { username: "user@test.com", password: "wrongpassword" },
+        // loginParamType expects `email` (accepts email or username value), not `username`
+        body: { email: "user@test.com", password: "wrongpassword" },
         headers: { "user-agent": "jest-test" },
       });
       const res = createMockResponse();

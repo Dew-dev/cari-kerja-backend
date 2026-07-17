@@ -4,14 +4,29 @@ const queryHandler = require("../repositories/queries/query_handler");
 const queryModel = require("../repositories/queries/query_model");
 const validator = require("../../../helpers/utils/validator");
 const { sendResponse } = require("../../../helpers/utils/response");
+const wrapper = require("../../../helpers/utils/wrapper");
+const { ForbiddenError } = require("../../../helpers/errors");
 const {
   storeCookie,
   deleteCookie,
 } = require("../../../helpers/auth/cookie_helper");
 const joi = require("joi");
+
+// super_admin (role_id 3) is allowed to access any user's profile
+const SUPER_ADMIN_ROLE_ID = 3;
+
 // query
 const getUserById = async (req, res) => {
   const payload = { ...req.params };
+
+  const isSuperAdmin = req.userMeta?.role_id === SUPER_ADMIN_ROLE_ID;
+  if (!isSuperAdmin && req.userMeta?.id !== payload.id) {
+    return sendResponse(
+      wrapper.error(new ForbiddenError("You are not allowed to access this resource")),
+      res
+    );
+  }
+
   const validatePayload = validator.isValidPayload(
     payload,
     queryModel.getUserByIdParamType
@@ -38,6 +53,10 @@ const login = async (req, res) => {
     return sendResponse(validatePayload, res);
   }
   const result = await commandHandler.login(validatePayload.data);
+
+  if (result.err) {
+    return sendResponse(result, res);
+  }
 
   storeCookie(res, "refreshToken", result?.data?.refreshToken);
   storeCookie(res, "accessToken", result?.data?.token);

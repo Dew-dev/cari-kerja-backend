@@ -13,6 +13,8 @@ const {
   InternalServerError,
   BadRequestError,
   ForbiddenError,
+  UnauthorizedError,
+  TooManyRequestsError,
 } = require("../../../../helpers/errors");
 const config = require("../../../../config/global_config");
 const { verifyTelegramOidcToken } = require("../../../../helpers/auth/telegram_oidc");
@@ -375,7 +377,7 @@ class User {
     const stdUsername = username.toLowerCase().trim();
     const hashPassword = await generateHash(password);
 
-    const user = await this.query.findOne({ username }, { id: 1 });
+    const user = await this.query.findOne({ username: stdUsername }, { id: 1 });
     if (user.data) {
       return wrapper.error(new ConflictError("Username is already exist"));
     }
@@ -455,7 +457,7 @@ class User {
       logger.error(ctx, "register", "Send verify email failed", e);
     }
 
-    return wrapper.data({ user_id: data.id, worker_id: resultWorker.id });
+    return wrapper.data({ user_id: data.id, worker_id: resultWorker.data.id });
   }
 
   async registerRecruiter(payload) {
@@ -470,7 +472,7 @@ class User {
     const stdUsername = username.toLowerCase().trim();
     const hashPassword = await generateHash(password);
 
-    const user = await this.query.findOne({ username }, { id: 1 });
+    const user = await this.query.findOne({ username: stdUsername }, { id: 1 });
     if (user.data) {
       return wrapper.error(new ConflictError("Username already exist"));
     }
@@ -872,7 +874,7 @@ class User {
     // 🚦 RATE LIMIT CHECK
     const count = await this.query.countEmailVerificationsInWindow(userId, 60);
 
-    if (count >= MAX_PER_HOUR) {
+    if (count.data >= MAX_PER_HOUR) {
       return wrapper.error(
         new TooManyRequestsError(
           "Too many verification requests. Please try again later.",
