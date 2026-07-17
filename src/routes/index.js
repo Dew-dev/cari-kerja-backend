@@ -27,6 +27,7 @@ const admin = require('./admin');
 const payments = require('./payments');
 const cvParsing = require('./cv_parsing');
 const chat = require('./chat');
+const candidatePipeline = require('./candidate_pipeline');
 
 
 module.exports = (server) => {
@@ -59,5 +60,6 @@ module.exports = (server) => {
   payments(server);
   cvParsing(server);
   chat(server);
+  candidatePipeline(server);
 };
 
