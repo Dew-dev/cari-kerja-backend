@@ -4,9 +4,16 @@ describe("Educations Command Model", () => {
   const workerId = "550e8400-e29b-41d4-a716-446655440000";
   const educationId = "550e8400-e29b-41d4-a716-446655440001";
 
+  const validAddPayload = {
+    worker_id: workerId,
+    institution_name: "University of Indonesia",
+    degree: "Bachelor",
+    start_date: "2018-09-01",
+  };
+
   describe("addEducationsParamType", () => {
-    it("should validate minimal payload with defaults", () => {
-      const { error, value } = commandModel.addEducationsParamType.validate({});
+    it("should validate minimal required payload with defaults", () => {
+      const { error, value } = commandModel.addEducationsParamType.validate(validAddPayload);
       expect(error).toBeUndefined();
       expect(value.is_current).toBe(false);
     });
@@ -26,18 +33,17 @@ describe("Educations Command Model", () => {
       expect(value.institution_name).toBe("University of Indonesia");
     });
 
-    it("should allow empty strings for optional fields", () => {
-      const { error, value } = commandModel.addEducationsParamType.validate({
-        worker_id: "",
-        institution_name: "",
-        degree: "",
+    it("should reject missing institution_name and degree", () => {
+      const { error } = commandModel.addEducationsParamType.validate({
+        worker_id: workerId,
+        start_date: "2018-09-01",
       });
-      expect(error).toBeUndefined();
-      expect(value.worker_id).toBe("");
+      expect(error).toBeDefined();
     });
 
     it("should reject institution_name exceeding max length", () => {
       const { error } = commandModel.addEducationsParamType.validate({
+        ...validAddPayload,
         institution_name: "a".repeat(151),
       });
       expect(error).toBeDefined();
@@ -45,11 +51,20 @@ describe("Educations Command Model", () => {
 
     it("should allow null end_date", () => {
       const { error, value } = commandModel.addEducationsParamType.validate({
+        ...validAddPayload,
         end_date: null,
         is_current: true,
       });
       expect(error).toBeUndefined();
       expect(value.end_date).toBeNull();
+    });
+
+    it("should reject invalid start_date format", () => {
+      const { error } = commandModel.addEducationsParamType.validate({
+        ...validAddPayload,
+        start_date: "not-a-date",
+      });
+      expect(error).toBeDefined();
     });
   });
 
@@ -100,6 +115,18 @@ describe("Educations Command Model", () => {
       });
       expect(error).toBeUndefined();
       expect(value.major).toBeNull();
+    });
+
+    it("should reject invalid start_date format", () => {
+      const { error } = commandModel.updateEducationsParamType.validate({
+        id: educationId,
+        worker_id: workerId,
+        institution_name: "University",
+        degree: "Bachelor",
+        start_date: "not-a-date",
+        is_current: false,
+      });
+      expect(error).toBeDefined();
     });
   });
 

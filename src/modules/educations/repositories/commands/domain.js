@@ -3,7 +3,11 @@ const Query = require("../queries/query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const { v4: uuidv4 } = require("uuid");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError, InternalServerError, BadRequestError } = require("../../../../helpers/errors");
+const {
+  NotFoundError,
+  InternalServerError,
+  ForbiddenError,
+} = require("../../../../helpers/errors");
 const ctx = "Educations-Domain";
 
 class Educations {
@@ -21,7 +25,7 @@ class Educations {
       degree: payload.degree,
       major: payload.major || null,
       start_date: payload.start_date,
-      end_date: payload.end_date || (payload.is_current ? null : payload.end_date),
+      end_date: payload.is_current ? null : (payload.end_date || null),
       is_current: payload.is_current || false,
       description: payload.description || null,
     };
@@ -38,9 +42,18 @@ class Educations {
   async updateOne(payload) {
     const { id, worker_id } = payload;
 
-    const existing = await this.query.findOne({ id }, { id: 1 });
-    if (existing.err) {
+    const existing = await this.query.findOne(
+      { id, worker_id },
+      { id: 1, worker_id: 1 }
+    );
+    if (existing.err || !existing.data) {
       return wrapper.error(new NotFoundError("Education not found"));
+    }
+
+    if (existing.data.worker_id && existing.data.worker_id !== worker_id) {
+      return wrapper.error(
+        new ForbiddenError("You are not allowed to update this education")
+      );
     }
 
     const document = {
@@ -48,13 +61,14 @@ class Educations {
       degree: payload.degree,
       major: payload.major || null,
       start_date: payload.start_date,
-      end_date: payload.end_date || null,
+      end_date: payload.is_current ? null : (payload.end_date || null),
       is_current: payload.is_current || false,
       description: payload.description || null,
     };
 
     const result = await this.command.updateOneNew({ id, worker_id }, document);
     if (result.err) {
+      logger.error(ctx, "updateOne", "Failed to update education", result.err);
       return wrapper.error(new InternalServerError("Failed to update education"));
     }
 

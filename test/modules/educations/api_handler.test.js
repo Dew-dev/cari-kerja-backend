@@ -96,18 +96,13 @@ describe("Educations API Handler", () => {
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
-    it("should accept minimal body due to optional schema", async () => {
+    it("should return validation error when required fields are missing", async () => {
       const req = createWorkerRequest({ body: {} });
-      commandHandler.insertEducations.mockResolvedValue(
-        wrapper.data({ id: educationId })
-      );
 
       await apiHandler.insertEducations(req, res);
 
-      expect(commandHandler.insertEducations).toHaveBeenCalledWith({
-        worker_id: workerId,
-        is_current: false,
-      });
+      expect(commandHandler.insertEducations).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(400);
     });
   });
 

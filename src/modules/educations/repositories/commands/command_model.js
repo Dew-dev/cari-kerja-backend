@@ -1,15 +1,19 @@
 const joi = require("joi");
 
+const dateString = joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).messages({
+  "string.pattern.base": "Date must be in YYYY-MM-DD format",
+});
+
 // Schema untuk menambahkan Educations
 const addEducationsParamType = joi.object({
-  worker_id: joi.string().optional().allow(""),
-  institution_name: joi.string().max(150).optional().allow(""),
-  degree: joi.string().max(100).optional().allow(""),
-  major: joi.string().max(100).optional().allow(""),
-  start_date: joi.string().optional().allow(null),
-  end_date: joi.string().optional().allow(null),
+  worker_id: joi.string().required(),
+  institution_name: joi.string().max(150).required(),
+  degree: joi.string().max(100).required(),
+  major: joi.string().max(100).optional().allow("", null),
+  start_date: dateString.required(),
+  end_date: dateString.optional().allow(null),
   is_current: joi.boolean().optional().default(false),
-  description: joi.string().optional().allow(""),
+  description: joi.string().optional().allow("", null),
 });
 
 // Schema untuk mengupdate Educations
@@ -19,8 +23,8 @@ const updateEducationsParamType = joi.object({
   institution_name: joi.string().max(150).required(),
   degree: joi.string().max(100).required(),
   major: joi.string().max(100).optional().allow(null),
-  start_date: joi.string().required(),
-  end_date: joi.string().optional().allow(null),
+  start_date: dateString.required(),
+  end_date: dateString.optional().allow(null),
   is_current: joi.boolean().optional().default(false),
   description: joi.string().optional().allow(null),
 });
