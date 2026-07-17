@@ -3,7 +3,11 @@ const Query = require("../queries/query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const { v4: uuidv4 } = require("uuid");
-const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
+const {
+  NotFoundError,
+  InternalServerError,
+  ForbiddenError,
+} = require("../../../../helpers/errors");
 const ctx = "Languages-Domain";
 
 class Languages {
@@ -25,7 +29,6 @@ class Languages {
 
   // INSERT one language
   async insertOne(payload) {
-    // Pakai language_id dari payload bila dikirim, tanpa upsert; jika tidak, resolve dari nama
     const language_id = payload.language_id || (await this.resolveLanguageId(payload.language_name));
     const document = {
       id: uuidv4(),
@@ -47,9 +50,18 @@ class Languages {
   async updateOne(payload) {
     const { id, worker_id } = payload;
 
-    const existing = await this.query.findOne({ id }, { id: 1 });
-    if (existing.err) {
+    const existing = await this.query.findOne(
+      { id, worker_id },
+      { id: 1, worker_id: 1 }
+    );
+    if (existing.err || !existing.data) {
       return wrapper.error(new NotFoundError("Language not found"));
+    }
+
+    if (existing.data.worker_id && existing.data.worker_id !== worker_id) {
+      return wrapper.error(
+        new ForbiddenError("You are not allowed to update this language")
+      );
     }
 
     const language_id = payload.language_id || (await this.resolveLanguageId(payload.language_name));
@@ -72,7 +84,7 @@ class Languages {
   async deleteOne(payload) {
     const { id, worker_id } = payload;
     const existing = await this.query.findOne({ id, worker_id }, { id: 1 });
-    if (existing.err) {
+    if (existing.err || !existing.data) {
       return wrapper.error(new NotFoundError("Language not found"));
     }
 

@@ -37,13 +37,13 @@ describe("Languages Command Model", () => {
   describe("updateLanguagesParamType", () => {
     it("should validate valid payload", () => {
       const { error, value } = commandModel.updateLanguagesParamType.validate({
-        id: "lang-uuid",
+        id: "550e8400-e29b-41d4-a716-446655440001",
         worker_id: workerId,
         language_name: "French",
         proficiency_level_id: 2,
       });
       expect(error).toBeUndefined();
-      expect(value.id).toBe("lang-uuid");
+      expect(value.id).toBe("550e8400-e29b-41d4-a716-446655440001");
     });
 
     it("should reject missing id", () => {
@@ -60,14 +60,16 @@ describe("Languages Command Model", () => {
     it("should validate valid payload", () => {
       const { error, value } = commandModel.deleteLanguagesParamType.validate({
         worker_id: workerId,
-        id: "lang-uuid",
+        id: "550e8400-e29b-41d4-a716-446655440001",
       });
       expect(error).toBeUndefined();
-      expect(value.id).toBe("lang-uuid");
+      expect(value.id).toBe("550e8400-e29b-41d4-a716-446655440001");
     });
 
     it("should reject missing worker_id", () => {
-      const { error } = commandModel.deleteLanguagesParamType.validate({ id: "lang-uuid" });
+      const { error } = commandModel.deleteLanguagesParamType.validate({
+        id: "550e8400-e29b-41d4-a716-446655440001",
+      });
       expect(error).toBeDefined();
     });
   });

@@ -2,7 +2,11 @@ const Query = require("../queries/query");
 const Command = require("./command");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError, InternalServerError, BadRequestError } = require("../../../../helpers/errors");
+const {
+  NotFoundError,
+  InternalServerError,
+  ConflictError,
+} = require("../../../../helpers/errors");
 const ctx = "Nationalities-Command-Domain";
 
 class Nationality {
@@ -12,12 +16,17 @@ class Nationality {
   }
 
   async addNationality(payload) {
-    const newPayload = {
-      ...payload,
-    };
-
-    const result = await this.command.insertOne(newPayload);
+    const result = await this.command.insertOne({ ...payload });
     if (result.err) {
+      const message = result.err.message || String(result.err);
+      const isDuplicate =
+        result.err.code === "23505" ||
+        /duplicate key|unique constraint/i.test(message);
+      if (isDuplicate) {
+        return wrapper.error(
+          new ConflictError("Nationality with this ISO code already exists")
+        );
+      }
       return wrapper.error(new InternalServerError("Failed insert Nationality"));
     }
 
