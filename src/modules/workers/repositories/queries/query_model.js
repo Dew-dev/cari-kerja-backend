@@ -22,8 +22,8 @@ const getWorkersParamType = joi.object({
   education_level: joi.string().optional(),
   sort_by: joi.string().optional(),
   sort_order: joi.string().optional(),
-  page: joi.number().optional(),
-  limit: joi.number().optional(),
+  page: joi.number().integer().min(1).optional(),
+  limit: joi.number().integer().min(1).optional(),
 });
 
 module.exports = {

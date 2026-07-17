@@ -14,8 +14,8 @@ class Worker {
   async updateOneWorker(payload) {
     const { id } = payload;
 
-    const worker = this.query.findOne({ id }, { id: 1 });
-    if (worker.err) {
+    const worker = await this.query.findOne({ id }, { id: 1 });
+    if (worker.err || !worker.data) {
       return wrapper.error(new NotFoundError("Worker Not Found"));
     }
 
