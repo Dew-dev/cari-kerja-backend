@@ -12,6 +12,16 @@ describe("Experience Levels Command Model", () => {
       const { error } = commandModel.addExperienceLevelType.validate({});
       expect(error).toBeDefined();
     });
+
+    it("should reject whitespace-only name", () => {
+      const { error } = commandModel.addExperienceLevelType.validate({ name: "   " });
+      expect(error).toBeDefined();
+    });
+
+    it("should reject name exceeding max length", () => {
+      const { error } = commandModel.addExperienceLevelType.validate({ name: "a".repeat(256) });
+      expect(error).toBeDefined();
+    });
   });
 
   describe("updateExperienceLevelType", () => {

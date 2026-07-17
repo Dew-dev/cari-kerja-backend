@@ -2,7 +2,11 @@ const Query = require("../queries/query");
 const Command = require("./command");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError, InternalServerError, BadRequestError } = require("../../../../helpers/errors");
+const {
+  NotFoundError,
+  InternalServerError,
+  ConflictError,
+} = require("../../../../helpers/errors");
 const ctx = "ExperienceLevels-Command-Domain";
 
 class ExperienceLevels {
@@ -18,6 +22,14 @@ class ExperienceLevels {
 
     const result = await this.command.insertOne(newPayload);
     if (result.err) {
+      const message = result.err.message || "";
+      const isDuplicate =
+        result.err.code === "23505" ||
+        /duplicate key|unique constraint/i.test(message);
+      if (isDuplicate) {
+        return wrapper.error(new ConflictError("Experience level name already exists"));
+      }
+      logger.error(ctx, "addExperienceLevel", "Failed insert ExperienceLevels", result.err);
       return wrapper.error(new InternalServerError("Failed insert ExperienceLevels"));
     }
 
@@ -34,6 +46,13 @@ class ExperienceLevels {
 
     const result = await this.command.updateOneNew({ id }, { name: payload.name });
     if (result.err) {
+      const message = result.err.message || "";
+      const isDuplicate =
+        result.err.code === "23505" ||
+        /duplicate key|unique constraint/i.test(message);
+      if (isDuplicate) {
+        return wrapper.error(new ConflictError("Experience level name already exists"));
+      }
       return wrapper.error(new InternalServerError("Update ExperienceLevel failed"));
     }
 

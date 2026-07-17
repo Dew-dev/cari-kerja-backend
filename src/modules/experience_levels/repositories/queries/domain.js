@@ -1,8 +1,10 @@
 const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError } = require("../../../../helpers/errors");
+const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
 const ctx = "ExperienceLevels-Query-Domain";
+
+const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
 
 class ExperienceLevels {
   constructor(db) {
@@ -38,9 +40,23 @@ class ExperienceLevels {
     );
     const count = await this.query.countAllExperienceLevels(search);
 
-    ////console.log(experienceLevels);
+    const totalData = this.#extractTotal(count);
+    if (totalData === null) {
+      logger.error(
+        ctx,
+        "getAllExperienceLevels",
+        "Can not count ExperienceLevels",
+        count.err || "empty count rows"
+      );
+      return wrapper.error(new InternalServerError("Can not count ExperienceLevels"));
+    }
 
     if (experienceLevels.err) {
+      if (experienceLevels.err === EMPTY_RESULT_MESSAGE) {
+        const meta = wrapper.buildPaginationMeta(page, limit, totalData);
+        return wrapper.paginationData([], meta);
+      }
+
       logger.error(
         ctx,
         "getAllExperienceLevels",
@@ -50,19 +66,15 @@ class ExperienceLevels {
       return wrapper.error(new NotFoundError("Can not find ExperienceLevels"));
     }
 
-    const totalData = count.data.rows[0].total;
-    let totalPages;
-    if (limit) {
-      totalPages = Math.ceil(totalData / limit);
-    }
-    const meta = {
-      page: page,
-      per_page: limit,
-      total_data: parseInt(totalData),
-      total_pages: totalPages,
-    };
-
+    const meta = wrapper.buildPaginationMeta(page, limit, totalData);
     return wrapper.paginationData(experienceLevels.data, meta);
+  }
+
+  #extractTotal(count) {
+    if (count.err || !count.data?.rows?.length) {
+      return null;
+    }
+    return count.data.rows[0].total;
   }
 }
 
