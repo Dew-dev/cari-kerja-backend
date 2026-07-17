@@ -1,8 +1,10 @@
 const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError } = require("../../../../helpers/errors");
+const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
 const ctx = "Genders-Query-Domain";
+
+const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
 
 class Genders {
   constructor(db) {
@@ -26,22 +28,22 @@ class Genders {
     const genders = await this.query.findAllGenders(page, limit, search);
     const count = await this.query.countAllGenders(search);
 
-    ////console.log(genders);
+    if (count.err) {
+      logger.error(ctx, "getAllGenders", "Can not count Genders", count.err);
+      return wrapper.error(new InternalServerError("Can not count genders"));
+    }
 
     if (genders.err) {
+      if (genders.err === EMPTY_RESULT_MESSAGE) {
+        const meta = wrapper.buildPaginationMeta(page, limit, count.data);
+        return wrapper.paginationData([], meta);
+      }
+
       logger.error(ctx, "getAllGenders", "Can not find Genders", genders.err);
       return wrapper.error(new NotFoundError("Can not find genders"));
     }
 
-    const totalData = count.data;
-    const totalPages = Math.ceil(totalData / limit);
-    const meta = {
-      page: page,
-      per_page: limit,
-      total_data: Math.max(totalData, 0),
-      total_pages: totalPages,
-    };
-
+    const meta = wrapper.buildPaginationMeta(page, limit, count.data);
     return wrapper.paginationData(genders.data, meta);
   }
 }
