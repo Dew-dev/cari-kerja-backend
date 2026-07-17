@@ -127,8 +127,8 @@ describe("[QA] saved_jobs module", () => {
 
   describe("Routing — self endpoint must scope to authenticated worker", () => {
     it("[BUG-SJ-005] /workers/saved-jobs/self route should use getSavedJobsSelf handler", () => {
-      const apiHandler = require("../../../src/modules/saved_jobs/handlers/api_handler");
       let selfRouteHandler;
+      let isolatedApiHandler;
 
       const mockServer = {
         get: jest.fn((path, ...handlers) => {
@@ -140,12 +140,15 @@ describe("[QA] saved_jobs module", () => {
         delete: jest.fn(),
       };
 
+      // Resolve apiHandler from the same isolated registry used by the route file,
+      // otherwise reference equality would fail even for a correctly wired route.
       jest.isolateModules(() => {
         jest.doMock("../../../src/middlewares/verifyToken", () => jest.fn());
+        isolatedApiHandler = require("../../../src/modules/saved_jobs/handlers/api_handler");
         require("../../../src/routes/saved_jobs")(mockServer);
       });
 
-      expect(selfRouteHandler).toBe(apiHandler.getSavedJobsSelf);
+      expect(selfRouteHandler).toBe(isolatedApiHandler.getSavedJobsSelf);
     });
   });
 
