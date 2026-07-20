@@ -1,6 +1,7 @@
 const axios = require("axios");
 const config = require("../../config/global_config");
 const logger = require("../utils/logger");
+const { timingSafeEqualString } = require("../auth/account_guards");
 
 const ctx = "Xendit-Helper";
 
@@ -102,7 +103,10 @@ const verifyWebhookToken = (token) => {
     logger.error(ctx, "verifyWebhookToken", "XENDIT_WEBHOOK_TOKEN is not configured", null);
     return false;
   }
-  return token === webhookToken;
+  if (!token || typeof token !== "string") {
+    return false;
+  }
+  return timingSafeEqualString(token, webhookToken);
 };
 
 module.exports = {

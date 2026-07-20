@@ -4,6 +4,7 @@ const verifyRole = require("../middlewares/verifyRole");
 const userHandler = require("../modules/users/handlers/api_handler");
 const { authGoogle, authGoogleCallback } = require("../helpers/auth/google_oauth");
 const forgotPasswordLimiter = require("../middlewares/rateLimitForgotPassword");
+const registerLimiter = require("../middlewares/rateLimitRegister");
 
 // User account management (login, logout, register, password/email flows) is
 // intentionally NOT role-gated here: it must remain reachable by every role
@@ -15,18 +16,38 @@ const forgotPasswordLimiter = require("../middlewares/rateLimitForgotPassword");
 const userManagementRoles = [3, 4];
 
 module.exports = (server) => {
-  server.post("/api/v1/users/register-worker", basicAuth.isAuthenticated, userHandler.registerWorker);
-  server.post("/api/v1/users/register-recruiter", basicAuth.isAuthenticated, userHandler.registerRecruiter);
-  server.put("/api/v1/users/update-user/:id", basicAuth.isAuthenticated, userHandler.updateOneUser);
+  server.post(
+    "/api/v1/users/register-worker",
+    basicAuth.isAuthenticated,
+    registerLimiter,
+    userHandler.registerWorker
+  );
+  server.post(
+    "/api/v1/users/register-recruiter",
+    basicAuth.isAuthenticated,
+    registerLimiter,
+    userHandler.registerRecruiter
+  );
+  server.put("/api/v1/users/update-user/:id", verifyToken, userHandler.updateOneUser);
   server.post("/api/v1/users/login", basicAuth.isAuthenticated, userHandler.login);
   server.get("/api/v1/users/google", authGoogle);
   server.get("/api/v1/users/google/callback", authGoogleCallback, userHandler.loginWithGoogle);
   server.get("/api/v1/users/telegram", (req, res) => {
     const config = require("../config/global_config");
+    const { sanitizeOauthRoleId } = require("../helpers/auth/account_guards");
     const clientId = config.get("/telegramAuth/clientId");
     const redirectUri = config.get("/telegramAuth/redirectUri");
-    const { role_id, origin } = req.query;
-    const state = JSON.stringify({ role_id: Number(role_id) || 1, origin });
+    const { role_id, origin, purpose } = req.query;
+    const safeRole = sanitizeOauthRoleId(role_id);
+    if (role_id !== undefined && role_id !== null && role_id !== "" && safeRole === null) {
+      const feUrl = config.get("/frontendUrl");
+      return res.redirect(`${origin || feUrl}/error`);
+    }
+    const state = JSON.stringify({
+      role_id: safeRole ?? 1,
+      origin,
+      purpose: purpose === "link" ? "link" : "login",
+    });
     const authUrl = `https://oauth.telegram.org/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid+profile&state=${encodeURIComponent(state)}`;
     return res.redirect(authUrl);
   });
@@ -48,6 +69,16 @@ module.exports = (server) => {
     "/api/v1/auth/change-password",
     verifyToken, // wajib login
     userHandler.changePassword,
+  );
+  server.post(
+    "/api/v1/auth/change-email",
+    verifyToken,
+    userHandler.changeEmail,
+  );
+  server.post(
+    "/api/v1/auth/link-telegram",
+    verifyToken,
+    userHandler.linkTelegramNotification,
   );
   server.post(
     "/api/v1/auth/verify-email/send",

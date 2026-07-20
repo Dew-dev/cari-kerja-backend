@@ -75,7 +75,7 @@ const loginWithGoogleParamType = joi.object({
     .message("Email format must be true"),
   name: joi.string().optional(),
   picture: joi.string().optional(),
-  role_id: joi.number().required(),
+  role_id: joi.number().integer().valid(1, 2).default(1),
   ip_address: joi.string().optional().allow("", null),
   user_agent: joi.string().optional().allow("", null),
 });
@@ -83,7 +83,7 @@ const loginWithGoogleParamType = joi.object({
 const loginWithTelegramParamType = joi.object({
   code: joi.string().required(),
   state: joi.string().optional().allow("", null),
-  role_id: joi.number().optional().default(1),
+  role_id: joi.number().integer().valid(1, 2).optional().default(1),
   origin: joi.string().optional().allow("", null),
   ip_address: joi.string().optional().allow("", null),
   user_agent: joi.string().optional().allow("", null),
@@ -117,6 +117,7 @@ const registerParamType = joi.object({
     .regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
     .message("Email format must be true"),
   name: joi.string().required(),
+  captcha_token: joi.string().optional().allow("", null),
 });
 
 const registerRecruiterParamType = joi.object({
@@ -149,6 +150,7 @@ const registerRecruiterParamType = joi.object({
   company_name: joi.string().required(),
   contact_name: joi.string().required(),
   contact_phone: joi.string().required(),
+  captcha_token: joi.string().optional().allow("", null),
 });
 
 const deleteParamType = joi.object({
@@ -220,6 +222,24 @@ const verifyEmailParamType = joi.object({
   token: joi.string().required(),
 });
 
+const changeEmailParamType = joi.object({
+  user_id: joi.string().uuid().required(),
+  email: joi
+    .string()
+    .email({ tlds: { allow: false } })
+    .required()
+    .messages({
+      "string.empty": "Email must not be empty",
+      "string.email": "Invalid email format",
+      "any.required": "Email is required",
+    }),
+});
+
+const linkTelegramNotificationParamType = joi.object({
+  user_id: joi.string().uuid().required(),
+  code: joi.string().required(),
+});
+
 module.exports = {
   loginParamType,
   loginWithGoogleParamType,
@@ -235,4 +255,6 @@ module.exports = {
   changePasswordParamType,
   sendVerifyEmailParamType,
   verifyEmailParamType,
+  changeEmailParamType,
+  linkTelegramNotificationParamType,
 };

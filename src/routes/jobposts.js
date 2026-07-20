@@ -1,4 +1,4 @@
-const verifyToken = require("../middlewares/verifyToken");
+﻿const verifyToken = require("../middlewares/verifyToken");
 const optionalVerifyToken = require("../middlewares/optionalVerifyToken");
 const verifyRole = require("../middlewares/verifyRole");
 const jobpostHandler = require("../modules/job_posts/handlers/api_handler");
@@ -17,6 +17,18 @@ module.exports = (server) => {
     verifyToken,
     verifyRole(recruiterRoles),
     jobpostHandler.getJobpostsSelf,
+  );
+  // Register before /job-posts/:id so "hot" / "applied" are not parsed as ids
+  server.get(
+    "/api/v1/job-posts/hot",
+    optionalVerifyToken,
+    jobpostHandler.getHotJobposts,
+  );
+  server.get(
+    "/api/v1/job-posts/applied/self",
+    verifyToken,
+    verifyRole(workerRoles),
+    jobpostHandler.getAppliedJobposts,
   );
   server.get(
     "/api/v1/job-posts/:id",
@@ -75,13 +87,6 @@ module.exports = (server) => {
     verifyToken,
     verifyRole(workerRoles),
     jobpostHandler.createJobApplication,
-  );
-
-  server.get(
-    "/api/v1/job-posts/applied/self",
-    verifyToken,
-    verifyRole(workerRoles),
-    jobpostHandler.getAppliedJobposts,
   );
 
   server.delete(
@@ -161,3 +166,4 @@ module.exports = (server) => {
     Applications.addApplicationNote,
   );
 };
+

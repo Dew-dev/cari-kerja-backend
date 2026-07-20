@@ -25,6 +25,10 @@ const jobPostQuestionParamType = require("./command_model.js");
 const tagsModel = require("../../../job_tags/repositories/commands/command_model.js");
 const statusEmailTemplate = require("../../../../helpers/utils/statusEmailTemplate");
 const { addEmailJob } = require("../../../../helpers/queues/email.queue");
+const {
+  assertRecruiterVerifiedForPublish,
+  isOpenJobStatus,
+} = require("../../../../helpers/fraud/employer_verification");
 
 class Jobpost {
   constructor(db) {
@@ -70,6 +74,17 @@ class Jobpost {
       return wrapper.error(quotaCheckResult.err);
     }
     // ======================================
+
+    // Unverified employers may create DRAFT/PENDING/etc., but not OPEN.
+    if (isOpenJobStatus(status_id)) {
+      const verified = await assertRecruiterVerifiedForPublish(
+        this.command.db,
+        recruiter_id
+      );
+      if (verified.err) {
+        return verified;
+      }
+    }
 
     const jobPostId = uuidv4();
     const data = {
@@ -376,6 +391,33 @@ class Jobpost {
 
       if (!value.id) {
         throw new Error("Field 'id' wajib ada untuk update");
+      }
+
+      const recruiterId = payload.recruiter_id;
+      if (!recruiterId) {
+        return wrapper.error(
+          new ForbiddenError("Recruiter context required to update job status"),
+        );
+      }
+
+      const job = await this.query.findOneJobPost({
+        id,
+        recruiter_id: recruiterId,
+      });
+      if (job.err || !job.data) {
+        return wrapper.error(
+          new NotFoundError("Job not found or not owned by recruiter"),
+        );
+      }
+
+      if (isOpenJobStatus(value.status_id)) {
+        const verified = await assertRecruiterVerifiedForPublish(
+          this.command.db,
+          recruiterId
+        );
+        if (verified.err) {
+          return verified;
+        }
       }
 
       const parameter = { id: id };
@@ -708,13 +750,22 @@ class Jobpost {
 
     // Email is best-effort; status update already committed successfully
     try {
+      const config = require("../../../../config/global_config");
+      const feUrl = (config.get("/frontendUrl") || "").replace(/\/$/, "");
+      const actionUrl = feUrl
+        ? `${feUrl}/jobposts/${app.data.job_post_id}`
+        : undefined;
+
       await addEmailJob({
         to: app.data.email,
-        subject: `Application status updated — ${app.data.job_title}`,
+        subject: `Update lamaran — ${app.data.job_title}`,
         html: statusEmailTemplate({
           name: app.data.user_name,
           jobTitle: app.data.job_title,
           status: app.data.status_name,
+          stageName: app.data.status_name,
+          companyName: app.data.company_name,
+          actionUrl,
         }),
       });
     } catch (e) {
@@ -739,6 +790,16 @@ class Jobpost {
       return wrapper.error(
         new NotFoundError("Job not found or not owned by recruiter"),
       );
+    }
+
+    if (isOpenJobStatus(jobData.status_id)) {
+      const verified = await assertRecruiterVerifiedForPublish(
+        this.command.db,
+        recruiter_id
+      );
+      if (verified.err) {
+        return verified;
+      }
     }
 
     // 2️⃣ update job_posts - preserve existing values for fields not provided
@@ -840,6 +901,12 @@ class Jobpost {
       return wrapper.error(
         new NotFoundError("Job not found or not owned by recruiter"),
       );
+    }
+
+    // Kuota posting berlaku juga untuk duplicate (sebelumnya bypass)
+    const quotaCheckResult = await this._checkPostingQuota(recruiter_id);
+    if (quotaCheckResult.err) {
+      return wrapper.error(quotaCheckResult.err);
     }
 
     const original = job.data;
@@ -1018,8 +1085,10 @@ class Jobpost {
       return wrapper.data({ allowed: true, currentActive, maxActivePosts });
     } catch (err) {
       logger.error(ctx, "_checkPostingQuota", "Error checking quota", err);
-      // Jika gagal cek quota, biarkan lanjut (fail-open) agar tidak block recruiter
-      return wrapper.data({ allowed: true });
+      // Fail-closed: jangan izinkan posting jika kuota tidak bisa diverifikasi
+      return wrapper.error(
+        new InternalServerError("Failed to verify posting quota. Please try again.")
+      );
     }
   }
 }
