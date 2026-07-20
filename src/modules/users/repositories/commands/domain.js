@@ -39,6 +39,10 @@ const verifyEmailTemplate = require("../../../../helpers/utils/verifyEmail");
 const { addEmailJob } = require("../../../../helpers/queues/email.queue");
 const COOLDOWN_SECONDS = 60;
 const MAX_PER_HOUR = 5;
+const TELEGRAM_PLACEHOLDER_EMAIL_RE = /^telegram_.+@carikerja\.id$/i;
+
+const isTelegramPlaceholderEmail = (email) =>
+  typeof email === "string" && TELEGRAM_PLACEHOLDER_EMAIL_RE.test(email);
 
 class User {
   constructor(db) {
@@ -364,6 +368,7 @@ class User {
 
     const token = await generateAccessToken(data);
     const refreshToken = await generateRefreshToken({ id: data.id });
+    const requires_email_update = isTelegramPlaceholderEmail(data.email);
 
     // Insert Audit Log
     await this.command.insertAuditLog({
@@ -373,7 +378,7 @@ class User {
       user_agent: payload.user_agent || "Unknown",
     });
 
-    return wrapper.data({ token, refreshToken });
+    return wrapper.data({ token, refreshToken, requires_email_update });
   }
 
   async registerWorker(payload) {
@@ -643,9 +648,123 @@ class User {
     }
 
     const accessToken = await generateAccessToken(userData.data);
+    const requires_email_update =
+      userData.data.login_provider === "telegram" &&
+      isTelegramPlaceholderEmail(userData.data.email);
+
     return wrapper.data({
       token: accessToken,
-      user: userData.data,
+      user: {
+        ...userData.data,
+        requires_email_update,
+      },
+      requires_email_update,
+    });
+  }
+
+  async changeEmail(payload) {
+    const { user_id, email } = payload;
+    const normalizedEmail = String(email).toLowerCase().trim();
+
+    if (isTelegramPlaceholderEmail(normalizedEmail)) {
+      return wrapper.error(
+        new BadRequestError("Please provide a real email address"),
+      );
+    }
+
+    const user = await this.query.findOne(
+      { id: user_id },
+      { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1, username: 1 },
+    );
+    if (user.err || !user.data) {
+      return wrapper.error(new NotFoundError("User Not Found"));
+    }
+
+    if (user.data.email === normalizedEmail) {
+      return wrapper.error(
+        new BadRequestError("Email is the same as current email"),
+      );
+    }
+
+    const existing = await this.query.findUserByEmail(normalizedEmail);
+    if (existing.data && existing.data.id !== user_id) {
+      return wrapper.error(new ConflictError("Email already exist"));
+    }
+
+    const updateResult = await this.command.updateOneNew(
+      { id: user_id },
+      { email: normalizedEmail },
+    );
+    if (updateResult.err) {
+      logger.error(ctx, "changeEmail", "Update email failed", updateResult.err);
+      return wrapper.error(new InternalServerError("Failed to update email"));
+    }
+
+    await this.command.clearEmailVerified(user_id);
+    await this.command.invalidateEmailVerifications(user_id);
+
+    const verifyTokenValue = crypto.randomBytes(32).toString("hex");
+    const expiredAt = new Date(Date.now() + 30 * 60 * 1000);
+    const saveToken = await this.command.insertEmailVerification({
+      user_id,
+      token: verifyTokenValue,
+      expired_at: expiredAt,
+    });
+    if (saveToken.err) {
+      return wrapper.error(
+        new InternalServerError("Failed to send verification email"),
+      );
+    }
+
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verifyTokenValue}`;
+    let displayName = user.data.username || "User";
+
+    const tokenPayload = {
+      ...user.data,
+      email: normalizedEmail,
+    };
+
+    if (user.data.role_id === 1) {
+      const worker = await this.queryWorker.findOne(
+        { user_id },
+        { id: 1, name: 1 },
+      );
+      if (!worker.err && worker.data) {
+        tokenPayload.worker_id = worker.data.id;
+        tokenPayload.name = worker.data.name;
+        tokenPayload.role = "user";
+        displayName = worker.data.name || displayName;
+      }
+    } else if (user.data.role_id === 2) {
+      const recruiter = await this.queryRecruiter.findOne(
+        { user_id },
+        { id: 1, contact_name: 1 },
+      );
+      if (!recruiter.err && recruiter.data) {
+        tokenPayload.recruiter_id = recruiter.data.id;
+        tokenPayload.name = recruiter.data.contact_name;
+        tokenPayload.role = "recruiter";
+        displayName = recruiter.data.contact_name || displayName;
+      }
+    }
+
+    try {
+      await addEmailJob({
+        to: normalizedEmail,
+        subject: "Verify your email",
+        html: verifyEmailTemplate({ name: displayName, verifyUrl }),
+      });
+    } catch (e) {
+      logger.error(ctx, "changeEmail", "Send verify email failed", e);
+    }
+
+    const accessToken = await generateAccessToken(tokenPayload);
+
+    return wrapper.data({
+      email: normalizedEmail,
+      token: accessToken,
+      requires_verification: true,
+      requires_email_update: false,
     });
   }
 

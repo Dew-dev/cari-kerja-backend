@@ -220,6 +220,19 @@ const verifyEmailParamType = joi.object({
   token: joi.string().required(),
 });
 
+const changeEmailParamType = joi.object({
+  user_id: joi.string().uuid().required(),
+  email: joi
+    .string()
+    .email({ tlds: { allow: false } })
+    .required()
+    .messages({
+      "string.empty": "Email must not be empty",
+      "string.email": "Invalid email format",
+      "any.required": "Email is required",
+    }),
+});
+
 module.exports = {
   loginParamType,
   loginWithGoogleParamType,
@@ -235,4 +248,5 @@ module.exports = {
   changePasswordParamType,
   sendVerifyEmailParamType,
   verifyEmailParamType,
+  changeEmailParamType,
 };

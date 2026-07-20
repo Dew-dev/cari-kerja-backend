@@ -120,6 +120,17 @@ class Command {
     );
   }
 
+  async clearEmailVerified(user_id) {
+    return this.db.executeQuery(
+      `
+    UPDATE users
+    SET email_verified_at = NULL, updated_at = NOW()
+    WHERE id = $1
+    `,
+      [user_id],
+    );
+  }
+
   async insertAuditLog({ user_id, action, ip_address, user_agent }) {
     return this.db.executeQuery(
       `

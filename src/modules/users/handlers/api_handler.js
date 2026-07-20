@@ -137,6 +137,7 @@ const loginWithTelegram = async (req, res) => {
 
   const token = result?.data?.token;
   const refreshToken = result?.data?.refreshToken;
+  const requiresEmailUpdate = result?.data?.requires_email_update;
 
   storeCookie(res, "refreshToken", refreshToken);
   storeCookie(res, "accessToken", token);
@@ -147,7 +148,10 @@ const loginWithTelegram = async (req, res) => {
     const config = require("../../../config/global_config");
     const feUrl = config.get("/frontendUrl");
     const redirectOrigin = payload.origin || feUrl;
-    return res.redirect(`${redirectOrigin}/auth/callback?token=${token}&refreshToken=${refreshToken}`);
+    const emailFlag = requiresEmailUpdate ? "1" : "0";
+    return res.redirect(
+      `${redirectOrigin}/auth/callback?token=${token}&refreshToken=${refreshToken}&requires_email_update=${emailFlag}`
+    );
   }
 
   return sendResponse(result, res);
@@ -297,6 +301,28 @@ const changePassword = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const changeEmail = async (req, res) => {
+  const payload = {
+    user_id: req.userMeta.id,
+    email: req.body.email,
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.changeEmailParamType,
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.changeEmail(validatePayload.data);
+  if (!result.err && result?.data?.token) {
+    storeCookie(res, "accessToken", result.data.token);
+    storeCookie(res, "jp_session", result.data.token);
+  }
+  return sendResponse(result, res);
+};
+
 const sendVerifyEmail = async (req, res) => {
   const payload = { user_id: req.userMeta.id };
 
@@ -350,6 +376,7 @@ module.exports = {
   forgotPassword,
   resetPassword,
   changePassword,
+  changeEmail,
   verifyEmail,
   sendVerifyEmail,
   resendVerifyEmail,

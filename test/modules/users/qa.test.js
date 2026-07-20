@@ -26,6 +26,7 @@ jest.mock("../../../src/modules/users/repositories/commands/command_handler", ()
   registerWorker: jest.fn(),
   resendVerifyEmail: jest.fn(),
   updateOneUser: jest.fn(),
+  changeEmail: jest.fn(),
 }));
 
 jest.mock("../../../src/modules/users/repositories/queries/query_handler", () => ({
@@ -43,6 +44,7 @@ const queryHandler = require("../../../src/modules/users/repositories/queries/qu
 const { createMockRequest, createMockResponse } = require("../../helpers/httpMocks");
 const wrapper = require("../../../src/helpers/utils/wrapper");
 const {
+  BadRequestError,
   ConflictError,
   TooManyRequestsError,
   UnauthorizedError,
@@ -231,6 +233,101 @@ describe("[QA] users module", () => {
       expect(result.err).toBeNull();
       expect(generateAccessToken).toHaveBeenCalledWith(
         expect.objectContaining({ recruiter_id: "user-uuid-1234", role_id: 2 })
+      );
+    });
+  });
+
+  describe("Telegram — change placeholder email", () => {
+    let domain;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      domain = new UsersCommandDomain({});
+      domain.query = {
+        findOne: jest.fn().mockResolvedValue({
+          err: null,
+          data: {
+            id: "550e8400-e29b-41d4-a716-446655440000",
+            email: "telegram_123@carikerja.id",
+            login_provider: "telegram",
+            provider_id: "123",
+            role_id: 1,
+            username: "telegram_user",
+          },
+        }),
+        findUserByEmail: jest.fn().mockResolvedValue({ err: null, data: null }),
+      };
+      domain.command = {
+        updateOneNew: jest.fn().mockResolvedValue({ err: null, data: true }),
+        clearEmailVerified: jest.fn().mockResolvedValue({ err: null, data: true }),
+        invalidateEmailVerifications: jest.fn().mockResolvedValue({ err: null, data: true }),
+        insertEmailVerification: jest.fn().mockResolvedValue({ err: null, data: true }),
+      };
+      domain.queryWorker = {
+        findOne: jest.fn().mockResolvedValue({
+          err: null,
+          data: { id: "worker-1", name: "Telegram User" },
+        }),
+      };
+      domain.queryRecruiter = { findOne: jest.fn() };
+    });
+
+    it("[BUG-US-009] changeEmail should update email and clear verification for telegram user", async () => {
+      const result = await domain.changeEmail({
+        user_id: "550e8400-e29b-41d4-a716-446655440000",
+        email: "real.user@gmail.com",
+      });
+
+      expect(result.err).toBeNull();
+      expect(result.data.email).toBe("real.user@gmail.com");
+      expect(result.data.requires_email_update).toBe(false);
+      expect(result.data.requires_verification).toBe(true);
+      expect(domain.command.updateOneNew).toHaveBeenCalledWith(
+        { id: "550e8400-e29b-41d4-a716-446655440000" },
+        { email: "real.user@gmail.com" }
+      );
+      expect(domain.command.clearEmailVerified).toHaveBeenCalled();
+      expect(generateAccessToken).toHaveBeenCalledWith(
+        expect.objectContaining({
+          email: "real.user@gmail.com",
+          worker_id: "worker-1",
+        })
+      );
+    });
+
+    it("[BUG-US-010] changeEmail should reject telegram placeholder as new email", async () => {
+      const result = await domain.changeEmail({
+        user_id: "550e8400-e29b-41d4-a716-446655440000",
+        email: "telegram_999@carikerja.id",
+      });
+
+      expect(result.err).toBeInstanceOf(BadRequestError);
+      expect(domain.command.updateOneNew).not.toHaveBeenCalled();
+    });
+
+    it("[BUG-US-011] changeEmail handler should use authenticated user id", async () => {
+      commandHandler.changeEmail = jest.fn().mockResolvedValue(
+        wrapper.data({
+          email: "real.user@gmail.com",
+          token: "new-access",
+          requires_verification: true,
+          requires_email_update: false,
+        })
+      );
+
+      const req = createMockRequest({
+        userMeta: { id: "550e8400-e29b-41d4-a716-446655440000" },
+        body: { email: "real.user@gmail.com" },
+      });
+      const res = createMockResponse();
+
+      await apiHandler.changeEmail(req, res);
+
+      expect(commandHandler.changeEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user_id: "550e8400-e29b-41d4-a716-446655440000",
+          email: "real.user@gmail.com",
+        })
       );
     });
   });

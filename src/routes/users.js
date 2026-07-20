@@ -50,6 +50,11 @@ module.exports = (server) => {
     userHandler.changePassword,
   );
   server.post(
+    "/api/v1/auth/change-email",
+    verifyToken,
+    userHandler.changeEmail,
+  );
+  server.post(
     "/api/v1/auth/verify-email/send",
     verifyToken,
     userHandler.sendVerifyEmail,
