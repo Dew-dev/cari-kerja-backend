@@ -133,4 +133,34 @@ describe("[QA] workers module", () => {
       expect(String(capturedPayload?.conditions).toLowerCase()).toMatch(/deleted_at\s+is\s+null/);
     });
   });
+
+  describe("Auth status on profile /me", () => {
+    it("[BUG-WK-008] getWorkerByUserId should include login_provider and telegram link flags", async () => {
+      const domain = new WorkersQueryDomain({});
+      domain.query = {
+        findOneByUserId: jest.fn().mockResolvedValue({
+          err: null,
+          data: {
+            id: workerId,
+            user_id: userId,
+            name: "Worker",
+            email: "user@test.com",
+            login_provider: "local",
+            email_verified_at: "2026-01-01T00:00:00.000Z",
+            notification_telegram_id: null,
+            notification_telegram_username: null,
+          },
+        }),
+      };
+
+      const result = await domain.getWorkerByUserId({ user_id: userId });
+
+      expect(result.err).toBeNull();
+      expect(result.data.login_provider).toBe("local");
+      expect(result.data.telegram_linked).toBe(false);
+      expect(result.data.requires_telegram_link).toBe(true);
+      expect(result.data.requires_email_setup).toBe(false);
+      expect(result.data.email_verified_at).toBe("2026-01-01T00:00:00.000Z");
+    });
+  });
 });
