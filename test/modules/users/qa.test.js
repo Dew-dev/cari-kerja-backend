@@ -280,8 +280,8 @@ describe("[QA] users module", () => {
 
       expect(result.err).toBeNull();
       expect(result.data.email).toBe("real.user@gmail.com");
-      expect(result.data.requires_email_update).toBe(false);
       expect(result.data.requires_verification).toBe(true);
+      expect(result.data.requires_email_setup).toBe(true);
       expect(domain.command.updateOneNew).toHaveBeenCalledWith(
         { id: "550e8400-e29b-41d4-a716-446655440000" },
         { email: "real.user@gmail.com" }
@@ -311,7 +311,7 @@ describe("[QA] users module", () => {
           email: "real.user@gmail.com",
           token: "new-access",
           requires_verification: true,
-          requires_email_update: false,
+          requires_email_setup: true,
         })
       );
 
@@ -329,6 +329,26 @@ describe("[QA] users module", () => {
           email: "real.user@gmail.com",
         })
       );
+    });
+
+    it("[BUG-US-012] changeEmail should reject google login accounts", async () => {
+      domain.query.findOne.mockResolvedValue({
+        err: null,
+        data: {
+          id: "550e8400-e29b-41d4-a716-446655440000",
+          email: "google.user@gmail.com",
+          login_provider: "google",
+          role_id: 1,
+        },
+      });
+
+      const result = await domain.changeEmail({
+        user_id: "550e8400-e29b-41d4-a716-446655440000",
+        email: "other@gmail.com",
+      });
+
+      expect(result.err).toBeInstanceOf(BadRequestError);
+      expect(domain.command.updateOneNew).not.toHaveBeenCalled();
     });
   });
 

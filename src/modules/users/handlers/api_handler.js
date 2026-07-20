@@ -88,6 +88,7 @@ const loginWithGoogle = async (req, res) => {
 
   const token = result?.data?.token;
   const refreshToken = result?.data?.refreshToken;
+  const requiresTelegramLink = result?.data?.requires_telegram_link;
 
   storeCookie(res, "refreshToken", refreshToken);
   storeCookie(res, "accessToken", token);
@@ -97,7 +98,10 @@ const loginWithGoogle = async (req, res) => {
   const config = require("../../../config/global_config");
   const feUrl = config.get("/frontendUrl");
   const redirectOrigin = origin || feUrl;
-  return res.redirect(`${redirectOrigin}/auth/callback?token=${token}&refreshToken=${refreshToken}`);
+  const telegramFlag = requiresTelegramLink ? "1" : "0";
+  return res.redirect(
+    `${redirectOrigin}/auth/callback?token=${token}&refreshToken=${refreshToken}&requires_telegram_link=${telegramFlag}`
+  );
 };
 
 const loginWithTelegram = async (req, res) => {
@@ -137,7 +141,8 @@ const loginWithTelegram = async (req, res) => {
 
   const token = result?.data?.token;
   const refreshToken = result?.data?.refreshToken;
-  const requiresEmailUpdate = result?.data?.requires_email_update;
+  const requiresEmailSetup =
+    result?.data?.requires_email_setup ?? result?.data?.requires_email_update;
 
   storeCookie(res, "refreshToken", refreshToken);
   storeCookie(res, "accessToken", token);
@@ -148,9 +153,9 @@ const loginWithTelegram = async (req, res) => {
     const config = require("../../../config/global_config");
     const feUrl = config.get("/frontendUrl");
     const redirectOrigin = payload.origin || feUrl;
-    const emailFlag = requiresEmailUpdate ? "1" : "0";
+    const emailFlag = requiresEmailSetup ? "1" : "0";
     return res.redirect(
-      `${redirectOrigin}/auth/callback?token=${token}&refreshToken=${refreshToken}&requires_email_update=${emailFlag}`
+      `${redirectOrigin}/auth/callback?token=${token}&refreshToken=${refreshToken}&requires_email_setup=${emailFlag}&requires_email_update=${emailFlag}`
     );
   }
 
@@ -323,6 +328,26 @@ const changeEmail = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const linkTelegramNotification = async (req, res) => {
+  const payload = {
+    user_id: req.userMeta.id,
+    code: req.body.code,
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.linkTelegramNotificationParamType,
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.linkTelegramNotification(
+    validatePayload.data,
+  );
+  return sendResponse(result, res);
+};
+
 const sendVerifyEmail = async (req, res) => {
   const payload = { user_id: req.userMeta.id };
 
@@ -377,6 +402,7 @@ module.exports = {
   resetPassword,
   changePassword,
   changeEmail,
+  linkTelegramNotification,
   verifyEmail,
   sendVerifyEmail,
   resendVerifyEmail,

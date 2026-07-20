@@ -55,6 +55,11 @@ module.exports = (server) => {
     userHandler.changeEmail,
   );
   server.post(
+    "/api/v1/auth/link-telegram",
+    verifyToken,
+    userHandler.linkTelegramNotification,
+  );
+  server.post(
     "/api/v1/auth/verify-email/send",
     verifyToken,
     userHandler.sendVerifyEmail,

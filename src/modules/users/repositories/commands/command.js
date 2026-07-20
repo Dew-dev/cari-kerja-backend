@@ -131,6 +131,33 @@ class Command {
     );
   }
 
+  async linkTelegramNotification({
+    user_id,
+    notification_telegram_id,
+    notification_telegram_username,
+  }) {
+    try {
+      const res = await this.db.executeQuery(
+        `
+      UPDATE users
+      SET
+        notification_telegram_id = $2,
+        notification_telegram_username = $3,
+        notification_telegram_linked_at = NOW(),
+        updated_at = NOW()
+      WHERE id = $1
+      `,
+        [user_id, notification_telegram_id, notification_telegram_username],
+      );
+      if (res.rowCount === 0) {
+        return wrapper.error("USER_NOT_FOUND");
+      }
+      return wrapper.data(true);
+    } catch (e) {
+      return wrapper.error(e);
+    }
+  }
+
   async insertAuditLog({ user_id, action, ip_address, user_agent }) {
     return this.db.executeQuery(
       `

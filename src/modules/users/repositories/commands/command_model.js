@@ -233,6 +233,11 @@ const changeEmailParamType = joi.object({
     }),
 });
 
+const linkTelegramNotificationParamType = joi.object({
+  user_id: joi.string().uuid().required(),
+  code: joi.string().required(),
+});
+
 module.exports = {
   loginParamType,
   loginWithGoogleParamType,
@@ -249,4 +254,5 @@ module.exports = {
   sendVerifyEmailParamType,
   verifyEmailParamType,
   changeEmailParamType,
+  linkTelegramNotificationParamType,
 };

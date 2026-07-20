@@ -56,6 +56,10 @@ const changeEmail = async (payload) => {
   return domain.changeEmail(payload);
 };
 
+const linkTelegramNotification = async (payload) => {
+  return domain.linkTelegramNotification(payload);
+};
+
 const sendVerifyEmail = async (payload) => domain.sendVerifyEmail(payload);
 const verifyEmail = async (payload) => domain.verifyEmail(payload);
 const resendVerifyEmail = async (payload) => domain.resendVerifyEmail(payload);
@@ -75,6 +79,7 @@ module.exports = {
   resetPassword,
   changePassword,
   changeEmail,
+  linkTelegramNotification,
   sendVerifyEmail,
   verifyEmail,
   resendVerifyEmail,

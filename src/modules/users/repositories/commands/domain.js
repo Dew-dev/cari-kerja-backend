@@ -44,6 +44,20 @@ const TELEGRAM_PLACEHOLDER_EMAIL_RE = /^telegram_.+@carikerja\.id$/i;
 const isTelegramPlaceholderEmail = (email) =>
   typeof email === "string" && TELEGRAM_PLACEHOLDER_EMAIL_RE.test(email);
 
+const needsEmailSetup = (user) => {
+  if (!user || user.login_provider !== "telegram") return false;
+  if (!user.email || isTelegramPlaceholderEmail(user.email)) return true;
+  return !user.email_verified_at;
+};
+
+const needsTelegramLink = (user) => {
+  if (!user) return false;
+  if (user.login_provider !== "local" && user.login_provider !== "google") {
+    return false;
+  }
+  return !user.notification_telegram_id;
+};
+
 class User {
   constructor(db) {
     this.command = new Command(db);
@@ -69,6 +83,7 @@ class User {
         provider_id: 1,
         role_id: 1,
         email_verified_at: 1,
+        notification_telegram_id: 1,
       },
       "OR",
     );
@@ -78,6 +93,14 @@ class User {
         logger.log(`${ctx}:generateCredential`, user.err, "User not found");
         return wrapper.error(new NotFoundError("Wrong username or password"));
       }
+    }
+
+    if (user.data.login_provider && user.data.login_provider !== "local") {
+      return wrapper.error(
+        new ForbiddenError(
+          `This account uses ${user.data.login_provider} login. Please sign in with ${user.data.login_provider}.`,
+        ),
+      );
     }
 
     // 🔥 BLOK LOGIN JIKA BELUM VERIF
@@ -152,14 +175,35 @@ class User {
       user_agent: payload.user_agent || "Unknown"
     });
 
-    return wrapper.data({ token, refreshToken, user: userResponse });
+    const requires_telegram_link = needsTelegramLink(user.data);
+
+    return wrapper.data({
+      token,
+      refreshToken,
+      user: {
+        ...userResponse,
+        login_provider: user.data.login_provider,
+        requires_telegram_link,
+        requires_email_setup: false,
+      },
+      requires_telegram_link,
+      requires_email_setup: false,
+    });
   }
 
   async loginWithGoogle(payload) {
     const { id, email, role_id, name } = payload;
     const user = await this.query.findOne(
       { email },
-      { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1 },
+      {
+        id: 1,
+        email: 1,
+        login_provider: 1,
+        provider_id: 1,
+        role_id: 1,
+        notification_telegram_id: 1,
+        email_verified_at: 1,
+      },
     );
     let data;
     let dataWorker;
@@ -213,6 +257,13 @@ class User {
       }
     } else {
       data = user.data;
+      if (data.login_provider !== "google") {
+        return wrapper.error(
+          new ConflictError(
+            `This email is already registered with ${data.login_provider} login. Please sign in with that method.`,
+          ),
+        );
+      }
       if (data.role_id === 1) {
         const resultWorker = await this.queryWorker.findOne(
           { user_id: data.id },
@@ -230,6 +281,7 @@ class User {
 
     const token = await generateAccessToken(data);
     const refreshToken = await generateRefreshToken({ id: data.id });
+    const requires_telegram_link = needsTelegramLink(data);
 
     // Insert Audit Log
     await this.command.insertAuditLog({
@@ -239,7 +291,12 @@ class User {
       user_agent: payload.user_agent || "Unknown"
     });
 
-    return wrapper.data({ token, refreshToken });
+    return wrapper.data({
+      token,
+      refreshToken,
+      requires_telegram_link,
+      requires_email_setup: false,
+    });
   }
 
   async loginWithTelegram(payload) {
@@ -291,12 +348,19 @@ class User {
     const provider_id = oidcClaims.sub; // unique telegram user id (string)
     const name = oidcClaims.name || oidcClaims.preferred_username || `Telegram User ${provider_id}`;
     const username = oidcClaims.preferred_username ? oidcClaims.preferred_username.toLowerCase() : `telegram_${provider_id}`;
-    const email = `telegram_${provider_id}@carikerja.id`;
 
     // Query user by login_provider and provider_id
     const user = await this.query.findOne(
       { login_provider: "telegram", provider_id },
-      { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1 }
+      {
+        id: 1,
+        email: 1,
+        login_provider: 1,
+        provider_id: 1,
+        role_id: 1,
+        email_verified_at: 1,
+        notification_telegram_id: 1,
+      }
     );
 
     let data;
@@ -307,7 +371,7 @@ class User {
       data = {
         id: uuidv4(),
         username,
-        email,
+        email: null,
         hashed_password: null,
         login_provider: "telegram",
         provider_id,
@@ -368,7 +432,7 @@ class User {
 
     const token = await generateAccessToken(data);
     const refreshToken = await generateRefreshToken({ id: data.id });
-    const requires_email_update = isTelegramPlaceholderEmail(data.email);
+    const requires_email_setup = needsEmailSetup(data);
 
     // Insert Audit Log
     await this.command.insertAuditLog({
@@ -378,7 +442,14 @@ class User {
       user_agent: payload.user_agent || "Unknown",
     });
 
-    return wrapper.data({ token, refreshToken, requires_email_update });
+    return wrapper.data({
+      token,
+      refreshToken,
+      requires_email_setup,
+      // alias for older FE contracts; banner only — do not block app entry
+      requires_email_update: requires_email_setup,
+      requires_telegram_link: false,
+    });
   }
 
   async registerWorker(payload) {
@@ -613,7 +684,16 @@ class User {
 
     const userData = await this.query.findOne(
       { id: checkedToken.data.id },
-      { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1 },
+      {
+        id: 1,
+        email: 1,
+        login_provider: 1,
+        provider_id: 1,
+        role_id: 1,
+        email_verified_at: 1,
+        notification_telegram_id: 1,
+        username: 1,
+      },
     );
     if (userData.err) {
       logger.error(ctx, "findUser", "User not found", userData.err);
@@ -648,17 +728,20 @@ class User {
     }
 
     const accessToken = await generateAccessToken(userData.data);
-    const requires_email_update =
-      userData.data.login_provider === "telegram" &&
-      isTelegramPlaceholderEmail(userData.data.email);
+    const requires_email_setup = needsEmailSetup(userData.data);
+    const requires_telegram_link = needsTelegramLink(userData.data);
 
     return wrapper.data({
       token: accessToken,
       user: {
         ...userData.data,
-        requires_email_update,
+        requires_email_setup,
+        requires_email_update: requires_email_setup,
+        requires_telegram_link,
       },
-      requires_email_update,
+      requires_email_setup,
+      requires_email_update: requires_email_setup,
+      requires_telegram_link,
     });
   }
 
@@ -674,10 +757,27 @@ class User {
 
     const user = await this.query.findOne(
       { id: user_id },
-      { id: 1, email: 1, login_provider: 1, provider_id: 1, role_id: 1, username: 1 },
+      {
+        id: 1,
+        email: 1,
+        login_provider: 1,
+        provider_id: 1,
+        role_id: 1,
+        username: 1,
+        email_verified_at: 1,
+        notification_telegram_id: 1,
+      },
     );
     if (user.err || !user.data) {
       return wrapper.error(new NotFoundError("User Not Found"));
+    }
+
+    if (user.data.login_provider === "google") {
+      return wrapper.error(
+        new BadRequestError(
+          "Google accounts use the email from Google and cannot change it here",
+        ),
+      );
     }
 
     if (user.data.email === normalizedEmail) {
@@ -722,6 +822,7 @@ class User {
     const tokenPayload = {
       ...user.data,
       email: normalizedEmail,
+      email_verified_at: null,
     };
 
     if (user.data.role_id === 1) {
@@ -759,12 +860,155 @@ class User {
     }
 
     const accessToken = await generateAccessToken(tokenPayload);
+    const requires_email_setup = needsEmailSetup({
+      ...tokenPayload,
+      email_verified_at: null,
+    });
 
     return wrapper.data({
       email: normalizedEmail,
       token: accessToken,
       requires_verification: true,
-      requires_email_update: false,
+      requires_email_setup,
+      requires_email_update: requires_email_setup,
+      requires_telegram_link: needsTelegramLink(tokenPayload),
+    });
+  }
+
+  async linkTelegramNotification(payload) {
+    const { user_id, code } = payload;
+    const clientId = config.get("/telegramAuth/clientId");
+    const clientSecret = config.get("/telegramAuth/clientSecret");
+    const redirectUri = config.get("/telegramAuth/redirectUri");
+
+    if (!clientId || !clientSecret || !redirectUri) {
+      return wrapper.error(
+        new InternalServerError("Telegram Authentication is not configured"),
+      );
+    }
+
+    const user = await this.query.findOne(
+      { id: user_id },
+      {
+        id: 1,
+        email: 1,
+        login_provider: 1,
+        role_id: 1,
+        notification_telegram_id: 1,
+        email_verified_at: 1,
+      },
+    );
+    if (user.err || !user.data) {
+      return wrapper.error(new NotFoundError("User Not Found"));
+    }
+
+    if (user.data.login_provider === "telegram") {
+      return wrapper.error(
+        new BadRequestError(
+          "Telegram is already your login method and cannot be linked again",
+        ),
+      );
+    }
+
+    if (user.data.notification_telegram_id) {
+      return wrapper.error(
+        new ConflictError("Telegram is already linked for notifications"),
+      );
+    }
+
+    let tokenResponse;
+    try {
+      tokenResponse = await axios.post(
+        "https://oauth.telegram.org/token",
+        new URLSearchParams({
+          grant_type: "authorization_code",
+          code,
+          redirect_uri: redirectUri,
+          client_id: clientId,
+          client_secret: clientSecret,
+        }).toString(),
+        {
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+        },
+      );
+    } catch (error) {
+      logger.error(
+        ctx,
+        "Telegram OIDC Token Exchange Failed",
+        "linkTelegramNotification",
+        error.response?.data || error.message,
+      );
+      return wrapper.error(
+        new BadRequestError("Failed to exchange code for token with Telegram"),
+      );
+    }
+
+    const { id_token } = tokenResponse.data;
+    if (!id_token) {
+      return wrapper.error(
+        new BadRequestError("Telegram did not return id_token"),
+      );
+    }
+
+    let oidcClaims;
+    try {
+      oidcClaims = await verifyTelegramOidcToken(id_token, clientId);
+    } catch (error) {
+      logger.error(
+        ctx,
+        "Telegram OIDC ID Token Verification Failed",
+        "linkTelegramNotification",
+        error,
+      );
+      return wrapper.error(
+        new ForbiddenError(`Invalid Telegram ID Token: ${error.message}`),
+      );
+    }
+
+    const telegramId = String(oidcClaims.sub);
+    const telegramUsername = oidcClaims.preferred_username || null;
+
+    const existingLogin = await this.query.findOne(
+      { login_provider: "telegram", provider_id: telegramId },
+      { id: 1 },
+    );
+    if (!existingLogin.err && existingLogin.data) {
+      return wrapper.error(
+        new ConflictError(
+          "This Telegram account is already used as a login method by another user",
+        ),
+      );
+    }
+
+    const existingNotify = await this.query.findOne(
+      { notification_telegram_id: telegramId },
+      { id: 1 },
+    );
+    if (!existingNotify.err && existingNotify.data) {
+      return wrapper.error(
+        new ConflictError(
+          "This Telegram account is already linked for notifications",
+        ),
+      );
+    }
+
+    const updateResult = await this.command.linkTelegramNotification({
+      user_id,
+      notification_telegram_id: telegramId,
+      notification_telegram_username: telegramUsername,
+    });
+    if (updateResult.err) {
+      return wrapper.error(
+        new InternalServerError("Failed to link Telegram notifications"),
+      );
+    }
+
+    return wrapper.data({
+      notification_telegram_id: telegramId,
+      notification_telegram_username: telegramUsername,
+      requires_telegram_link: false,
     });
   }
 
@@ -774,6 +1018,20 @@ class User {
     const user = await this.query.findUserByEmail(email);
     if (user.err || !user.data) {
       // security: jangan bocorin email exists
+      return wrapper.data("If email exists, reset link sent");
+    }
+
+    // Password reset only for local login accounts
+    const userFull = await this.query.findOne(
+      { id: user.data.id },
+      { id: 1, login_provider: 1 },
+    );
+    if (
+      !userFull.err &&
+      userFull.data &&
+      userFull.data.login_provider &&
+      userFull.data.login_provider !== "local"
+    ) {
       return wrapper.data("If email exists, reset link sent");
     }
 
