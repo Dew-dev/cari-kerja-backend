@@ -4,6 +4,7 @@ const verifyRole = require("../middlewares/verifyRole");
 const userHandler = require("../modules/users/handlers/api_handler");
 const { authGoogle, authGoogleCallback } = require("../helpers/auth/google_oauth");
 const forgotPasswordLimiter = require("../middlewares/rateLimitForgotPassword");
+const registerLimiter = require("../middlewares/rateLimitRegister");
 
 // User account management (login, logout, register, password/email flows) is
 // intentionally NOT role-gated here: it must remain reachable by every role
@@ -15,8 +16,18 @@ const forgotPasswordLimiter = require("../middlewares/rateLimitForgotPassword");
 const userManagementRoles = [3, 4];
 
 module.exports = (server) => {
-  server.post("/api/v1/users/register-worker", basicAuth.isAuthenticated, userHandler.registerWorker);
-  server.post("/api/v1/users/register-recruiter", basicAuth.isAuthenticated, userHandler.registerRecruiter);
+  server.post(
+    "/api/v1/users/register-worker",
+    basicAuth.isAuthenticated,
+    registerLimiter,
+    userHandler.registerWorker
+  );
+  server.post(
+    "/api/v1/users/register-recruiter",
+    basicAuth.isAuthenticated,
+    registerLimiter,
+    userHandler.registerRecruiter
+  );
   server.put("/api/v1/users/update-user/:id", verifyToken, userHandler.updateOneUser);
   server.post("/api/v1/users/login", basicAuth.isAuthenticated, userHandler.login);
   server.get("/api/v1/users/google", authGoogle);
