@@ -30,6 +30,11 @@ const {
   isOpenJobStatus,
 } = require("../../../../helpers/fraud/employer_verification");
 const { assertApplyVelocity } = require("../../../../helpers/fraud/velocity");
+const {
+  scoreJobPost,
+  PENDING_JOB_STATUS_ID,
+} = require("../../../../helpers/fraud/score_job_post");
+const { upsertOpenFraudEvent } = require("../../../../helpers/fraud/fraud_events");
 
 class Jobpost {
   constructor(db) {
@@ -87,6 +92,23 @@ class Jobpost {
       }
     }
 
+    let effectiveStatusId = status_id;
+    let moderation = null;
+    if (isOpenJobStatus(status_id)) {
+      const score = scoreJobPost({
+        title,
+        description,
+        location,
+        requirements,
+        benefits,
+        responsibilities,
+      });
+      if (score.needs_review) {
+        effectiveStatusId = PENDING_JOB_STATUS_ID;
+        moderation = score;
+      }
+    }
+
     const jobPostId = uuidv4();
     const data = {
       recruiter_id,
@@ -99,7 +121,7 @@ class Jobpost {
       salary_min,
       salary_max,
       currency_id,
-      status_id,
+      status_id: effectiveStatusId,
       deadline,
       category_id,
       province,
@@ -202,7 +224,25 @@ class Jobpost {
       }
     }
 
-    return wrapper.data(data);
+    if (moderation) {
+      await upsertOpenFraudEvent(this.command.db, {
+        entity_type: "job_post",
+        entity_id: actualJobPostId,
+        source: "job_content_heuristics",
+        risk_score: moderation.risk_score,
+        flags: moderation.flags,
+        summary: `Job content flagged (score ${moderation.risk_score}): ${moderation.flags
+          .map((f) => f.code)
+          .join(", ")}`,
+        metadata: { title, recruiter_id },
+      });
+      return wrapper.data(
+        { ...data, id: actualJobPostId, moderation },
+        "CONTENT_FLAGGED: Job held for review due to content risk"
+      );
+    }
+
+    return wrapper.data({ ...data, id: actualJobPostId });
   }
 
   async createJobPostQuestions(payloadArray, id, ctx) {
@@ -421,9 +461,33 @@ class Jobpost {
         }
       }
 
+      let effectiveStatusId = value.status_id;
+      let moderation = null;
+      if (isOpenJobStatus(value.status_id)) {
+        const contentResult = await this.command.db.executeQuery(
+          `SELECT title, description, location FROM job_posts WHERE id = $1 LIMIT 1`,
+          [id]
+        );
+        const content = contentResult?.rows?.[0] || {};
+        const score = scoreJobPost(content);
+        if (score.needs_review) {
+          effectiveStatusId = PENDING_JOB_STATUS_ID;
+          moderation = score;
+          await upsertOpenFraudEvent(this.command.db, {
+            entity_type: "job_post",
+            entity_id: id,
+            source: "job_content_heuristics",
+            risk_score: score.risk_score,
+            flags: score.flags,
+            summary: `Publish blocked by content heuristics (score ${score.risk_score})`,
+            metadata: { recruiter_id: recruiterId, title: content.title },
+          });
+        }
+      }
+
       const parameter = { id: id };
       const updateQuery = {
-        status_id: value.status_id,
+        status_id: effectiveStatusId,
       };
 
       const result = await this.command.updateOneNew(
@@ -440,6 +504,13 @@ class Jobpost {
           result.err,
         );
         return wrapper.error(new InternalServerError(result.err));
+      }
+
+      if (moderation) {
+        return wrapper.data(
+          { ...result.data, moderation },
+          "CONTENT_FLAGGED: Job held for review due to content risk"
+        );
       }
 
       return wrapper.data(result.data);
@@ -806,6 +877,37 @@ class Jobpost {
       if (verified.err) {
         return verified;
       }
+
+      const contentResult = await this.command.db.executeQuery(
+        `SELECT title, description, location FROM job_posts WHERE id = $1 LIMIT 1`,
+        [id]
+      );
+      const existing = contentResult?.rows?.[0] || {};
+      const score = scoreJobPost({
+        title: jobData.title ?? existing.title,
+        description: jobData.description ?? existing.description,
+        location: jobData.location ?? job.data.location ?? existing.location,
+        requirements,
+        benefits,
+        responsibilities,
+      });
+      if (score.needs_review) {
+        jobData.status_id = PENDING_JOB_STATUS_ID;
+        await upsertOpenFraudEvent(this.command.db, {
+          entity_type: "job_post",
+          entity_id: id,
+          source: "job_content_heuristics",
+          risk_score: score.risk_score,
+          flags: score.flags,
+          summary: `Update-to-OPEN blocked by content heuristics (score ${score.risk_score})`,
+          metadata: { recruiter_id, title: jobData.title ?? existing.title },
+        });
+        payload = {
+          ...payload,
+          status_id: PENDING_JOB_STATUS_ID,
+          moderation: score,
+        };
+      }
     }
 
     // 2️⃣ update job_posts - preserve existing values for fields not provided
@@ -889,7 +991,12 @@ class Jobpost {
       }
     }
 
-    return wrapper.data(payload);
+    return wrapper.data(
+      payload,
+      payload?.moderation
+        ? "CONTENT_FLAGGED: Job held for review due to content risk"
+        : null
+    );
   }
 
 
