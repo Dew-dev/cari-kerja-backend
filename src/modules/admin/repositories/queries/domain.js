@@ -4,6 +4,7 @@ const config = require("../../../../config/global_config");
 const { NotFoundError } = require("../../../../helpers/errors");
 const { LOOKUP_CONFIG } = require("../../helpers/lookup_config");
 const { PLAN_CONFIG } = require("../../helpers/plan_config");
+const { ListQueryBuilder, buildOrderClause } = require("../../helpers/list_query");
 
 class AdminQuery {
   constructor() {
@@ -27,56 +28,76 @@ class AdminQuery {
   }
 
   async getUsers(payload) {
-    const { page, limit, search } = payload;
-    let whereQuery = "";
-    let values = [];
-    if (search) {
-        whereQuery = "WHERE username ILIKE $1 OR email ILIKE $1";
-        values.push(`%${search}%`);
-    }
+    const { page, limit, search, sort_by, sort_order, role_id, is_suspended, deleted_state } = payload;
+
+    const builder = new ListQueryBuilder();
+    builder.addSearch(search, [], ["u.username", "u.email"]);
+    builder.addEquals("u.role_id", role_id);
+    builder.addEquals("u.is_suspended", is_suspended);
+    builder.addDeletedState("u.deleted_at", deleted_state);
+
+    const whereQuery = builder.whereClause();
+    const orderClause = buildOrderClause({
+      created_at: "u.created_at",
+      updated_at: "u.updated_at",
+      role_id: "u.role_id",
+      is_suspended: "u.is_suspended"
+    }, sort_by, sort_order, "created_at", "u.id");
     const offset = limit * (page - 1);
-    
+
     const rawQuery = `
-      SELECT id, username, email, login_provider, role_id, is_suspended, created_at, updated_at, deleted_at
-      FROM users
+      SELECT u.id, u.username, u.email, u.login_provider, u.role_id, u.is_suspended, u.created_at, u.updated_at, u.deleted_at
+      FROM users u
       ${whereQuery}
-      ORDER BY created_at DESC
+      ${orderClause}
       LIMIT ${limit} OFFSET ${offset}
     `;
-    const result = await this.db.executeQuery(rawQuery, values);
-    
-    const countQuery = `SELECT COUNT(*) FROM users ${whereQuery}`;
-    const countResult = await this.db.executeQuery(countQuery, values);
+    const result = await this.db.executeQuery(rawQuery, builder.values);
+
+    const countQuery = `SELECT COUNT(*) FROM users u ${whereQuery}`;
+    const countResult = await this.db.executeQuery(countQuery, builder.values);
     const totalData = parseInt(countResult?.rows[0]?.count || 0);
-    
+
     return wrapper.paginationData(result?.rows || [], {
       page, limit, totalData, totalPage: Math.ceil(totalData / limit)
     });
   }
 
   async getEmployers(payload) {
-    const { page, limit, search } = payload;
-    let whereQuery = "";
-    let values = [];
-    if (search) {
-        whereQuery = "WHERE r.company_name ILIKE $1 OR r.contact_name ILIKE $1";
-        values.push(`%${search}%`);
-    }
+    const { page, limit, search, sort_by, sort_order, is_verified, industry_id, deleted_state } = payload;
+
+    const builder = new ListQueryBuilder();
+    builder.addSearch(search, [], ["r.company_name", "r.contact_name", "r.contact_phone", "u.email", "u.username"]);
+    builder.addEquals("r.is_verified", is_verified);
+    builder.addEquals("r.industry_id", industry_id);
+    builder.addDeletedState("r.deleted_at", deleted_state);
+
+    const whereQuery = builder.whereClause();
+    const orderClause = buildOrderClause({
+      created_at: "r.created_at",
+      updated_at: "r.updated_at",
+      is_verified: "r.is_verified",
+      is_vip: "r.is_vip"
+    }, sort_by, sort_order, "created_at", "r.id");
     const offset = limit * (page - 1);
-    
+
     const rawQuery = `
       SELECT r.id, r.user_id, r.company_name, r.contact_name, r.contact_phone, r.is_vip, r.is_verified, r.created_at, r.updated_at, r.deleted_at,
              u.email as user_email, u.username as user_username
       FROM recruiters r
       LEFT JOIN users u ON r.user_id = u.id
       ${whereQuery}
-      ORDER BY r.created_at DESC
+      ${orderClause}
       LIMIT ${limit} OFFSET ${offset}
     `;
-    const result = await this.db.executeQuery(rawQuery, values);
-    
-    const countQuery = `SELECT COUNT(*) FROM recruiters r ${whereQuery}`;
-    const countResult = await this.db.executeQuery(countQuery, values);
+    const result = await this.db.executeQuery(rawQuery, builder.values);
+
+    const countQuery = `
+      SELECT COUNT(*)
+      FROM recruiters r
+      LEFT JOIN users u ON r.user_id = u.id
+      ${whereQuery}`;
+    const countResult = await this.db.executeQuery(countQuery, builder.values);
     const totalData = parseInt(countResult?.rows[0]?.count || 0);
 
     return wrapper.paginationData(result?.rows || [], {
@@ -85,28 +106,42 @@ class AdminQuery {
   }
 
   async getJobs(payload) {
-    const { page, limit, search } = payload;
-    let whereQuery = "";
-    let values = [];
-    if (search) {
-        whereQuery = "WHERE title ILIKE $1";
-        values.push(`%${search}%`);
-    }
+    const { page, limit, search, sort_by, sort_order, status, recruiter_id } = payload;
+
+    const builder = new ListQueryBuilder();
+    builder.addSearch(search, ["j.title", "j.location"], ["r.company_name"]);
+    builder.addEqualsInsensitive("s.name", status);
+    builder.addEquals("j.recruiter_id", recruiter_id);
+
+    const whereQuery = builder.whereClause();
+    const orderClause = buildOrderClause({
+      created_at: "j.created_at",
+      updated_at: "j.updated_at",
+      title: "j.title"
+    }, sort_by, sort_order, "created_at", "j.id");
     const offset = limit * (page - 1);
-    
+
+    const joins = `
+      JOIN recruiters r ON j.recruiter_id = r.id
+      JOIN job_post_statuses s ON j.status_id = s.id
+    `;
+
     const rawQuery = `
       SELECT j.id, j.title, j.location, j.is_remote, r.company_name, s.name as status, j.created_at, j.updated_at, j.deleted_at
       FROM job_posts j
-      JOIN recruiters r ON j.recruiter_id = r.id
-      JOIN job_post_statuses s ON j.status_id = s.id
+      ${joins}
       ${whereQuery}
-      ORDER BY j.created_at DESC
+      ${orderClause}
       LIMIT ${limit} OFFSET ${offset}
     `;
-    const result = await this.db.executeQuery(rawQuery, values);
-    
-    const countQuery = `SELECT COUNT(*) FROM job_posts ${whereQuery}`;
-    const countResult = await this.db.executeQuery(countQuery, values);
+    const result = await this.db.executeQuery(rawQuery, builder.values);
+
+    const countQuery = `
+      SELECT COUNT(*)
+      FROM job_posts j
+      ${joins}
+      ${whereQuery}`;
+    const countResult = await this.db.executeQuery(countQuery, builder.values);
     const totalData = parseInt(countResult?.rows[0]?.count || 0);
 
     return wrapper.paginationData(result?.rows || [], {
@@ -115,34 +150,42 @@ class AdminQuery {
   }
 
   async getApplications(payload) {
-    const { page, limit, search } = payload;
-    let whereQuery = "";
-    let values = [];
-    if (search) {
-        whereQuery = "WHERE u.name ILIKE $1 OR jp.title ILIKE $1";
-        values.push(`%${search}%`);
-    }
+    const { page, limit, search, sort_by, sort_order, application_status_id } = payload;
+
+    const builder = new ListQueryBuilder();
+    builder.addSearch(search, ["jp.title"], ["u.name"]);
+    builder.addEquals("a.application_status_id", application_status_id);
+
+    const whereQuery = builder.whereClause();
+    const orderClause = buildOrderClause({
+      applied_at: "a.applied_at",
+      updated_at: "a.updated_at",
+      job_title: "jp.title"
+    }, sort_by, sort_order, "applied_at", "a.id");
     const offset = limit * (page - 1);
-    
-    const rawQuery = `
-      SELECT a.id, jp.title as job_title, u.name as worker_name, s.name as status, a.applied_at, a.updated_at, a.deleted_at
-      FROM job_applications a
+
+    const joins = `
       JOIN job_posts jp ON a.job_post_id = jp.id
       JOIN workers u ON a.worker_id = u.id
       JOIN application_statuses s ON a.application_status_id = s.id
+    `;
+
+    const rawQuery = `
+      SELECT a.id, jp.title as job_title, u.name as worker_name, s.name as status, a.applied_at, a.updated_at, a.deleted_at
+      FROM job_applications a
+      ${joins}
       ${whereQuery}
-      ORDER BY a.applied_at DESC
+      ${orderClause}
       LIMIT ${limit} OFFSET ${offset}
     `;
-    const result = await this.db.executeQuery(rawQuery, values);
-    
+    const result = await this.db.executeQuery(rawQuery, builder.values);
+
     const countQuery = `
-      SELECT COUNT(*) 
+      SELECT COUNT(*)
       FROM job_applications a
-      JOIN job_posts jp ON a.job_post_id = jp.id
-      JOIN workers u ON a.worker_id = u.id
+      ${joins}
       ${whereQuery}`;
-    const countResult = await this.db.executeQuery(countQuery, values);
+    const countResult = await this.db.executeQuery(countQuery, builder.values);
     const totalData = parseInt(countResult?.rows[0]?.count || 0);
 
     return wrapper.paginationData(result?.rows || [], {
@@ -216,43 +259,56 @@ class AdminQuery {
   }
 
   async getAuditLogs(payload) {
-    const { page, limit, search } = payload;
-    let whereQuery = "";
-    let values = [];
-    if (search) {
-        whereQuery = "WHERE u.username ILIKE $1 OR a.action ILIKE $1 OR a.ip_address ILIKE $1";
-        values.push(`%${search}%`);
-    }
+    const { page, limit, search, sort_by, sort_order, action, date_from, date_to } = payload;
+
+    const builder = new ListQueryBuilder();
+    builder.addSearch(search, ["a.action", "a.ip_address"], ["u.username"]);
+    builder.addEqualsInsensitive("a.action", action);
+    builder.addDateRange("a.created_at", date_from, date_to);
+
+    const whereQuery = builder.whereClause();
+    const orderClause = buildOrderClause({
+      created_at: "a.created_at",
+      action: "a.action"
+    }, sort_by, sort_order, "created_at", "a.id");
     const offset = limit * (page - 1);
-    
+
     const rawQuery = `
       SELECT a.id, a.user_id, u.username, a.action, a.ip_address, a.user_agent, a.created_at
       FROM audit_logs a
       LEFT JOIN users u ON a.user_id = u.id
       ${whereQuery}
-      ORDER BY a.created_at DESC
+      ${orderClause}
       LIMIT ${limit} OFFSET ${offset}
     `;
-    const result = await this.db.executeQuery(rawQuery, values);
-    
+    const result = await this.db.executeQuery(rawQuery, builder.values);
+
     const countQuery = `SELECT COUNT(*) FROM audit_logs a LEFT JOIN users u ON a.user_id = u.id ${whereQuery}`;
-    const countResult = await this.db.executeQuery(countQuery, values);
+    const countResult = await this.db.executeQuery(countQuery, builder.values);
     const totalData = parseInt(countResult?.rows[0]?.count || 0);
-    
+
     return wrapper.paginationData(result?.rows || [], {
       page, limit, totalData, totalPage: Math.ceil(totalData / limit)
     });
   }
 
   async getLookupTable(payload) {
-    const { table } = payload;
+    const { table, search } = payload;
 
     if (!LOOKUP_CONFIG[table]) {
       return wrapper.error(new NotFoundError("Invalid lookup table"));
     }
 
-    const rawQuery = `SELECT ${LOOKUP_CONFIG[table].select} FROM ${table} ORDER BY id ASC`;
-    const result = await this.db.executeQuery(rawQuery);
+    const { column, select } = LOOKUP_CONFIG[table];
+    let whereQuery = "";
+    const values = [];
+    if (search) {
+      whereQuery = `WHERE ${column} ILIKE $1`;
+      values.push(`%${search}%`);
+    }
+
+    const rawQuery = `SELECT ${select} FROM ${table} ${whereQuery} ORDER BY id ASC`;
+    const result = await this.db.executeQuery(rawQuery, values);
     return wrapper.data(result.rows);
   }
 
@@ -530,27 +586,29 @@ class AdminQuery {
 
   // ==================== PAYMENT ORDERS ====================
   async getPaymentOrders(payload) {
-    const { page, limit, search, status, order_type } = payload;
-    const conditions = [];
-    const values = [];
-    let idx = 1;
+    const { page, limit, search, sort_by, sort_order, status, order_type } = payload;
 
-    if (search) {
-      conditions.push(`(r.company_name ILIKE $${idx} OR po.xendit_external_id ILIKE $${idx})`);
-      values.push(`%${search}%`);
-      idx++;
-    }
-    if (status) {
-      conditions.push(`po.status = $${idx}`);
-      values.push(status);
-      idx++;
-    }
-    if (order_type) {
-      conditions.push(`po.order_type = $${idx}`);
-      values.push(order_type);
-      idx++;
-    }
-    const whereQuery = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const builder = new ListQueryBuilder();
+    builder.addSearch(
+      search,
+      [
+        "po.xendit_external_id",
+        "po.xendit_invoice_id",
+        "COALESCE(sp.display_name, spp.display_name, bp.display_name)"
+      ],
+      ["r.company_name"]
+    );
+    builder.addEquals("po.status", status);
+    builder.addEquals("po.order_type", order_type);
+
+    const whereQuery = builder.whereClause();
+    const orderClause = buildOrderClause({
+      created_at: "po.created_at",
+      updated_at: "po.updated_at",
+      amount: "po.amount",
+      paid_at: "po.paid_at",
+      status: "po.status"
+    }, sort_by, sort_order, "created_at", "po.id");
     const offset = limit * (page - 1);
 
     const planJoin = `
@@ -569,18 +627,19 @@ class AdminQuery {
       JOIN recruiters r ON po.recruiter_id = r.id
       ${planJoin}
       ${whereQuery}
-      ORDER BY po.created_at DESC
+      ${orderClause}
       LIMIT ${limit} OFFSET ${offset}
     `;
-    const result = await this.db.executeQuery(rawQuery, values);
+    const result = await this.db.executeQuery(rawQuery, builder.values);
 
     const countQuery = `
       SELECT COUNT(*)
       FROM payment_orders po
       JOIN recruiters r ON po.recruiter_id = r.id
+      ${planJoin}
       ${whereQuery}
     `;
-    const countResult = await this.db.executeQuery(countQuery, values);
+    const countResult = await this.db.executeQuery(countQuery, builder.values);
     const totalData = parseInt(countResult?.rows[0]?.count || 0);
 
     return wrapper.paginationData(result?.rows || [], {
@@ -610,12 +669,19 @@ class AdminQuery {
 
   // ==================== PLANS ====================
   async getPlansByType(payload) {
-    const { type } = payload;
+    const { type, search } = payload;
     const config = PLAN_CONFIG[type];
     if (!config) return wrapper.error(new NotFoundError("Invalid plan type"));
 
-    const rawQuery = `SELECT ${config.select} FROM ${config.table} ORDER BY price_idr ASC`;
-    const result = await this.db.executeQuery(rawQuery);
+    let whereQuery = "";
+    const values = [];
+    if (search) {
+      whereQuery = "WHERE (name ILIKE $1 OR display_name ILIKE $1)";
+      values.push(`%${search}%`);
+    }
+
+    const rawQuery = `SELECT ${config.select} FROM ${config.table} ${whereQuery} ORDER BY price_idr ASC`;
+    const result = await this.db.executeQuery(rawQuery, values);
     return wrapper.data(result?.rows || []);
   }
 
@@ -646,30 +712,40 @@ class AdminQuery {
   }
 
   async getWorkers(payload) {
-    const { page, limit, search } = payload;
-    let whereQuery = "";
-    let values = [];
-    if (search) {
-        whereQuery = "WHERE w.name ILIKE $1";
-        values.push(`%${search}%`);
-    }
+    const { page, limit, search, sort_by, sort_order, gender_id, deleted_state } = payload;
+
+    const builder = new ListQueryBuilder();
+    builder.addSearch(search, [], ["w.name", "w.telephone", "u.email", "u.username"]);
+    builder.addEquals("w.gender_id", gender_id);
+    builder.addDeletedState("w.deleted_at", deleted_state);
+
+    const whereQuery = builder.whereClause();
+    const orderClause = buildOrderClause({
+      created_at: "w.created_at",
+      updated_at: "w.updated_at",
+      gender_id: "w.gender_id"
+    }, sort_by, sort_order, "created_at", "w.id");
     const offset = limit * (page - 1);
-    
+
     const rawQuery = `
       SELECT w.id, w.user_id, w.name, w.avatar_url, w.telephone, w.gender_id, w.created_at, w.updated_at, w.deleted_at,
              u.email as user_email, u.username as user_username
       FROM workers w
       LEFT JOIN users u ON w.user_id = u.id
       ${whereQuery}
-      ORDER BY w.created_at DESC
+      ${orderClause}
       LIMIT ${limit} OFFSET ${offset}
     `;
-    const result = await this.db.executeQuery(rawQuery, values);
-    
-    const countQuery = `SELECT COUNT(*) FROM workers w ${whereQuery}`;
-    const countResult = await this.db.executeQuery(countQuery, values);
+    const result = await this.db.executeQuery(rawQuery, builder.values);
+
+    const countQuery = `
+      SELECT COUNT(*)
+      FROM workers w
+      LEFT JOIN users u ON w.user_id = u.id
+      ${whereQuery}`;
+    const countResult = await this.db.executeQuery(countQuery, builder.values);
     const totalData = parseInt(countResult?.rows[0]?.count || 0);
-    
+
     return wrapper.paginationData(result?.rows || [], {
       page, limit, totalData, totalPage: Math.ceil(totalData / limit)
     });

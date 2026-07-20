@@ -1,5 +1,17 @@
 const joi = require("joi");
 
+// Kontrak list seragam: page/limit/search + sort_by whitelist per endpoint + sort_order.
+// Param di luar whitelist tetap ditolak oleh Joi (unknown keys forbidden by default).
+const listBaseKeys = (sortKeys) => ({
+  page: joi.number().min(1).default(1),
+  limit: joi.number().min(1).max(100).default(10),
+  search: joi.string().allow("").optional(),
+  sort_by: joi.string().valid(...sortKeys).optional(),
+  sort_order: joi.string().lowercase().valid("asc", "desc").default("desc")
+});
+
+const deletedStateType = joi.string().valid("active", "deleted", "all").default("all");
+
 const getStatsParamType = joi.object({});
 
 const getDashboardGrowthParamType = joi.object({});
@@ -9,15 +21,17 @@ const getDashboardActivitiesParamType = joi.object({});
 
 
 const getAuditLogsParamType = joi.object({
-  page: joi.number().min(1).default(1),
-  limit: joi.number().min(1).max(100).default(10),
-  search: joi.string().allow("").optional()
+  ...listBaseKeys(["created_at", "action"]),
+  action: joi.string().max(100).optional(),
+  date_from: joi.date().iso().optional(),
+  date_to: joi.date().iso().optional()
 });
 
 const getUsersParamType = joi.object({
-  page: joi.number().min(1).default(1),
-  limit: joi.number().min(1).max(100).default(10),
-  search: joi.string().allow("").optional()
+  ...listBaseKeys(["created_at", "updated_at", "role_id", "is_suspended"]),
+  role_id: joi.number().optional(),
+  is_suspended: joi.boolean().optional(),
+  deleted_state: deletedStateType
 });
 
 const getUserByIdParamType = joi.object({
@@ -25,9 +39,9 @@ const getUserByIdParamType = joi.object({
 });
 
 const getWorkersParamType = joi.object({
-  page: joi.number().min(1).default(1),
-  limit: joi.number().min(1).max(100).default(10),
-  search: joi.string().allow("").optional()
+  ...listBaseKeys(["created_at", "updated_at", "gender_id"]),
+  gender_id: joi.number().optional(),
+  deleted_state: deletedStateType
 });
 
 const getWorkerByIdParamType = joi.object({
@@ -35,9 +49,10 @@ const getWorkerByIdParamType = joi.object({
 });
 
 const getEmployersParamType = joi.object({
-  page: joi.number().min(1).default(1),
-  limit: joi.number().min(1).max(100).default(10),
-  search: joi.string().allow("").optional()
+  ...listBaseKeys(["created_at", "updated_at", "is_verified", "is_vip"]),
+  is_verified: joi.boolean().optional(),
+  industry_id: joi.number().integer().optional(),
+  deleted_state: deletedStateType
 });
 
 const getEmployerByIdParamType = joi.object({
@@ -45,15 +60,14 @@ const getEmployerByIdParamType = joi.object({
 });
 
 const getJobsParamType = joi.object({
-  page: joi.number().min(1).default(1),
-  limit: joi.number().min(1).max(100).default(10),
-  search: joi.string().allow("").optional()
+  ...listBaseKeys(["created_at", "updated_at", "title"]),
+  status: joi.string().optional(),
+  recruiter_id: joi.string().guid().optional()
 });
 
 const getApplicationsParamType = joi.object({
-  page: joi.number().min(1).default(1),
-  limit: joi.number().min(1).max(100).default(10),
-  search: joi.string().allow("").optional()
+  ...listBaseKeys(["applied_at", "updated_at", "job_title"]),
+  application_status_id: joi.number().integer().optional()
 });
 
 const getJobByIdParamType = joi.object({
@@ -61,7 +75,8 @@ const getJobByIdParamType = joi.object({
 });
 
 const getLookupTableParamType = joi.object({
-  table: joi.string().required()
+  table: joi.string().required(),
+  search: joi.string().allow("").optional()
 });
 
 const getWorkerSubResourceParamType = joi.object({
@@ -77,9 +92,7 @@ const getConversationMessagesParamType = joi.object({
 });
 
 const getPaymentOrdersParamType = joi.object({
-  page: joi.number().min(1).default(1),
-  limit: joi.number().min(1).max(100).default(10),
-  search: joi.string().allow("").optional(),
+  ...listBaseKeys(["created_at", "updated_at", "amount", "paid_at", "status"]),
   status: joi.string().valid("pending", "paid", "expired", "failed").optional(),
   order_type: joi.string().valid("subscription", "single_post", "boost").optional()
 });
@@ -89,7 +102,8 @@ const getPaymentOrderByIdParamType = joi.object({
 });
 
 const getPlansByTypeParamType = joi.object({
-  type: joi.string().valid("subscription", "single_post", "boost").required()
+  type: joi.string().valid("subscription", "single_post", "boost").required(),
+  search: joi.string().allow("").optional()
 });
 
 const getAllPlansParamType = joi.object({});
