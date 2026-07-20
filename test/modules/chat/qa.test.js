@@ -26,6 +26,7 @@ const wrapper = require("../../../src/helpers/utils/wrapper");
 const {
   BadRequestError,
   ForbiddenError,
+  NotFoundError,
 } = require("../../../src/helpers/errors");
 
 describe("[QA] chat module", () => {
@@ -38,6 +39,11 @@ describe("[QA] chat module", () => {
     it("[BUG-CH-001] startConversation should reject when recruiter_id is not a recruiter account", async () => {
       const domain = new ChatCommandDomain({});
       domain.query = {
+        resolveWorkerUserId: jest.fn().mockResolvedValue({ err: null, data: workerId }),
+        resolveRecruiterUserId: jest.fn().mockResolvedValue({
+          err: new NotFoundError("Recruiter not found"),
+          data: null,
+        }),
         getConversationByParticipants: jest.fn().mockResolvedValue({ err: null, data: null }),
         getConversationByIdForParticipant: jest.fn().mockResolvedValue({
           err: null,
@@ -54,7 +60,7 @@ describe("[QA] chat module", () => {
         role_id: 1,
       });
 
-      expect(result.err).toBeInstanceOf(ForbiddenError);
+      expect(result.err).toBeInstanceOf(BadRequestError);
       expect(domain.command.createConversation).not.toHaveBeenCalled();
     });
   });
@@ -199,7 +205,12 @@ describe("[QA] chat module", () => {
     it("[BUG-CH-007] startConversation should return existing conversation on unique constraint race", async () => {
       const domain = new ChatCommandDomain({});
       domain.query = {
-        getConversationByParticipants: jest.fn().mockResolvedValue({ err: null, data: null }),
+        resolveWorkerUserId: jest.fn().mockResolvedValue({ err: null, data: workerId }),
+        resolveRecruiterUserId: jest.fn().mockResolvedValue({ err: null, data: recruiterId }),
+        getConversationByParticipants: jest
+          .fn()
+          .mockResolvedValueOnce({ err: null, data: null })
+          .mockResolvedValueOnce({ err: null, data: { id: convId, worker_id: workerId, recruiter_id: recruiterId } }),
         getConversationByIdForParticipant: jest.fn().mockResolvedValue({
           err: null,
           data: { id: convId, worker_id: workerId, recruiter_id: recruiterId },

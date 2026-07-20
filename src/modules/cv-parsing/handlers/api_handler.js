@@ -24,7 +24,11 @@ const parseCVHandler = async (req, res) => {
     if (err.message && err.message.includes("Unsupported")) {
       return sendResponse(wrapper.error(new BadRequestError(err.message)), res);
     }
-    return sendResponse(wrapper.error(new InternalServerError("Failed to parse CV: " + err.message)), res);
+    if (err.message && /empty|no content/i.test(err.message)) {
+      return sendResponse(wrapper.error(new BadRequestError("CV has no extractable content")), res);
+    }
+    console.error("CV parse failed:", err.message);
+    return sendResponse(wrapper.error(new InternalServerError("Failed to parse CV")), res);
   } finally {
     // clean up uploaded file after parsing
     fs.unlink(filePath, () => {});
