@@ -788,6 +788,122 @@ class AdminQuery {
     if (result.rows.length === 0) return wrapper.error(new NotFoundError("Job not found"));
     return wrapper.data(result.rows[0]);
   }
+
+  // ==================== TRUST & SAFETY / FRAUD EVENTS ====================
+  async getFraudEvents(payload) {
+    const {
+      page,
+      limit,
+      search,
+      sort_by,
+      sort_order,
+      status,
+      entity_type,
+      source,
+      date_from,
+      date_to,
+    } = payload;
+
+    const builder = new ListQueryBuilder();
+    builder.addSearch(search, ["fe.summary", "fe.source", "fe.entity_type"]);
+    builder.addEqualsInsensitive("fe.status", status);
+    builder.addEqualsInsensitive("fe.entity_type", entity_type);
+    builder.addEqualsInsensitive("fe.source", source);
+    builder.addDateRange("fe.created_at", date_from, date_to);
+
+    const whereQuery = builder.whereClause();
+    const orderClause = buildOrderClause(
+      {
+        created_at: "fe.created_at",
+        risk_score: "fe.risk_score",
+        status: "fe.status",
+        updated_at: "fe.updated_at",
+      },
+      sort_by,
+      sort_order,
+      "created_at",
+      "fe.id"
+    );
+    const offset = limit * (page - 1);
+
+    const rawQuery = `
+      SELECT
+        fe.id,
+        fe.entity_type,
+        fe.entity_id,
+        fe.source,
+        fe.risk_score,
+        fe.status,
+        fe.flags,
+        fe.summary,
+        fe.metadata,
+        fe.resolved_by,
+        fe.resolved_at,
+        fe.resolution_action,
+        fe.resolution_note,
+        fe.created_at,
+        fe.updated_at,
+        jp.title AS job_title,
+        r.company_name,
+        r.id AS recruiter_id,
+        r.user_id AS recruiter_user_id
+      FROM fraud_events fe
+      LEFT JOIN job_posts jp
+        ON fe.entity_type = 'job_post' AND fe.entity_id = jp.id
+      LEFT JOIN recruiters r
+        ON jp.recruiter_id = r.id
+      ${whereQuery}
+      ${orderClause}
+      LIMIT ${limit} OFFSET ${offset}
+    `;
+    const result = await this.db.executeQuery(rawQuery, builder.values);
+
+    const countQuery = `
+      SELECT COUNT(*) FROM fraud_events fe
+      LEFT JOIN job_posts jp
+        ON fe.entity_type = 'job_post' AND fe.entity_id = jp.id
+      LEFT JOIN recruiters r
+        ON jp.recruiter_id = r.id
+      ${whereQuery}
+    `;
+    const countResult = await this.db.executeQuery(countQuery, builder.values);
+    const totalData = parseInt(countResult?.rows[0]?.count || 0);
+
+    return wrapper.paginationData(result?.rows || [], {
+      page,
+      limit,
+      totalData,
+      totalPage: Math.ceil(totalData / limit),
+    });
+  }
+
+  async getFraudEventById(payload) {
+    const { id } = payload;
+    const rawQuery = `
+      SELECT
+        fe.*,
+        jp.title AS job_title,
+        jp.status_id AS job_status_id,
+        jps.name AS job_status_name,
+        r.company_name,
+        r.id AS recruiter_id,
+        r.user_id AS recruiter_user_id,
+        ru.username AS resolved_by_username
+      FROM fraud_events fe
+      LEFT JOIN job_posts jp
+        ON fe.entity_type = 'job_post' AND fe.entity_id = jp.id
+      LEFT JOIN job_post_statuses jps ON jp.status_id = jps.id
+      LEFT JOIN recruiters r ON jp.recruiter_id = r.id
+      LEFT JOIN users ru ON fe.resolved_by = ru.id
+      WHERE fe.id = $1
+      LIMIT 1
+    `;
+    const result = await this.db.executeQuery(rawQuery, [id]);
+    if (!result?.rows?.length) {
+      return wrapper.error(new NotFoundError("Fraud event not found"));
+    }
+    return wrapper.data(result.rows[0]);
+  }
 }
 
 module.exports = AdminQuery;

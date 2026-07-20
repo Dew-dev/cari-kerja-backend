@@ -15,6 +15,11 @@ const updateJobStatus = async (payload) => {
   return await adminCommand.updateJobStatus(payload);
 };
 
+const resolveFraudEvent = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.resolveFraudEvent(payload);
+};
+
 const updateSystemSettings = async (payload) => {
   const adminCommand = new Domain();
   return await adminCommand.updateSystemSettings(payload);
@@ -240,6 +245,7 @@ module.exports = {
   updateUserStatus,
   verifyEmployer,
   updateJobStatus,
+  resolveFraudEvent,
   updateSystemSettings,
   insertLookupTable,
   updateLookupTable,

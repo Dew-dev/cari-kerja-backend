@@ -60,6 +60,48 @@ const getAuditLogs = async (req, res) => {
   return paginationResponse(result, res);
 };
 
+const getFraudEvents = async (req, res) => {
+  const payload = { ...req.query };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getFraudEventsParamType
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getFraudEvents(validatePayload.data);
+  return paginationResponse(result, res);
+};
+
+const getFraudEventById = async (req, res) => {
+  const payload = { ...req.params };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getFraudEventByIdParamType
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await queryHandler.getFraudEventById(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const resolveFraudEvent = async (req, res) => {
+  const payload = {
+    ...req.params,
+    ...req.body,
+    admin_user_id: req.userMeta?.id,
+    ip_address: req.ip,
+    user_agent: req.headers["user-agent"],
+  };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.resolveFraudEventParamType
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.resolveFraudEvent(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 const getUsers = async (req, res) => {
   const payload = { ...req.query };
   const validatePayload = validator.isValidPayload(payload, queryModel.getUsersParamType);
@@ -710,6 +752,9 @@ module.exports = {
   getDashboardActivities,
   getSystemSettings,
   getAuditLogs,
+  getFraudEvents,
+  getFraudEventById,
+  resolveFraudEvent,
   getUsers,
   getUserById,
   getEmployers,

@@ -829,6 +829,105 @@ class AdminCommand {
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("Application not found"));
     return wrapper.data("Application deleted successfully");
   }
+
+  /**
+   * Resolve Trust & Safety queue item.
+   * action: mark_clean | approve_job | reject_job | suspend_user
+   */
+  async resolveFraudEvent(payload) {
+    const { id, action, note, admin_user_id } = payload;
+
+    const eventResult = await this.db.executeQuery(
+      `SELECT * FROM fraud_events WHERE id = $1 LIMIT 1`,
+      [id]
+    );
+    if (!eventResult?.rows?.length) {
+      return wrapper.error(new NotFoundError("Fraud event not found"));
+    }
+    const event = eventResult.rows[0];
+    if (["resolved_clean", "resolved_actioned"].includes(event.status)) {
+      return wrapper.error(new BadRequestError("Fraud event already resolved"));
+    }
+
+    let resolutionStatus = "resolved_actioned";
+
+    if (action === "mark_clean") {
+      resolutionStatus = "resolved_clean";
+    } else if (action === "approve_job") {
+      if (event.entity_type !== "job_post") {
+        return wrapper.error(new BadRequestError("approve_job only applies to job_post events"));
+      }
+      const statusRecord = await this.db.findOne({ name: "OPEN" }, { id: 1 }, "job_post_statuses");
+      if (statusRecord.err) return wrapper.error(new NotFoundError("OPEN status not found"));
+      await this.db.executeQuery(
+        `UPDATE job_posts SET status_id = $1, updated_at = NOW() WHERE id = $2`,
+        [statusRecord.data.id, event.entity_id]
+      );
+    } else if (action === "reject_job") {
+      if (event.entity_type !== "job_post") {
+        return wrapper.error(new BadRequestError("reject_job only applies to job_post events"));
+      }
+      const statusRecord = await this.db.findOne({ name: "REJECTED" }, { id: 1 }, "job_post_statuses");
+      if (statusRecord.err) return wrapper.error(new NotFoundError("REJECTED status not found"));
+      await this.db.executeQuery(
+        `UPDATE job_posts SET status_id = $1, updated_at = NOW() WHERE id = $2`,
+        [statusRecord.data.id, event.entity_id]
+      );
+    } else if (action === "suspend_user") {
+      let userId = null;
+      if (event.entity_type === "job_post") {
+        const owner = await this.db.executeQuery(
+          `SELECT r.user_id FROM job_posts jp
+           JOIN recruiters r ON r.id = jp.recruiter_id
+           WHERE jp.id = $1 LIMIT 1`,
+          [event.entity_id]
+        );
+        userId = owner?.rows?.[0]?.user_id || null;
+        const statusRecord = await this.db.findOne({ name: "REJECTED" }, { id: 1 }, "job_post_statuses");
+        if (!statusRecord.err) {
+          await this.db.executeQuery(
+            `UPDATE job_posts SET status_id = $1, updated_at = NOW() WHERE id = $2`,
+            [statusRecord.data.id, event.entity_id]
+          );
+        }
+      } else if (event.entity_type === "user") {
+        userId = event.entity_id;
+      }
+      if (!userId) {
+        return wrapper.error(new BadRequestError("Unable to resolve user to suspend for this event"));
+      }
+      await this.db.executeQuery(
+        `UPDATE users SET is_suspended = TRUE, updated_at = NOW() WHERE id = $1`,
+        [userId]
+      );
+    } else {
+      return wrapper.error(new BadRequestError("Invalid resolution action"));
+    }
+
+    const updated = await this.db.executeQuery(
+      `
+      UPDATE fraud_events SET
+        status = $2,
+        resolved_by = $3,
+        resolved_at = NOW(),
+        resolution_action = $4,
+        resolution_note = $5,
+        updated_at = NOW()
+      WHERE id = $1
+      RETURNING *
+      `,
+      [id, resolutionStatus, admin_user_id || null, action, note || null]
+    );
+
+    await this.insertAuditLog({
+      user_id: admin_user_id,
+      action: `fraud_event.resolve.${action}`,
+      ip_address: payload.ip_address || null,
+      user_agent: payload.user_agent || null,
+    });
+
+    return wrapper.data(updated.rows[0]);
+  }
 }
 
 module.exports = AdminCommand;

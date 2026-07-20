@@ -19,6 +19,26 @@ module.exports = (server) => {
   // Audit Logs (Super Admin Only)
   server.get("/api/v1/admin/audit-logs", verifyToken, verifyRole(superAdminOnly), adminHandler.getAuditLogs);
 
+  // Trust & Safety queue
+  server.get(
+    "/api/v1/admin/fraud-events",
+    verifyToken,
+    verifyRole(allowedRoles),
+    adminHandler.getFraudEvents
+  );
+  server.get(
+    "/api/v1/admin/fraud-events/:id",
+    verifyToken,
+    verifyRole(allowedRoles),
+    adminHandler.getFraudEventById
+  );
+  server.put(
+    "/api/v1/admin/fraud-events/:id/resolve",
+    verifyToken,
+    verifyRole(allowedRoles),
+    adminHandler.resolveFraudEvent
+  );
+
   // Generic Lookups
   server.get("/api/v1/admin/lookups/:table", verifyToken, verifyRole(allowedRoles), adminHandler.getLookupTable);
   server.post("/api/v1/admin/lookups/:table", verifyToken, verifyRole(allowedRoles), adminHandler.insertLookupTable);

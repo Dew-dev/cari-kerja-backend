@@ -51,6 +51,16 @@ const getAuditLogs = async (payload) => {
   return await adminQuery.getAuditLogs(payload);
 };
 
+const getFraudEvents = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getFraudEvents(payload);
+};
+
+const getFraudEventById = async (payload) => {
+  const adminQuery = new Domain();
+  return await adminQuery.getFraudEventById(payload);
+};
+
 const getUserById = async (payload) => {
   const adminQuery = new Domain();
   return await adminQuery.getUserById(payload);
@@ -192,6 +202,8 @@ module.exports = {
   getDashboardActivities,
   getSystemSettings,
   getAuditLogs,
+  getFraudEvents,
+  getFraudEventById,
   getUserById,
   getWorkers,
   getWorkerById,
