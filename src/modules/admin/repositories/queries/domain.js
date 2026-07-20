@@ -106,18 +106,38 @@ class AdminQuery {
   }
 
   async getJobs(payload) {
-    const { page, limit, search, sort_by, sort_order, status, recruiter_id } = payload;
+    const {
+      page,
+      limit,
+      search,
+      sort_by,
+      sort_order,
+      status,
+      recruiter_id,
+      needs_review,
+    } = payload;
+
+    const openFraudExistsSql = `
+      SELECT 1 FROM fraud_events fe
+      WHERE fe.entity_type = 'job_post'
+        AND fe.entity_id = j.id
+        AND fe.status IN ('open', 'reviewing')
+    `;
 
     const builder = new ListQueryBuilder();
     builder.addSearch(search, ["j.title", "j.location"], ["r.company_name"]);
     builder.addEqualsInsensitive("s.name", status);
     builder.addEquals("j.recruiter_id", recruiter_id);
+    if (needs_review !== undefined && needs_review !== null && needs_review !== "") {
+      builder.addExists(openFraudExistsSql, needs_review);
+    }
 
     const whereQuery = builder.whereClause();
     const orderClause = buildOrderClause({
       created_at: "j.created_at",
       updated_at: "j.updated_at",
-      title: "j.title"
+      title: "j.title",
+      needs_review: "needs_review",
     }, sort_by, sort_order, "created_at", "j.id");
     const offset = limit * (page - 1);
 
@@ -127,7 +147,25 @@ class AdminQuery {
     `;
 
     const rawQuery = `
-      SELECT j.id, j.title, j.location, j.is_remote, r.company_name, s.name as status, j.created_at, j.updated_at, j.deleted_at
+      SELECT
+        j.id,
+        j.title,
+        j.location,
+        j.is_remote,
+        r.company_name,
+        s.name as status,
+        j.created_at,
+        j.updated_at,
+        j.deleted_at,
+        EXISTS (${openFraudExistsSql}) AS needs_review,
+        (
+          SELECT fe.id FROM fraud_events fe
+          WHERE fe.entity_type = 'job_post'
+            AND fe.entity_id = j.id
+            AND fe.status IN ('open', 'reviewing')
+          ORDER BY fe.risk_score DESC, fe.created_at DESC
+          LIMIT 1
+        ) AS open_fraud_event_id
       FROM job_posts j
       ${joins}
       ${whereQuery}
@@ -144,7 +182,12 @@ class AdminQuery {
     const countResult = await this.db.executeQuery(countQuery, builder.values);
     const totalData = parseInt(countResult?.rows[0]?.count || 0);
 
-    return wrapper.paginationData(result?.rows || [], {
+    const rows = (result?.rows || []).map((row) => ({
+      ...row,
+      needs_review: Boolean(row.needs_review),
+    }));
+
+    return wrapper.paginationData(rows, {
       page, limit, totalData, totalPage: Math.ceil(totalData / limit)
     });
   }
@@ -779,14 +822,56 @@ class AdminQuery {
   async getJobById(payload) {
     const { id } = payload;
     const rawQuery = `
-      SELECT j.id, j.recruiter_id, j.title, j.description, j.requirements, j.benefits, j.location, j.is_remote, j.employment_type_id, j.experience_level_id, j.min_salary, j.max_salary, j.salary_type_id, j.status_id, j.created_at, r.company_name
+      SELECT
+        j.id,
+        j.recruiter_id,
+        j.title,
+        j.description,
+        j.requirements,
+        j.benefits,
+        j.location,
+        j.is_remote,
+        j.employment_type_id,
+        j.experience_level_id,
+        j.min_salary,
+        j.max_salary,
+        j.salary_type_id,
+        j.status_id,
+        j.created_at,
+        r.company_name,
+        EXISTS (
+          SELECT 1 FROM fraud_events fe
+          WHERE fe.entity_type = 'job_post'
+            AND fe.entity_id = j.id
+            AND fe.status IN ('open', 'reviewing')
+        ) AS needs_review,
+        (
+          SELECT fe.id FROM fraud_events fe
+          WHERE fe.entity_type = 'job_post'
+            AND fe.entity_id = j.id
+            AND fe.status IN ('open', 'reviewing')
+          ORDER BY fe.risk_score DESC, fe.created_at DESC
+          LIMIT 1
+        ) AS open_fraud_event_id,
+        (
+          SELECT fe.risk_score FROM fraud_events fe
+          WHERE fe.entity_type = 'job_post'
+            AND fe.entity_id = j.id
+            AND fe.status IN ('open', 'reviewing')
+          ORDER BY fe.risk_score DESC, fe.created_at DESC
+          LIMIT 1
+        ) AS open_fraud_risk_score
       FROM job_posts j
       JOIN recruiters r ON j.recruiter_id = r.id
       WHERE j.id = $1 AND j.deleted_at IS NULL
     `;
     const result = await this.db.executeQuery(rawQuery, [id]);
     if (result.rows.length === 0) return wrapper.error(new NotFoundError("Job not found"));
-    return wrapper.data(result.rows[0]);
+    const row = result.rows[0];
+    return wrapper.data({
+      ...row,
+      needs_review: Boolean(row.needs_review),
+    });
   }
 
   // ==================== TRUST & SAFETY / FRAUD EVENTS ====================

@@ -73,6 +73,13 @@ class ListQueryBuilder {
     }
   }
 
+  // EXISTS / NOT EXISTS tanpa parameter tambahan
+  addExists(sqlFragment, shouldExist = true) {
+    if (shouldExist === undefined || shouldExist === null || shouldExist === "") return;
+    const exists = shouldExist === true || shouldExist === "true";
+    this.conditions.push(`${exists ? "EXISTS" : "NOT EXISTS"} (${sqlFragment})`);
+  }
+
   whereClause() {
     return this.conditions.length ? `WHERE ${this.conditions.join(" AND ")}` : "";
   }
