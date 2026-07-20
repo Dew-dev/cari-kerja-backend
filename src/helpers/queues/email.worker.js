@@ -1,6 +1,10 @@
 const { Worker } = require("bullmq");
 const { getConnection } = require("../databases/redis/connection");
 const { sendMail } = require("../utils/mailer");
+const {
+  markRecipientSent,
+  markRecipientFailed,
+} = require("./communicationRecipientStatus");
 const logger = require("../utils/logger");
 
 const ctx = "EmailWorker";
@@ -13,12 +17,21 @@ const start = () => {
   emailWorker = new Worker(
     "email",
     async (job) => {
-      const { to, subject, html } = job.data;
+      const { to, subject, html, recipient_id } = job.data;
       logger.info(ctx, `Processing job ${job.id}`, `Sending email to ${to}`);
 
-      await sendMail({ to, subject, html });
-
-      logger.info(ctx, `Job ${job.id} completed`, `Email sent to ${to}`);
+      try {
+        await sendMail({ to, subject, html });
+        if (recipient_id) {
+          await markRecipientSent(recipient_id);
+        }
+        logger.info(ctx, `Job ${job.id} completed`, `Email sent to ${to}`);
+      } catch (err) {
+        if (recipient_id) {
+          await markRecipientFailed(recipient_id, err.message);
+        }
+        throw err;
+      }
     },
     {
       connection: getConnection(),
