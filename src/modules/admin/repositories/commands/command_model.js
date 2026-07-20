@@ -15,6 +15,18 @@ const updateJobStatusParamType = joi.object({
   status: joi.string().valid("OPEN", "CLOSED", "DRAFT", "PENDING", "REJECTED", "ARCHIVED").required()
 });
 
+const resolveFraudEventParamType = joi.object({
+  id: joi.string().uuid().required(),
+  action: joi
+    .string()
+    .valid("mark_clean", "approve_job", "reject_job", "suspend_user")
+    .required(),
+  note: joi.string().max(1000).allow("", null).optional(),
+  admin_user_id: joi.string().uuid().required(),
+  ip_address: joi.string().allow("", null).optional(),
+  user_agent: joi.string().allow("", null).optional(),
+});
+
 const updateSystemSettingsParamType = joi.object({
   platform_name: joi.string().optional(),
   support_email: joi.string().email().optional(),
@@ -370,6 +382,7 @@ module.exports = {
   updateUserStatusParamType,
   verifyEmployerParamType,
   updateJobStatusParamType,
+  resolveFraudEventParamType,
   updateSystemSettingsParamType,
   insertLookupTableParamType,
   updateLookupTableParamType,

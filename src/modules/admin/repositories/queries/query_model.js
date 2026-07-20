@@ -27,6 +27,25 @@ const getAuditLogsParamType = joi.object({
   date_to: joi.date().iso().optional()
 });
 
+const getFraudEventsParamType = joi.object({
+  ...listBaseKeys(["created_at", "risk_score", "status", "updated_at"]),
+  status: joi
+    .string()
+    .valid("open", "reviewing", "resolved_clean", "resolved_actioned")
+    .optional(),
+  entity_type: joi
+    .string()
+    .valid("job_post", "user", "chat_message", "payment_order")
+    .optional(),
+  source: joi.string().max(64).optional(),
+  date_from: joi.date().iso().optional(),
+  date_to: joi.date().iso().optional(),
+});
+
+const getFraudEventByIdParamType = joi.object({
+  id: joi.string().guid().required(),
+});
+
 const getUsersParamType = joi.object({
   ...listBaseKeys(["created_at", "updated_at", "role_id", "is_suspended"]),
   role_id: joi.number().optional(),
@@ -118,6 +137,8 @@ module.exports = {
   getDashboardJobDistributionParamType,
   getDashboardActivitiesParamType,
   getAuditLogsParamType,
+  getFraudEventsParamType,
+  getFraudEventByIdParamType,
   getUserByIdParamType,
   getWorkersParamType,
   getWorkerByIdParamType,
