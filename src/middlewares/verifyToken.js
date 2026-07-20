@@ -1,6 +1,7 @@
 const { UnauthorizedError, ForbiddenError } = require("../helpers/errors");
 const { sendResponse } = require("../helpers/utils/response");
 const { getToken, verifyAccessToken } = require("../helpers/auth/jwt_helper");
+const { assertUserNotSuspendedById } = require("../helpers/auth/account_guards");
 const { ERROR } = require("../helpers/http-status/status_code");
 const wrapper = require("../helpers/utils/wrapper");
 
@@ -24,6 +25,11 @@ const verifyToken = async (req, res, next) => {
 
   if (checkedToken.err) {
     return sendResponse(checkedToken, res, ERROR.FORBIDDEN);
+  }
+
+  const suspension = await assertUserNotSuspendedById(checkedToken.data?.id);
+  if (suspension.err) {
+    return sendResponse(suspension, res, ERROR.FORBIDDEN);
   }
 
   req.userMeta = checkedToken.data;

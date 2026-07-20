@@ -43,6 +43,10 @@ const {
   needsTelegramLink,
   buildAuthStatus,
 } = require("../../../../helpers/auth/login_status");
+const {
+  requireValidOauthRole,
+  rejectIfSuspended,
+} = require("../../../../helpers/auth/account_guards");
 const COOLDOWN_SECONDS = 60;
 const MAX_PER_HOUR = 5;
 
@@ -72,6 +76,7 @@ class User {
         role_id: 1,
         email_verified_at: 1,
         notification_telegram_id: 1,
+        is_suspended: 1,
       },
       "OR",
     );
@@ -82,6 +87,9 @@ class User {
         return wrapper.error(new NotFoundError("Wrong username or password"));
       }
     }
+
+    const suspended = rejectIfSuspended(user.data);
+    if (suspended) return suspended;
 
     if (user.data.login_provider && user.data.login_provider !== "local") {
       return wrapper.error(
@@ -183,7 +191,11 @@ class User {
   }
 
   async loginWithGoogle(payload) {
-    const { id, email, role_id, name } = payload;
+    const { id, email, name } = payload;
+    const roleResult = requireValidOauthRole(payload.role_id);
+    if (roleResult.err) return roleResult;
+    const role_id = roleResult.data.role_id;
+
     const user = await this.query.findOne(
       { email },
       {
@@ -194,6 +206,7 @@ class User {
         role_id: 1,
         notification_telegram_id: 1,
         email_verified_at: 1,
+        is_suspended: 1,
       },
     );
     let data;
@@ -208,7 +221,7 @@ class User {
         hashed_password: null,
         login_provider: "google",
         provider_id: id,
-        role_id: role_id || 1,
+        role_id,
       };
       const result = await this.command.insertOne(data);
 
@@ -248,6 +261,8 @@ class User {
       }
     } else {
       data = user.data;
+      const suspended = rejectIfSuspended(data);
+      if (suspended) return suspended;
       if (data.login_provider !== "google") {
         return wrapper.error(
           new ConflictError(
@@ -294,7 +309,11 @@ class User {
   }
 
   async loginWithTelegram(payload) {
-    const { code, role_id } = payload;
+    const { code } = payload;
+    const roleResult = requireValidOauthRole(payload.role_id);
+    if (roleResult.err) return roleResult;
+    const role_id = roleResult.data.role_id;
+
     const clientId = config.get("/telegramAuth/clientId");
     const clientSecret = config.get("/telegramAuth/clientSecret");
     const redirectUri = config.get("/telegramAuth/redirectUri");
@@ -354,6 +373,7 @@ class User {
         role_id: 1,
         email_verified_at: 1,
         notification_telegram_id: 1,
+        is_suspended: 1,
       }
     );
 
@@ -369,7 +389,7 @@ class User {
         hashed_password: null,
         login_provider: "telegram",
         provider_id,
-        role_id: role_id || 1,
+        role_id,
       };
       const result = await this.command.insertOne(data);
 
@@ -409,6 +429,8 @@ class User {
       }
     } else {
       data = user.data;
+      const suspended = rejectIfSuspended(data);
+      if (suspended) return suspended;
       if (data.role_id === 1) {
         const resultWorker = await this.queryWorker.findOne(
           { user_id: data.id },
@@ -691,12 +713,16 @@ class User {
         notification_telegram_id: 1,
         notification_telegram_username: 1,
         username: 1,
+        is_suspended: 1,
       },
     );
     if (userData.err) {
       logger.error(ctx, "findUser", "User not found", userData.err);
       return wrapper.error(new NotFoundError("User Not Found"));
     }
+
+    const suspended = rejectIfSuspended(userData.data);
+    if (suspended) return suspended;
 
     if (userData.data.role_id === 1) {
       const result = await this.queryWorker.findOne(

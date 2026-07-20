@@ -1,6 +1,7 @@
 const { Server } = require("socket.io");
 const config = require("../../config/global_config");
 const { getToken, verifyAccessToken } = require("../auth/jwt_helper");
+const { assertUserNotSuspendedById } = require("../auth/account_guards");
 const chatHandler = require("./chat_handler");
 const logger = require("../utils/logger");
 
@@ -53,6 +54,11 @@ const initSocket = (httpServer) => {
       const verified = await verifyAccessToken(rawToken);
       if (verified.err) {
         return next(new Error("Unauthorized: invalid or expired token"));
+      }
+
+      const suspension = await assertUserNotSuspendedById(verified.data?.id);
+      if (suspension.err) {
+        return next(new Error("Forbidden: account is suspended"));
       }
 
       socket.userMeta = verified.data;
