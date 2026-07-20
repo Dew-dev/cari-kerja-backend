@@ -29,6 +29,7 @@ const cvParsing = require('./cv_parsing');
 const chat = require('./chat');
 const candidatePipeline = require('./candidate_pipeline');
 const communication = require('./communication');
+const jobAlerts = require('./job_alerts');
 
 
 module.exports = (server) => {
@@ -63,5 +64,6 @@ module.exports = (server) => {
   chat(server);
   candidatePipeline(server);
   communication(server);
+  jobAlerts(server);
 };
 
