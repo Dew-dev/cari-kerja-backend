@@ -29,7 +29,18 @@ function createUploader(
   });
 
   const fileFilter = (req, file, cb) => {
-    if (!allowedMimeTypes.includes(file.mimetype)) {
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    const allowedByMime = allowedMimeTypes.includes(file.mimetype);
+    // Browsers/OS sometimes send DOCX/PDF as application/octet-stream
+    const allowedByExt =
+      (ext === ".pdf" && allowedMimeTypes.includes("application/pdf")) ||
+      (ext === ".docx" &&
+        allowedMimeTypes.includes(
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )) ||
+      (ext === ".doc" && allowedMimeTypes.includes("application/msword"));
+
+    if (!allowedByMime && !allowedByExt) {
       return cb(new Error("File type not allowed"), false);
     }
     cb(null, true);

@@ -18,15 +18,28 @@ class ChatCommandDomain {
   }
 
   async startConversation(payload) {
-    const { worker_id, recruiter_id, job_id } = payload;
+    const { job_id } = payload;
+
+    // FE often sends workers.id / recruiters.id (profile), but conversations FK users(id).
+    const workerResolved = await this.query.resolveWorkerUserId(payload.worker_id);
+    if (workerResolved.err) {
+      return wrapper.error(new BadRequestError("Invalid worker_id: worker user not found"));
+    }
+    const recruiterResolved = await this.query.resolveRecruiterUserId(payload.recruiter_id);
+    if (recruiterResolved.err) {
+      return wrapper.error(new BadRequestError("Invalid recruiter_id: recruiter user not found"));
+    }
+
+    const worker_id = workerResolved.data;
+    const recruiter_id = recruiterResolved.data;
     const viewerUserId = payload.role_id === 1 ? worker_id : recruiter_id;
 
-    // Validate that worker and recruiter are not the same user
     if (worker_id === recruiter_id) {
       return wrapper.error(new BadRequestError("Worker and recruiter cannot be the same user"));
     }
 
     // Check if a conversation already exists between these participants
+    // (same pair reuses one thread even if job_id differs)
     const existing = await this.query.getConversationByParticipants(
       worker_id,
       recruiter_id,
@@ -46,12 +59,39 @@ class ChatCommandDomain {
         job_id: job_id || null,
       });
       if (created.err) {
-        logger.error(ctx, "startConversation - create failed", "domain", created.err);
-        return wrapper.error(created.err);
+        // Race: another request may have created the same pair concurrently
+        const raced = await this.query.getConversationByParticipants(
+          worker_id,
+          recruiter_id,
+          job_id || null
+        );
+        if (!raced.err && raced.data?.id) {
+          conversationId = raced.data.id;
+          logger.info(ctx, "startConversation", "conversation created by concurrent request", {
+            id: conversationId,
+            worker_id,
+            recruiter_id,
+          });
+        } else {
+          logger.error(ctx, "startConversation - create failed", "domain", created.err);
+          return wrapper.error(created.err);
+        }
+      } else {
+        logger.info(ctx, "startConversation", "conversation created", {
+          id: conversationId,
+          worker_id,
+          recruiter_id,
+          job_id: job_id || null,
+        });
       }
-      logger.info(ctx, "startConversation", "conversation created", { id: conversationId, worker_id, recruiter_id });
     } else {
-      logger.info(ctx, "startConversation", "conversation already exists", { worker_id, recruiter_id });
+      logger.info(ctx, "startConversation", "conversation already exists", {
+        id: conversationId,
+        worker_id,
+        recruiter_id,
+        job_id: existing.data.job_id || null,
+        requested_job_id: job_id || null,
+      });
     }
 
     const full = await this.query.getConversationByIdForParticipant(conversationId, viewerUserId);
