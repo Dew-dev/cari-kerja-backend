@@ -8,6 +8,7 @@ const {
   GatewayTimeoutError,
   ServiceUnavailableError,
   UnauthorizedError,
+  TooManyRequestsError,
 } = require("../errors");
 const { ERROR: httpError } = require("../http-status/status_code");
 
@@ -116,6 +117,8 @@ const checkErrorCode = (error) => {
       return httpError.SERVICE_UNAVAILABLE;
     case UnauthorizedError:
       return httpError.UNAUTHORIZED;
+    case TooManyRequestsError:
+      return httpError.TOO_MANY_REQUESTS;
     default:
       return httpError.CONFLICT;
   }

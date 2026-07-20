@@ -29,6 +29,7 @@ const {
   assertRecruiterVerifiedForPublish,
   isOpenJobStatus,
 } = require("../../../../helpers/fraud/employer_verification");
+const { assertApplyVelocity } = require("../../../../helpers/fraud/velocity");
 
 class Jobpost {
   constructor(db) {
@@ -472,6 +473,11 @@ class Jobpost {
         return wrapper.error(
           new ConflictError("Anda sudah melamar pekerjaan ini."),
         );
+      }
+
+      const velocity = await assertApplyVelocity(this.command.db, worker_id);
+      if (velocity.err) {
+        return velocity;
       }
 
       // application_status_id selalu di-resolve oleh backend, tidak pernah

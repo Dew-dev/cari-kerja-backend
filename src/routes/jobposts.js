@@ -3,6 +3,7 @@ const optionalVerifyToken = require("../middlewares/optionalVerifyToken");
 const verifyRole = require("../middlewares/verifyRole");
 const jobpostHandler = require("../modules/job_posts/handlers/api_handler");
 const Applications = require("../modules/job_applications/handlers/api_handler");
+const applyLimiter = require("../middlewares/rateLimitApply");
 
 // Worker self-service application flows
 const workerRoles = [1, 3]; // worker, super_admin
@@ -86,6 +87,7 @@ module.exports = (server) => {
     "/api/v1/job-posts/:job_post_id/apply",
     verifyToken,
     verifyRole(workerRoles),
+    applyLimiter,
     jobpostHandler.createJobApplication,
   );
 

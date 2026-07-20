@@ -10,6 +10,10 @@ const {
   ForbiddenError,
 } = require("../../../../helpers/errors");
 const xenditHelper = require("../../../../helpers/xendit/xendit_helper");
+const {
+  assertInvoiceCreateVelocity,
+  assertPendingInvoiceCap,
+} = require("../../../../helpers/fraud/velocity");
 
 const ctx = "Payments-Command-Domain";
 
@@ -31,6 +35,19 @@ class PaymentCommandDomain {
    */
   async createInvoice({ recruiter_id, user_email, order_type, plan_id, job_post_id }) {
     try {
+      const pendingCap = await assertPendingInvoiceCap(this.command.db, recruiter_id);
+      if (pendingCap.err) {
+        return pendingCap;
+      }
+
+      const createVelocity = await assertInvoiceCreateVelocity(
+        this.command.db,
+        recruiter_id
+      );
+      if (createVelocity.err) {
+        return createVelocity;
+      }
+
       let plan = null;
       let planType = null;
       let amount = 0;
