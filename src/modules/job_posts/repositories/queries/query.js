@@ -661,11 +661,14 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       u.email,
       w.name AS user_name,
       j.title AS job_title,
+      j.id AS job_post_id,
+      r.company_name,
       a.name AS status_name
     FROM job_applications ja
     JOIN workers w ON w.id = ja.worker_id
     JOIN users u ON u.id = w.user_id
     JOIN job_posts j ON j.id = ja.job_post_id
+    JOIN recruiters r ON r.id = j.recruiter_id
     JOIN application_statuses a ON a.id = ja.application_status_id
     WHERE ja.id = $1
     LIMIT 1
