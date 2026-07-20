@@ -142,7 +142,7 @@ const getWorkers = async (req, res) => {
 };
 
 const getLookupTable = async (req, res) => {
-  const payload = { ...req.params };
+  const payload = { ...req.query, ...req.params };
   const validatePayload = validator.isValidPayload(payload, queryModel.getLookupTableParamType);
   if (validatePayload.err) return sendResponse(validatePayload, res);
   
@@ -613,7 +613,7 @@ const getAllPlans = async (req, res) => {
 };
 
 const getPlansByType = async (req, res) => {
-  const payload = { ...req.params };
+  const payload = { ...req.query, ...req.params };
   const validatePayload = validator.isValidPayload(payload, queryModel.getPlansByTypeParamType);
   if (validatePayload.err) return sendResponse(validatePayload, res);
 
