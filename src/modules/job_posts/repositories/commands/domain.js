@@ -851,6 +851,12 @@ class Jobpost {
       );
     }
 
+    // Kuota posting berlaku juga untuk duplicate (sebelumnya bypass)
+    const quotaCheckResult = await this._checkPostingQuota(recruiter_id);
+    if (quotaCheckResult.err) {
+      return wrapper.error(quotaCheckResult.err);
+    }
+
     const original = job.data;
 
     // 2️⃣ create job baru (DRAFT)
@@ -1027,8 +1033,10 @@ class Jobpost {
       return wrapper.data({ allowed: true, currentActive, maxActivePosts });
     } catch (err) {
       logger.error(ctx, "_checkPostingQuota", "Error checking quota", err);
-      // Jika gagal cek quota, biarkan lanjut (fail-open) agar tidak block recruiter
-      return wrapper.data({ allowed: true });
+      // Fail-closed: jangan izinkan posting jika kuota tidak bisa diverifikasi
+      return wrapper.error(
+        new InternalServerError("Failed to verify posting quota. Please try again.")
+      );
     }
   }
 }
