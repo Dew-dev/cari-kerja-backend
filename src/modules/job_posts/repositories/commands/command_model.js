@@ -146,7 +146,7 @@ const createJobApplicationParamType = joi.object({
   job_post_id: joi.string().uuid().required(),
   worker_id: joi.string().uuid().required(),
   resume_id: joi.string().uuid().allow(null),
-  cover_letter: joi.string().allow(null, ""),
+  cover_letter: joi.string().max(5000).allow(null, ""),
   // application_status_id tidak lagi diterima dari client — backend selalu
   // meng-override dengan stage stage_type='applied' milik job_post_id ini.
   application_status_id: joi.any().strip(),
@@ -166,7 +166,7 @@ const createJobApplicationParamType = joi.object({
 const updateJobApplicationParamType = joi.object({
   id: joi.string().uuid().required(),
   resume_id: joi.string().uuid().allow(null),
-  cover_letter: joi.string().allow(null, ""),
+  cover_letter: joi.string().max(5000).allow(null, ""),
   application_status_id: joi.number().optional(),
   updated_at: joi.date().default(() => new Date().toISOString()),
 });

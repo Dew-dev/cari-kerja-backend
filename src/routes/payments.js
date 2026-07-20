@@ -1,6 +1,7 @@
 const verifyToken = require("../middlewares/verifyToken");
 const verifyRole = require("../middlewares/verifyRole");
 const paymentsHandler = require("../modules/payments/handlers/api_handler");
+const invoiceLimiter = require("../middlewares/rateLimitInvoice");
 
 // Payment mutations / private reads are recruiter-owned.
 const recruiterRoles = [2, 3]; // recruiter (2), super_admin (3)
@@ -21,6 +22,7 @@ module.exports = (server) => {
     "/api/v1/payments/create-invoice",
     verifyToken,
     verifyRecruiterRole,
+    invoiceLimiter,
     paymentsHandler.createInvoice
   );
 

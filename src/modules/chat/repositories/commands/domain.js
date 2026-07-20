@@ -8,6 +8,7 @@ const {
   BadRequestError,
 } = require("../../../../helpers/errors");
 const { formatConversation, formatMessage } = require("../../helpers/format");
+const { assertChatVelocity } = require("../../../../helpers/fraud/velocity");
 
 const ctx = "Chat-Command-Domain";
 
@@ -110,6 +111,11 @@ class ChatCommandDomain {
     if (conv.err) {
       logger.error(ctx, "sendMessage - access denied", "domain", conv.err);
       return wrapper.error(new ForbiddenError("Conversation not found or access denied"));
+    }
+
+    const velocity = await assertChatVelocity(this.command.db, sender_id);
+    if (velocity.err) {
+      return velocity;
     }
 
     const messageId = uuidv4();
