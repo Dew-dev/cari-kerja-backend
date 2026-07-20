@@ -164,7 +164,10 @@ class User {
       role: user.data["role"],
     };
 
-    const token = await generateAccessToken(user.data);
+    const token = await generateAccessToken({
+      ...user.data,
+      login_provider: user.data.login_provider || "local",
+    });
     const refreshToken = await generateRefreshToken({ id: user.data.id });
 
     // Insert Audit Log
@@ -279,7 +282,10 @@ class User {
       }
     }
 
-    const token = await generateAccessToken(data);
+    const token = await generateAccessToken({
+      ...data,
+      login_provider: data.login_provider || "google",
+    });
     const refreshToken = await generateRefreshToken({ id: data.id });
     const requires_telegram_link = needsTelegramLink(data);
 
@@ -430,7 +436,10 @@ class User {
       }
     }
 
-    const token = await generateAccessToken(data);
+    const token = await generateAccessToken({
+      ...data,
+      login_provider: data.login_provider || "telegram",
+    });
     const refreshToken = await generateRefreshToken({ id: data.id });
     const requires_email_setup = needsEmailSetup(data);
 
@@ -727,7 +736,10 @@ class User {
       userData.data["role"] = userData.data.role_id === 3 ? "super_admin" : "admin";
     }
 
-    const accessToken = await generateAccessToken(userData.data);
+    const accessToken = await generateAccessToken({
+      ...userData.data,
+      login_provider: userData.data.login_provider,
+    });
     const requires_email_setup = needsEmailSetup(userData.data);
     const requires_telegram_link = needsTelegramLink(userData.data);
 

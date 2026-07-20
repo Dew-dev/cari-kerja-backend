@@ -117,11 +117,30 @@ const loginWithTelegram = async (req, res) => {
   const query = req.query || {};
   const body = req.body || {};
   const headers = req.headers || {};
+  const purpose = stateData.purpose || body.purpose || "login";
+  const origin = stateData.origin || body.origin;
+  const code = query.code || body.code;
+
+  // Link-for-notifications flow: return OAuth code to FE, do NOT create a session.
+  if (purpose === "link") {
+    const config = require("../../../config/global_config");
+    const feUrl = config.get("/frontendUrl");
+    const redirectOrigin = origin || feUrl;
+    if (!code) {
+      return res.redirect(
+        `${redirectOrigin}/auth/telegram-link?error=${encodeURIComponent("missing_code")}`
+      );
+    }
+    return res.redirect(
+      `${redirectOrigin}/auth/telegram-link?code=${encodeURIComponent(code)}`
+    );
+  }
+
   const payload = {
-    code: query.code || body.code,
+    code,
     state: query.state || body.state,
     role_id: stateData.role_id || body.role_id || 1,
-    origin: stateData.origin || body.origin,
+    origin,
     ip_address: req.ip || req.connection?.remoteAddress,
     user_agent: headers["user-agent"],
   };

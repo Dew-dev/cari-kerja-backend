@@ -352,6 +352,34 @@ describe("[QA] users module", () => {
     });
   });
 
+  describe("Telegram OAuth — purpose=link must not login", () => {
+    it("[BUG-US-013] telegram callback with purpose=link redirects code to FE without login", async () => {
+      const state = JSON.stringify({
+        purpose: "link",
+        origin: "http://localhost:5173",
+      });
+      const req = createMockRequest({
+        method: "GET",
+        query: {
+          code: "oauth-code-abc",
+          state,
+        },
+      });
+      req.method = "GET";
+      const res = createMockResponse();
+      res.redirect = jest.fn();
+
+      commandHandler.loginWithTelegram = jest.fn();
+
+      await apiHandler.loginWithTelegram(req, res);
+
+      expect(commandHandler.loginWithTelegram).not.toHaveBeenCalled();
+      expect(res.redirect).toHaveBeenCalledWith(
+        "http://localhost:5173/auth/telegram-link?code=oauth-code-abc"
+      );
+    });
+  });
+
   describe("Security — getUserById has no ownership check (IDOR)", () => {
     it("[BUG-US-006] getUserById should reject access to other users profile", async () => {
       const res = createMockResponse();

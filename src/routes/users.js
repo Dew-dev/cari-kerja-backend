@@ -25,8 +25,12 @@ module.exports = (server) => {
     const config = require("../config/global_config");
     const clientId = config.get("/telegramAuth/clientId");
     const redirectUri = config.get("/telegramAuth/redirectUri");
-    const { role_id, origin } = req.query;
-    const state = JSON.stringify({ role_id: Number(role_id) || 1, origin });
+    const { role_id, origin, purpose } = req.query;
+    const state = JSON.stringify({
+      role_id: Number(role_id) || 1,
+      origin,
+      purpose: purpose === "link" ? "link" : "login",
+    });
     const authUrl = `https://oauth.telegram.org/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid+profile&state=${encodeURIComponent(state)}`;
     return res.redirect(authUrl);
   });
