@@ -12,7 +12,8 @@ const verifyEmployerParamType = joi.object({
 
 const updateJobStatusParamType = joi.object({
   id: joi.string().uuid().required(),
-  status: joi.string().valid("OPEN", "CLOSED", "DRAFT", "PENDING", "REJECTED", "ARCHIVED").required()
+  status: joi.string().valid("OPEN", "CLOSED", "DRAFT", "PENDING", "REJECTED", "ARCHIVED").required(),
+  reject_reason: joi.string().max(2000).allow("", null).optional(),
 });
 
 const resolveFraudEventParamType = joi.object({

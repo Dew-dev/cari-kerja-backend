@@ -2,6 +2,7 @@ const { Server } = require("socket.io");
 const config = require("../../config/global_config");
 const { getToken, verifyAccessToken } = require("../auth/jwt_helper");
 const { assertUserNotSuspendedById } = require("../auth/account_guards");
+const { readMaintenanceFlag } = require("../../middlewares/maintenanceMode");
 const chatHandler = require("./chat_handler");
 const logger = require("../utils/logger");
 
@@ -56,9 +57,20 @@ const initSocket = (httpServer) => {
         return next(new Error("Unauthorized: invalid or expired token"));
       }
 
+      const roleId = Number(verified.data?.role_id);
+      const isAdmin = roleId === 3 || roleId === 4;
+      if (!isAdmin) {
+        const maintenance = await readMaintenanceFlag();
+        if (maintenance) {
+          return next(
+            new Error("MAINTENANCE_MODE: Platform is under maintenance. Please try again later.")
+          );
+        }
+      }
+
       const suspension = await assertUserNotSuspendedById(verified.data?.id);
       if (suspension.err) {
-        return next(new Error("Forbidden: account is suspended"));
+        return next(new Error("Forbidden: ACCOUNT_RESTRICTED: account is suspended"));
       }
 
       socket.userMeta = verified.data;

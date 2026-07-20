@@ -1,15 +1,17 @@
 const rateLimit = require("express-rate-limit");
+const { rateLimitedHandler } = require("../helpers/fraud/rate_limit_response");
+
+const WINDOW_MS = 15 * 60 * 1000;
 
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
+  windowMs: WINDOW_MS,
   max: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    success: false,
-    message: "RATE_LIMITED: Too many login attempts. Please try again later.",
-    code: 429,
-  },
+  handler: rateLimitedHandler(
+    "RATE_LIMITED: Too many login attempts. Please try again later.",
+    WINDOW_MS
+  ),
 });
 
 module.exports = loginLimiter;

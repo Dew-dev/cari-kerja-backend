@@ -22,13 +22,18 @@ const assertCountUnderLimit = async (db, { sql, values, max, message }) => {
     const result = await db.executeQuery(sql, values);
     const count = Number(result?.rows?.[0]?.count ?? 0);
     if (count >= max) {
-      return wrapper.error(new TooManyRequestsError(message));
+      return wrapper.error(
+        new TooManyRequestsError(message, { retry_after_seconds: 3600 })
+      );
     }
     return wrapper.data({ count, max });
   } catch (err) {
     logger.error(ctx, "assertCountUnderLimit", "velocity query failed", err);
     return wrapper.error(
-      new TooManyRequestsError("RATE_LIMITED: Unable to verify request rate. Please try again later.")
+      new TooManyRequestsError(
+        "RATE_LIMITED: Unable to verify request rate. Please try again later.",
+        { retry_after_seconds: 60 }
+      )
     );
   }
 };

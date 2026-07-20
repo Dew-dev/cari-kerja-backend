@@ -45,9 +45,13 @@ const response = (res, type, result, message = "", code = 200) => {
   let data = result.data;
   if (type === "fail") {
     status = false;
-    data = "";
     message = result.err.message || message;
     code = checkErrorCode(result.err);
+    data = "";
+    if (result.err?.retry_after_seconds != null) {
+      data = { retry_after_seconds: Number(result.err.retry_after_seconds) };
+      res.setHeader("Retry-After", String(data.retry_after_seconds));
+    }
   }
   return res.status(code).send({
     success: status,

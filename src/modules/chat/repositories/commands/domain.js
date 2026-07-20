@@ -18,6 +18,7 @@ const {
 const { upsertOpenFraudEvent } = require("../../../../helpers/fraud/fraud_events");
 
 const ctx = "Chat-Command-Domain";
+const MAX_MESSAGE_LENGTH = 5000;
 
 class ChatCommandDomain {
   constructor(db) {
@@ -129,6 +130,17 @@ class ChatCommandDomain {
 
   async sendMessage(payload) {
     const { conversation_id, sender_id, role_id, message, type } = payload;
+
+    if (typeof message !== "string" || !message.trim()) {
+      return wrapper.error(new BadRequestError("Message is required"));
+    }
+    if (message.length > MAX_MESSAGE_LENGTH) {
+      return wrapper.error(
+        new BadRequestError(
+          `CONTENT_REJECTED: Message exceeds maximum length of ${MAX_MESSAGE_LENGTH}`
+        )
+      );
+    }
 
     // Verify the sender is a participant in this conversation
     const conv = await this.query.getConversationByIdForParticipant(conversation_id, sender_id);

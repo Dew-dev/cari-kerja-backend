@@ -37,15 +37,33 @@ class AdminCommand {
   }
 
   async updateJobStatus(payload) {
-    const { id, status } = payload;
+    const { id, status, reject_reason } = payload;
     const job = await this.db.findOne({ id }, { id: 1 }, "job_posts");
     if (job.err) return wrapper.error(new NotFoundError("Job not found"));
 
     const statusRecord = await this.db.findOne({ name: status }, { id: 1 }, "job_post_statuses");
     if (statusRecord.err) return wrapper.error(new NotFoundError("Status not found"));
 
-    const updateQuery = `UPDATE job_posts SET status_id = $1 WHERE id = $2 RETURNING *`;
-    const result = await this.db.executeQuery(updateQuery, [statusRecord.data.id, id]);
+    const reason =
+      status === "REJECTED"
+        ? reject_reason && String(reject_reason).trim()
+          ? String(reject_reason).trim()
+          : null
+        : null;
+
+    const updateQuery = `
+      UPDATE job_posts
+      SET status_id = $1,
+          reject_reason = $2,
+          updated_at = NOW()
+      WHERE id = $3
+      RETURNING *
+    `;
+    const result = await this.db.executeQuery(updateQuery, [
+      statusRecord.data.id,
+      reason,
+      id,
+    ]);
 
     return wrapper.data(result.rows[0]);
   }
@@ -865,7 +883,7 @@ class AdminCommand {
       const statusRecord = await this.db.findOne({ name: "OPEN" }, { id: 1 }, "job_post_statuses");
       if (statusRecord.err) return wrapper.error(new NotFoundError("OPEN status not found"));
       await this.db.executeQuery(
-        `UPDATE job_posts SET status_id = $1, updated_at = NOW() WHERE id = $2`,
+        `UPDATE job_posts SET status_id = $1, reject_reason = NULL, updated_at = NOW() WHERE id = $2`,
         [statusRecord.data.id, event.entity_id]
       );
     } else if (action === "reject_job") {
@@ -874,9 +892,10 @@ class AdminCommand {
       }
       const statusRecord = await this.db.findOne({ name: "REJECTED" }, { id: 1 }, "job_post_statuses");
       if (statusRecord.err) return wrapper.error(new NotFoundError("REJECTED status not found"));
+      const reason = note && String(note).trim() ? String(note).trim() : null;
       await this.db.executeQuery(
-        `UPDATE job_posts SET status_id = $1, updated_at = NOW() WHERE id = $2`,
-        [statusRecord.data.id, event.entity_id]
+        `UPDATE job_posts SET status_id = $1, reject_reason = $2, updated_at = NOW() WHERE id = $3`,
+        [statusRecord.data.id, reason, event.entity_id]
       );
     } else if (action === "suspend_user") {
       let userId = null;
