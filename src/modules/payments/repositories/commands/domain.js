@@ -14,6 +14,9 @@ const {
   assertInvoiceCreateVelocity,
   assertPendingInvoiceCap,
 } = require("../../../../helpers/fraud/velocity");
+const {
+  assertRecruiterVerifiedForPublish,
+} = require("../../../../helpers/fraud/employer_verification");
 
 const ctx = "Payments-Command-Domain";
 
@@ -82,6 +85,14 @@ class PaymentCommandDomain {
           return wrapper.error(
             new BadRequestError("job_post_id wajib untuk order tipe boost")
           );
+        }
+
+        const verified = await assertRecruiterVerifiedForPublish(
+          this.command.db,
+          recruiter_id
+        );
+        if (verified.err) {
+          return verified;
         }
 
         const jobPostResult = await this.query.getJobPostOwner(job_post_id);

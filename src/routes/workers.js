@@ -2,6 +2,7 @@ const verifyToken = require("../middlewares/verifyToken");
 const verifyRole = require("../middlewares/verifyRole");
 const workerHandler = require("../modules/workers/handlers/api_handler");
 const { uploadAvatarWorker } = require("../middlewares/uploader");
+const { validateUploadedMagicBytes } = require("../helpers/fraud/magic_bytes");
 
 // Self-scoped worker profile routes (me / update own profile)
 const workerRoles = [1, 3]; // worker (1), super_admin (3)
@@ -38,6 +39,7 @@ module.exports = (server) => {
     verifyToken,
     verifyRole(workerRoles),
     uploadAvatarWorker.single("avatar"),
+    validateUploadedMagicBytes(),
     workerHandler.updateOneWorker
   );
   server.put(
@@ -45,6 +47,7 @@ module.exports = (server) => {
     verifyToken,
     verifyRole(workerRoles),
     uploadAvatarWorker.single("avatar"),
+    validateUploadedMagicBytes(),
     workerHandler.updateSelfWorker
   );
 };
