@@ -892,6 +892,19 @@ class AdminCommand {
         }
       } else if (event.entity_type === "user") {
         userId = event.entity_id;
+      } else if (event.entity_type === "chat_message") {
+        const meta =
+          typeof event.metadata === "string"
+            ? JSON.parse(event.metadata || "{}")
+            : event.metadata || {};
+        userId = meta.reported_user_id || null;
+        if (!userId) {
+          const sender = await this.db.executeQuery(
+            `SELECT sender_id FROM messages WHERE id = $1 LIMIT 1`,
+            [event.entity_id]
+          );
+          userId = sender?.rows?.[0]?.sender_id || null;
+        }
       }
       if (!userId) {
         return wrapper.error(new BadRequestError("Unable to resolve user to suspend for this event"));
@@ -918,6 +931,30 @@ class AdminCommand {
       `,
       [id, resolutionStatus, admin_user_id || null, action, note || null]
     );
+
+    // Sync linked chat_reports if present in metadata
+    try {
+      const meta =
+        typeof event.metadata === "string"
+          ? JSON.parse(event.metadata || "{}")
+          : event.metadata || {};
+      if (meta.chat_report_id) {
+        await this.db.executeQuery(
+          `
+          UPDATE chat_reports SET
+            status = 'resolved',
+            resolved_by = $2,
+            resolved_at = NOW(),
+            resolution_note = $3,
+            updated_at = NOW()
+          WHERE id = $1 AND status = 'open'
+          `,
+          [meta.chat_report_id, admin_user_id || null, note || null]
+        );
+      }
+    } catch (_) {
+      // non-fatal
+    }
 
     await this.insertAuditLog({
       user_id: admin_user_id,

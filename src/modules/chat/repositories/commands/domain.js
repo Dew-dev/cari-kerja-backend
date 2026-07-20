@@ -6,9 +6,16 @@ const logger = require("../../../../helpers/utils/logger");
 const {
   ForbiddenError,
   BadRequestError,
+  NotFoundError,
+  ConflictError,
 } = require("../../../../helpers/errors");
 const { formatConversation, formatMessage } = require("../../helpers/format");
 const { assertChatVelocity } = require("../../../../helpers/fraud/velocity");
+const {
+  assertUsersNotBlocked,
+  assertWorkerCanStartChat,
+} = require("../../../../helpers/fraud/chat_guards");
+const { upsertOpenFraudEvent } = require("../../../../helpers/fraud/fraud_events");
 
 const ctx = "Chat-Command-Domain";
 
@@ -19,7 +26,7 @@ class ChatCommandDomain {
   }
 
   async startConversation(payload) {
-    const { job_id } = payload;
+    const { job_id, role_id } = payload;
 
     // FE often sends workers.id / recruiters.id (profile), but conversations FK users(id).
     const workerResolved = await this.query.resolveWorkerUserId(payload.worker_id);
@@ -33,10 +40,15 @@ class ChatCommandDomain {
 
     const worker_id = workerResolved.data;
     const recruiter_id = recruiterResolved.data;
-    const viewerUserId = payload.role_id === 1 ? worker_id : recruiter_id;
+    const viewerUserId = role_id === 1 ? worker_id : recruiter_id;
 
     if (worker_id === recruiter_id) {
       return wrapper.error(new BadRequestError("Worker and recruiter cannot be the same user"));
+    }
+
+    const blocked = await assertUsersNotBlocked(this.command.db, worker_id, recruiter_id);
+    if (blocked.err) {
+      return blocked;
     }
 
     // Check if a conversation already exists between these participants
@@ -52,6 +64,18 @@ class ChatCommandDomain {
 
     let conversationId = existing.data?.id;
     if (!conversationId) {
+      // New thread gating: recruiters may initiate; workers only after applying.
+      if (Number(role_id) === 1) {
+        const gate = await assertWorkerCanStartChat(
+          this.command.db,
+          worker_id,
+          recruiter_id
+        );
+        if (gate.err) {
+          return gate;
+        }
+      }
+
       conversationId = uuidv4();
       const created = await this.command.createConversation({
         id: conversationId,
@@ -113,6 +137,21 @@ class ChatCommandDomain {
       return wrapper.error(new ForbiddenError("Conversation not found or access denied"));
     }
 
+    if (String(conv.data.status || "").toUpperCase() === "ARCHIVED") {
+      return wrapper.error(
+        new ForbiddenError("CHAT_ARCHIVED: Cannot send messages in an archived conversation")
+      );
+    }
+
+    const otherUserId =
+      conv.data.worker_id === sender_id
+        ? conv.data.recruiter_id
+        : conv.data.worker_id;
+    const blocked = await assertUsersNotBlocked(this.command.db, sender_id, otherUserId);
+    if (blocked.err) {
+      return blocked;
+    }
+
     const velocity = await assertChatVelocity(this.command.db, sender_id);
     if (velocity.err) {
       return velocity;
@@ -139,7 +178,14 @@ class ChatCommandDomain {
     if (enriched.err) {
       // Fallback to raw insert row if enrich query somehow fails
       logger.error(ctx, "sendMessage - enrich failed", "domain", enriched.err);
-      return wrapper.data(formatMessage({ ...result.data, sender_username: null, sender_name: null, sender_avatar: null }));
+      return wrapper.data(
+        formatMessage({
+          ...result.data,
+          sender_username: null,
+          sender_name: null,
+          sender_avatar: null,
+        })
+      );
     }
 
     logger.info(ctx, "sendMessage", "message sent", { messageId, conversation_id, sender_id });
@@ -169,6 +215,158 @@ class ChatCommandDomain {
 
     logger.info(ctx, "markAsRead", "messages marked as read", { conversation_id, user_id });
     return wrapper.data({ success: true, conversation_id });
+  }
+
+  async blockUser(payload) {
+    const { blocker_user_id, blocked_user_id } = payload;
+    if (blocker_user_id === blocked_user_id) {
+      return wrapper.error(new BadRequestError("Cannot block yourself"));
+    }
+
+    const userCheck = await this.command.db.executeQuery(
+      `SELECT id FROM users WHERE id = $1 AND deleted_at IS NULL LIMIT 1`,
+      [blocked_user_id]
+    );
+    if (!userCheck?.rows?.length) {
+      return wrapper.error(new NotFoundError("User to block not found"));
+    }
+
+    try {
+      const result = await this.command.db.executeQuery(
+        `
+        INSERT INTO chat_blocks (id, blocker_user_id, blocked_user_id)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (blocker_user_id, blocked_user_id) DO NOTHING
+        RETURNING *
+        `,
+        [uuidv4(), blocker_user_id, blocked_user_id]
+      );
+      if (result?.rows?.length) {
+        return wrapper.data(result.rows[0]);
+      }
+      const existing = await this.command.db.executeQuery(
+        `SELECT * FROM chat_blocks WHERE blocker_user_id = $1 AND blocked_user_id = $2 LIMIT 1`,
+        [blocker_user_id, blocked_user_id]
+      );
+      return wrapper.data(existing.rows[0]);
+    } catch (err) {
+      logger.error(ctx, "blockUser", "failed", err);
+      return wrapper.error(new ConflictError("Failed to block user"));
+    }
+  }
+
+  async unblockUser(payload) {
+    const { blocker_user_id, blocked_user_id } = payload;
+    const result = await this.command.db.executeQuery(
+      `
+      DELETE FROM chat_blocks
+      WHERE blocker_user_id = $1 AND blocked_user_id = $2
+      RETURNING id
+      `,
+      [blocker_user_id, blocked_user_id]
+    );
+    if (!result?.rows?.length) {
+      return wrapper.error(new NotFoundError("Block not found"));
+    }
+    return wrapper.data({ success: true, blocked_user_id });
+  }
+
+  async listBlocks(payload) {
+    const { user_id } = payload;
+    const result = await this.command.db.executeQuery(
+      `
+      SELECT id, blocker_user_id, blocked_user_id, created_at
+      FROM chat_blocks
+      WHERE blocker_user_id = $1
+      ORDER BY created_at DESC
+      `,
+      [user_id]
+    );
+    return wrapper.data(result?.rows || []);
+  }
+
+  async reportConversation(payload) {
+    const { conversation_id, reporter_user_id, message_id, reason } = payload;
+
+    const conv = await this.query.getConversationByIdForParticipant(
+      conversation_id,
+      reporter_user_id
+    );
+    if (conv.err || !conv.data) {
+      return wrapper.error(
+        new ForbiddenError("Conversation not found or access denied")
+      );
+    }
+
+    const reported_user_id =
+      conv.data.worker_id === reporter_user_id
+        ? conv.data.recruiter_id
+        : conv.data.worker_id;
+
+    if (message_id) {
+      const msg = await this.command.db.executeQuery(
+        `
+        SELECT id, sender_id FROM messages
+        WHERE id = $1 AND conversation_id = $2
+        LIMIT 1
+        `,
+        [message_id, conversation_id]
+      );
+      if (!msg?.rows?.length) {
+        return wrapper.error(new NotFoundError("Message not found in this conversation"));
+      }
+      if (msg.rows[0].sender_id === reporter_user_id) {
+        return wrapper.error(new BadRequestError("Cannot report your own message"));
+      }
+    }
+
+    const reportId = uuidv4();
+    const insert = await this.command.db.executeQuery(
+      `
+      INSERT INTO chat_reports (
+        id, reporter_user_id, reported_user_id, conversation_id, message_id, reason, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, 'open')
+      RETURNING *
+      `,
+      [
+        reportId,
+        reporter_user_id,
+        reported_user_id,
+        conversation_id,
+        message_id || null,
+        reason,
+      ]
+    );
+
+    if (!insert?.rows?.length) {
+      return wrapper.error(new ConflictError("Failed to create chat report"));
+    }
+
+    const entityType = message_id ? "chat_message" : "user";
+    const entityId = message_id || reported_user_id;
+    await upsertOpenFraudEvent(this.command.db, {
+      entity_type: entityType,
+      entity_id: entityId,
+      source: "chat_report",
+      risk_score: 50,
+      flags: [{ code: "USER_REPORT", detail: reason, weight: 50 }],
+      summary: `Chat report: ${reason}`.slice(0, 500),
+      metadata: {
+        chat_report_id: reportId,
+        conversation_id,
+        message_id: message_id || null,
+        reporter_user_id,
+        reported_user_id,
+      },
+    });
+
+    logger.info(ctx, "reportConversation", "report created", {
+      reportId,
+      conversation_id,
+      reporter_user_id,
+    });
+
+    return wrapper.data(insert.rows[0]);
   }
 }
 
