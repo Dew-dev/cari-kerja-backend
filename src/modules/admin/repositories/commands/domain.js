@@ -62,6 +62,10 @@ class AdminCommand {
         await this.db.executeQuery(updateQuery, [key, valStr]);
       }
     }
+    try {
+      const { invalidateMaintenanceCache } = require("../../../../middlewares/maintenanceMode");
+      invalidateMaintenanceCache();
+    } catch (_) {}
     return wrapper.data("System settings updated successfully");
   }
 

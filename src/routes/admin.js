@@ -8,6 +8,7 @@ const superAdminOnly = [3];
 
 module.exports = (server) => {
   server.get("/api/v1/admin/stats", verifyToken, verifyRole(allowedRoles), adminHandler.getDashboardStats);
+  server.get("/api/v1/admin/dashboard/trust", verifyToken, verifyRole(allowedRoles), adminHandler.getDashboardTrustStats);
   server.get("/api/v1/admin/dashboard/growth", verifyToken, verifyRole(allowedRoles), adminHandler.getDashboardGrowth);
   server.get("/api/v1/admin/dashboard/job-distribution", verifyToken, verifyRole(allowedRoles), adminHandler.getDashboardJobDistribution);
   server.get("/api/v1/admin/dashboard/activities", verifyToken, verifyRole(allowedRoles), adminHandler.getDashboardActivities);

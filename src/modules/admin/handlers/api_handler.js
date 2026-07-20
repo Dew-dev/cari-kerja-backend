@@ -15,6 +15,11 @@ const getDashboardStats = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const getDashboardTrustStats = async (req, res) => {
+  const result = await queryHandler.getDashboardTrustStats();
+  return sendResponse(result, res);
+};
+
 const getDashboardGrowth = async (req, res) => {
   const payload = { ...req.query };
   const validatePayload = validator.isValidPayload(payload, queryModel.getDashboardGrowthParamType);
@@ -747,6 +752,7 @@ const deleteCity = async (req, res) => {
 
 module.exports = {
   getDashboardStats,
+  getDashboardTrustStats,
   getDashboardGrowth,
   getDashboardJobDistribution,
   getDashboardActivities,
