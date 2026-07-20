@@ -264,10 +264,12 @@ const getCurrencyByCode = async (req, res) => {
 };
 
 const updateJobPostStatus = async (req, res) => {
-  const payload = req.body;
+  const payload = {
+    ...req.body,
+    recruiter_id: req.userMeta?.recruiter_id,
+  };
   const { id } = req.params;
 
-  // return payload;
   const result = await commandHandler.updateJobPostStatus(payload, id);
   return sendResponse(result, res, 201);
 };
