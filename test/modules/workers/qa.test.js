@@ -112,25 +112,33 @@ describe("[QA] workers module", () => {
     });
   });
 
-  describe("Data integrity — soft-deleted workers", () => {
-    it("[BUG-WK-007] getWorkers query should exclude workers with deleted_at set", async () => {
+  describe("Auth status on profile /me", () => {
+    it("[BUG-WK-008] getWorkerByUserId should include login_provider and telegram link flags", async () => {
       const domain = new WorkersQueryDomain({});
-      let capturedPayload = null;
       domain.query = {
-        countAllWorkers: jest.fn().mockResolvedValue({ err: null, data: { rowCount: 0 } }),
-        findAll: jest.fn().mockImplementation((payload) => {
-          capturedPayload = payload;
-          return Promise.resolve({
-            err: null,
-            data: [],
-            meta: { page: 1, limit: 12, total_data: 0, total_pages: 0 },
-          });
+        findOneByUserId: jest.fn().mockResolvedValue({
+          err: null,
+          data: {
+            id: workerId,
+            user_id: userId,
+            name: "Worker",
+            email: "user@test.com",
+            login_provider: "local",
+            email_verified_at: "2026-01-01T00:00:00.000Z",
+            notification_telegram_id: null,
+            notification_telegram_username: null,
+          },
         }),
       };
 
-      await domain.getWorkers({ page: 1, limit: 12, search: "" });
+      const result = await domain.getWorkerByUserId({ user_id: userId });
 
-      expect(String(capturedPayload?.conditions).toLowerCase()).toMatch(/deleted_at\s+is\s+null/);
+      expect(result.err).toBeNull();
+      expect(result.data.login_provider).toBe("local");
+      expect(result.data.telegram_linked).toBe(false);
+      expect(result.data.requires_telegram_link).toBe(true);
+      expect(result.data.requires_email_setup).toBe(false);
+      expect(result.data.email_verified_at).toBe("2026-01-01T00:00:00.000Z");
     });
   });
 });

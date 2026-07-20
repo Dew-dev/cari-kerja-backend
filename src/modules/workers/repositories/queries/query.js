@@ -28,7 +28,11 @@ class Query {
              w.address, w.profile_summary, w.current_salary, w.expected_salary,
              c1.id AS current_salary_currency_id, c1.code AS current_salary_currency_code, c1.name AS current_salary_currency_name, c1.symbol AS current_salary_currency_symbol,
              c2.id AS expected_salary_currency_id, c2.code AS expected_salary_currency_code, c2.name AS expected_salary_currency_name, c2.symbol AS expected_salary_currency_symbol,
-             u.email
+             u.email,
+             u.login_provider,
+             u.email_verified_at,
+             u.notification_telegram_id,
+             u.notification_telegram_username
       FROM ${collection} w
       LEFT JOIN genders g ON w.gender_id = g.id
       LEFT JOIN users u ON w.user_id = u.id

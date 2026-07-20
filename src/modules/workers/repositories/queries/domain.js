@@ -2,6 +2,7 @@ const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError } = require("../../../../helpers/errors");
+const { buildAuthStatus } = require("../../../../helpers/auth/login_status");
 const ctx = "Worker-Query-Domain";
 
 class Worker {
@@ -18,7 +19,10 @@ class Worker {
       return wrapper.error(new NotFoundError("Can not find worker"));
     }
 
-    return wrapper.data(worker.data);
+    return wrapper.data({
+      ...worker.data,
+      ...buildAuthStatus(worker.data),
+    });
   }
 
   async getWorkerById(payload) {

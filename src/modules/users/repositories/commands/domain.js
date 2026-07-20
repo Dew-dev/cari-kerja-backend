@@ -37,26 +37,14 @@ const bcrypt = require("bcrypt");
 const resetPasswordEmail = require("../../../../helpers/utils/resetPasswordEmail");
 const verifyEmailTemplate = require("../../../../helpers/utils/verifyEmail");
 const { addEmailJob } = require("../../../../helpers/queues/email.queue");
+const {
+  isTelegramPlaceholderEmail,
+  needsEmailSetup,
+  needsTelegramLink,
+  buildAuthStatus,
+} = require("../../../../helpers/auth/login_status");
 const COOLDOWN_SECONDS = 60;
 const MAX_PER_HOUR = 5;
-const TELEGRAM_PLACEHOLDER_EMAIL_RE = /^telegram_.+@carikerja\.id$/i;
-
-const isTelegramPlaceholderEmail = (email) =>
-  typeof email === "string" && TELEGRAM_PLACEHOLDER_EMAIL_RE.test(email);
-
-const needsEmailSetup = (user) => {
-  if (!user || user.login_provider !== "telegram") return false;
-  if (!user.email || isTelegramPlaceholderEmail(user.email)) return true;
-  return !user.email_verified_at;
-};
-
-const needsTelegramLink = (user) => {
-  if (!user) return false;
-  if (user.login_provider !== "local" && user.login_provider !== "google") {
-    return false;
-  }
-  return !user.notification_telegram_id;
-};
 
 class User {
   constructor(db) {
@@ -701,6 +689,7 @@ class User {
         role_id: 1,
         email_verified_at: 1,
         notification_telegram_id: 1,
+        notification_telegram_username: 1,
         username: 1,
       },
     );
@@ -740,20 +729,15 @@ class User {
       ...userData.data,
       login_provider: userData.data.login_provider,
     });
-    const requires_email_setup = needsEmailSetup(userData.data);
-    const requires_telegram_link = needsTelegramLink(userData.data);
+    const authStatus = buildAuthStatus(userData.data);
 
     return wrapper.data({
       token: accessToken,
       user: {
         ...userData.data,
-        requires_email_setup,
-        requires_email_update: requires_email_setup,
-        requires_telegram_link,
+        ...authStatus,
       },
-      requires_email_setup,
-      requires_email_update: requires_email_setup,
-      requires_telegram_link,
+      ...authStatus,
     });
   }
 
