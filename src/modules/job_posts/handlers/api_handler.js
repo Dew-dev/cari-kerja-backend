@@ -126,7 +126,7 @@ const getJobpostQuestions = async (req, res) => {
 };
 
 const getJobposts = async (req, res) => {
-  let payload = { ...req.query };
+  let payload = { ...req.query, listing: "public" };
   // //console.log("req.userMeta", req.userMeta);
   if (req.userMeta?.worker_id) {
     payload = { ...payload, user_id: req.userMeta.worker_id };
@@ -140,6 +140,23 @@ const getJobposts = async (req, res) => {
     return sendResponse(validatePayload, res);
   }
   const result = await queryHandler.getJobposts(validatePayload.data);
+  return paginationResponse(result, res);
+};
+
+const getHotJobposts = async (req, res) => {
+  let payload = { ...req.query, listing: "hot" };
+  if (req.userMeta?.worker_id) {
+    payload = { ...payload, user_id: req.userMeta.worker_id };
+  }
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getJobpostsParamType
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+  const result = await queryHandler.getHotJobposts(validatePayload.data);
   return paginationResponse(result, res);
 };
 
@@ -448,6 +465,7 @@ module.exports = {
   createJobPostQuestions,
   updateJobPostQuestions,
   getJobposts,
+  getHotJobposts,
   getJobpostsSelf,
   getJobpostQuestions,
   createJobPostAnswers,

@@ -48,6 +48,7 @@ const getJobpostsParamType = joi.object({
   user_id: joi.string().optional(),
   exclude_id: joi.string().uuid().optional(),
   recommendations: joi.boolean().optional(),
+  listing: joi.string().valid("public", "hot").optional(),
 });
 
 const getJobpostsSelfParamType = joi.object({

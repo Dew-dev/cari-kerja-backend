@@ -43,6 +43,8 @@ class Jobposts {
       exclude_id,
       self = false,
       recommendations = false, // 🎯 Enable/disable skill-based recommendations (default: true)
+      // public: OPEN + exclude hot | hot: OPEN + boost_type hot | unset: recruiter/self filters
+      listing = null,
     } = payload;
 
     const conditions = [];
@@ -59,7 +61,16 @@ class Jobposts {
       idx += 1;
     }
 
-    if (status !== undefined && status !== null && status !== "") {
+    // Public catalogue and HOT catalogue always require OPEN (status_id = 1)
+    if (listing === "public" || listing === "hot") {
+      conditions.push(` AND j.status_id = 1`);
+      if (listing === "hot") {
+        conditions.push(` AND j.boost_type = 'hot'`);
+      } else {
+        // Regular list: everything except hot boost
+        conditions.push(` AND (j.boost_type IS NULL OR j.boost_type <> 'hot')`);
+      }
+    } else if (status !== undefined && status !== null && status !== "") {
       conditions.push(` AND jps.name = $${idx}`);
       values.push(status);
       idx += 1;
@@ -121,16 +132,19 @@ class Jobposts {
       idx += 1;
     }
 
-    if (boost_type !== undefined && boost_type !== null && boost_type !== "") {
-      conditions.push(` AND j.boost_type = $${idx}`);
-      values.push(boost_type);
-      idx += 1;
-    }
+    // Client boost filters only for recruiter/self listings
+    if (listing !== "public" && listing !== "hot") {
+      if (boost_type !== undefined && boost_type !== null && boost_type !== "") {
+        conditions.push(` AND j.boost_type = $${idx}`);
+        values.push(boost_type);
+        idx += 1;
+      }
 
-    if (is_hot !== undefined && is_hot !== null && is_hot !== "") {
-      conditions.push(` AND j.is_hot = $${idx}`);
-      values.push(is_hot);
-      idx += 1;
+      if (is_hot !== undefined && is_hot !== null && is_hot !== "") {
+        conditions.push(` AND j.is_hot = $${idx}`);
+        values.push(is_hot);
+        idx += 1;
+      }
     }
 
     if (is_remote !== undefined && is_remote !== null && is_remote !== "") {
