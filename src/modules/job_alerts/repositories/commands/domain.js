@@ -24,7 +24,10 @@ class JobAlertsCommand {
     const { worker_id, enabled } = payload;
 
     const pref = await this.query.findWorkerJobAlertsPreference(worker_id);
-    if (pref.err || !pref.data) {
+    if (pref.err) {
+      return wrapper.error(new InternalServerError("Failed to fetch job alerts preference"));
+    }
+    if (!pref.data) {
       return wrapper.error(new NotFoundError("Worker not found"));
     }
 

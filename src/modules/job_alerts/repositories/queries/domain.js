@@ -1,6 +1,6 @@
 const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
-const { NotFoundError } = require("../../../../helpers/errors");
+const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
 
 class JobAlertsQuery {
   constructor(db) {
@@ -9,7 +9,10 @@ class JobAlertsQuery {
 
   async getPreferences(payload) {
     const result = await this.query.findWorkerJobAlertsPreference(payload.worker_id);
-    if (result.err || !result.data) {
+    if (result.err) {
+      return wrapper.error(new InternalServerError("Failed to fetch job alerts preference"));
+    }
+    if (!result.data) {
       return wrapper.error(new NotFoundError("Worker not found"));
     }
 

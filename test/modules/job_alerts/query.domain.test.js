@@ -1,5 +1,5 @@
 const JobAlertsQueryDomain = require("../../../src/modules/job_alerts/repositories/queries/domain");
-const { NotFoundError } = require("../../../src/helpers/errors");
+const { NotFoundError, InternalServerError } = require("../../../src/helpers/errors");
 
 describe("Job Alerts Query Domain", () => {
   const workerId = "550e8400-e29b-41d4-a716-446655440002";
@@ -48,6 +48,16 @@ describe("Job Alerts Query Domain", () => {
     expect(result.data.active).toBe(false);
     expect(result.data.has_email).toBe(false);
     expect(result.data.enabled).toBe(true);
+  });
+
+  it("should return InternalServerError when preference query fails", async () => {
+    mockQuery.findWorkerJobAlertsPreference.mockResolvedValue({
+      err: "Error querying PostgreSQL",
+      data: null,
+    });
+
+    const result = await domain.getPreferences({ worker_id: workerId });
+    expect(result.err).toBeInstanceOf(InternalServerError);
   });
 
   it("should return NotFoundError when worker missing", async () => {
