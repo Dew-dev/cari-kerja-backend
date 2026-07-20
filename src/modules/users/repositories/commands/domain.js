@@ -17,6 +17,8 @@ const {
   TooManyRequestsError,
 } = require("../../../../helpers/errors");
 const { isDisposableEmail } = require("../../../../helpers/fraud/disposable_email");
+const { isDisposablePhone } = require("../../../../helpers/fraud/disposable_phone");
+const { ACTIONS } = require("../../../../helpers/audit/actions");
 const config = require("../../../../config/global_config");
 const { verifyTelegramOidcToken } = require("../../../../helpers/auth/telegram_oidc");
 const axios = require("axios");
@@ -110,6 +112,12 @@ class User {
       user.data.hashed_password,
     );
     if (!passwordMatch) {
+      await this.command.insertAuditLog({
+        user_id: user.data.id,
+        action: ACTIONS.AUTH_LOGIN_FAILED,
+        ip_address: payload.ip_address || "Unknown",
+        user_agent: payload.user_agent || "Unknown",
+      });
       return wrapper.error(new BadRequestError("Wrong username or password"));
     }
     delete user.data.hashed_password;
@@ -170,7 +178,7 @@ class User {
     // Insert Audit Log
     await this.command.insertAuditLog({
       user_id: user.data.id,
-      action: "LOGIN",
+      action: ACTIONS.AUTH_LOGIN_SUCCESS,
       ip_address: payload.ip_address || "Unknown",
       user_agent: payload.user_agent || "Unknown"
     });
@@ -296,7 +304,7 @@ class User {
     // Insert Audit Log
     await this.command.insertAuditLog({
       user_id: data.id,
-      action: "LOGIN_GOOGLE",
+      action: ACTIONS.AUTH_LOGIN_GOOGLE,
       ip_address: payload.ip_address || "Unknown",
       user_agent: payload.user_agent || "Unknown"
     });
@@ -457,7 +465,7 @@ class User {
     // Insert Audit Log
     await this.command.insertAuditLog({
       user_id: data.id,
-      action: "LOGIN_TELEGRAM",
+      action: ACTIONS.AUTH_LOGIN_TELEGRAM,
       ip_address: payload.ip_address || "Unknown",
       user_agent: payload.user_agent || "Unknown",
     });
@@ -581,6 +589,12 @@ class User {
     if (isDisposableEmail(email)) {
       return wrapper.error(
         new BadRequestError("CONTENT_REJECTED: Disposable email addresses are not allowed")
+      );
+    }
+
+    if (isDisposablePhone(contact_phone)) {
+      return wrapper.error(
+        new BadRequestError("CONTENT_REJECTED: Invalid or disposable phone number")
       );
     }
 

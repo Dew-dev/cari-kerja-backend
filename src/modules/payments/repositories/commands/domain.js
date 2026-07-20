@@ -17,6 +17,10 @@ const {
 const {
   assertRecruiterVerifiedForPublish,
 } = require("../../../../helpers/fraud/employer_verification");
+const {
+  flagPaymentSessionAnomaly,
+} = require("../../../../helpers/fraud/session_anomaly");
+const { ACTIONS } = require("../../../../helpers/audit/actions");
 
 const ctx = "Payments-Command-Domain";
 
@@ -36,7 +40,16 @@ class PaymentCommandDomain {
    * Buat invoice pembayaran dan simpan order
    * Mendukung 3 tipe order: subscription, single_post, boost
    */
-  async createInvoice({ recruiter_id, user_email, order_type, plan_id, job_post_id }) {
+  async createInvoice({
+    recruiter_id,
+    user_email,
+    user_id,
+    order_type,
+    plan_id,
+    job_post_id,
+    ip_address,
+    user_agent,
+  }) {
     try {
       const pendingCap = await assertPendingInvoiceCap(this.command.db, recruiter_id);
       if (pendingCap.err) {
@@ -137,6 +150,14 @@ class PaymentCommandDomain {
         ? new Date(xenditInvoice.expiry_date)
         : new Date(Date.now() + 24 * 60 * 60 * 1000);
 
+      const metadata = {
+        plan_name: plan.name,
+        plan_display_name: plan.display_name,
+        xendit_invoice_url: xenditInvoice.invoice_url,
+        request_ip: ip_address || null,
+        request_user_agent: user_agent || null,
+      };
+
       const insertResult = await this.command.insertPaymentOrder({
         id: orderId,
         recruiter_id,
@@ -149,11 +170,7 @@ class PaymentCommandDomain {
         amount,
         status: "pending",
         invoice_expires_at: invoiceExpiresAt,
-        metadata: {
-          plan_name: plan.name,
-          plan_display_name: plan.display_name,
-          xendit_invoice_url: xenditInvoice.invoice_url,
-        },
+        metadata,
       });
 
       if (!insertResult?.rows?.length) {
@@ -164,6 +181,42 @@ class PaymentCommandDomain {
         return wrapper.error(
           new InternalServerError("Gagal menyimpan payment order")
         );
+      }
+
+      // Soft-signal only — never block payment on session anomaly
+      const anomaly = await flagPaymentSessionAnomaly(this.command.db, {
+        userId: user_id,
+        recruiterId: recruiter_id,
+        orderId,
+        ip_address,
+        user_agent,
+        order_type,
+      });
+      if (anomaly?.data?.flagged) {
+        metadata.session_anomaly = {
+          risk_score: anomaly.data.risk_score,
+          flags: anomaly.data.flags,
+        };
+        try {
+          await this.command.db.executeQuery(
+            `UPDATE payment_orders SET metadata = $2::jsonb, updated_at = NOW() WHERE id = $1`,
+            [orderId, JSON.stringify(metadata)]
+          );
+          if (user_id) {
+            await this.command.db.executeQuery(
+              `INSERT INTO audit_logs (user_id, action, ip_address, user_agent)
+               VALUES ($1, $2, $3, $4)`,
+              [
+                user_id,
+                ACTIONS.PAYMENT_SESSION_ANOMALY,
+                ip_address || null,
+                user_agent || null,
+              ]
+            );
+          }
+        } catch (metaErr) {
+          logger.error(ctx, "createInvoice", "Failed to persist session anomaly metadata", metaErr);
+        }
       }
 
       return wrapper.data({

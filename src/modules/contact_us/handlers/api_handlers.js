@@ -7,6 +7,7 @@ const {
   sendResponse,
   paginationResponse,
 } = require("../../../helpers/utils/response");
+const wrapper = require("../../../helpers/utils/wrapper");
 const { verifyCaptchaToken } = require("../../../helpers/captcha/turnstile");
 
 const createContactMessage = async (req, res) => {
@@ -18,7 +19,13 @@ const createContactMessage = async (req, res) => {
     return sendResponse(validatePayload, res);
   }
 
-  const { captcha_token, ...data } = validatePayload.data;
+  const { captcha_token, website, ...data } = validatePayload.data;
+
+  // Honeypot: pretend success without persisting when bots fill hidden field
+  if (website && String(website).trim().length > 0) {
+    return sendResponse(wrapper.data({ id: "ok" }), res, 201);
+  }
+
   const captchaResult = await verifyCaptchaToken(captcha_token, req.ip);
   if (captchaResult.err) {
     return sendResponse(captchaResult, res);

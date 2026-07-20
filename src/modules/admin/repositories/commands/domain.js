@@ -6,6 +6,7 @@ const { LOOKUP_CONFIG } = require("../../helpers/lookup_config");
 const { PLAN_CONFIG } = require("../../helpers/plan_config");
 const { WORKER_SUBRESOURCES } = require("../../helpers/worker_subresource_config");
 const { deleteObjectStream } = require("../../../../helpers/databases/r2-cloudflare/oss");
+const { ACTIONS } = require("../../../../helpers/audit/actions");
 const { v4: uuidv4 } = require("uuid");
 
 class AdminCommand {
@@ -962,7 +963,7 @@ class AdminCommand {
 
     await this.insertAuditLog({
       user_id: admin_user_id,
-      action: `fraud_event.resolve.${action}`,
+      action: ACTIONS.FRAUD_EVENT_RESOLVE(action),
       ip_address: payload.ip_address || null,
       user_agent: payload.user_agent || null,
     });

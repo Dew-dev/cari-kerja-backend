@@ -6,9 +6,12 @@ const joi = require("joi");
 const createInvoiceParamType = joi.object({
   recruiter_id: joi.string().uuid().required(),
   user_email: joi.string().email().required(),
+  user_id: joi.string().uuid().optional().allow(null, ""),
   order_type: joi.string().valid("subscription", "single_post", "boost").required(),
   plan_id: joi.number().integer().positive().required(),
   job_post_id: joi.string().uuid().optional().allow(null, ""),
+  ip_address: joi.string().optional().allow("", null),
+  user_agent: joi.string().optional().allow("", null),
   // wajib jika order_type = 'boost'
 });
 

@@ -11,6 +11,11 @@ const {
   deleteCookie,
 } = require("../../../helpers/auth/cookie_helper");
 const { verifyCaptchaToken } = require("../../../helpers/captcha/turnstile");
+const {
+  requiresCaptcha,
+  incrementFailure,
+  clearFailures,
+} = require("../../../helpers/fraud/login_failures");
 const joi = require("joi");
 
 // super_admin (role_id 3) is allowed to access any user's profile
@@ -41,10 +46,10 @@ const getUserById = async (req, res) => {
 
 // command
 const login = async (req, res) => {
-  const payload = { 
+  const payload = {
     ...req.body,
     ip_address: req.ip || req.connection?.remoteAddress,
-    user_agent: req.headers["user-agent"]
+    user_agent: req.headers["user-agent"],
   };
   const validatePayload = validator.isValidPayload(
     payload,
@@ -53,12 +58,24 @@ const login = async (req, res) => {
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
-  const result = await commandHandler.login(validatePayload.data);
+
+  const { captcha_token, ...loginData } = validatePayload.data;
+  const identity = loginData.email;
+  if (await requiresCaptcha(identity)) {
+    const captchaResult = await verifyCaptchaToken(captcha_token, req.ip);
+    if (captchaResult.err) {
+      return sendResponse(captchaResult, res);
+    }
+  }
+
+  const result = await commandHandler.login(loginData);
 
   if (result.err) {
+    await incrementFailure(identity);
     return sendResponse(result, res);
   }
 
+  await clearFailures(identity);
   storeCookie(res, "refreshToken", result?.data?.refreshToken);
   storeCookie(res, "accessToken", result?.data?.token);
   storeCookie(res, "role", result?.data?.role);

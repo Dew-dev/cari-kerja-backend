@@ -64,6 +64,7 @@ const loginParamType = joi.object({
     }),
   ip_address: joi.string().optional().allow("", null),
   user_agent: joi.string().optional().allow("", null),
+  captcha_token: joi.string().optional().allow("", null),
 });
 
 const loginWithGoogleParamType = joi.object({
