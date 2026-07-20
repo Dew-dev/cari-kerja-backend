@@ -227,6 +227,16 @@ const registerRecruiter = async (req, res) => {
 
 const updateOneUser = async (req, res) => {
   const payload = { ...req.params, ...req.body };
+
+  const ADMIN_ROLES = [3, 4];
+  const isAdmin = ADMIN_ROLES.includes(Number(req.userMeta?.role_id));
+  if (!isAdmin && req.userMeta?.id !== payload.id) {
+    return sendResponse(
+      wrapper.error(new ForbiddenError("You are not allowed to update this user")),
+      res
+    );
+  }
+
   const validatePayload = validator.isValidPayload(
     payload,
     commandModel.updateUserParamType

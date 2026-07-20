@@ -185,14 +185,29 @@ class PaymentCommandDomain {
 
       const order = orderResult.rows[0];
       const normalizedStatus = String(status || "").toUpperCase();
+      const terminalStatuses = new Set(["paid", "expired", "failed"]);
 
       // PENDING — keep order pending; do not mark failed
       if (normalizedStatus === "PENDING") {
         return wrapper.data({ order_id: order.id, status: "pending" });
       }
 
-      // EXPIRED — mark order expired
+      // EXPIRED — mark order expired (jangan downgrade paid)
       if (normalizedStatus === "EXPIRED") {
+        if (order.status === "paid") {
+          return wrapper.data({
+            order_id: order.id,
+            status: "paid",
+            message: "Already paid; ignoring expired webhook",
+          });
+        }
+        if (terminalStatuses.has(order.status)) {
+          return wrapper.data({
+            order_id: order.id,
+            status: order.status,
+            message: "Already in terminal status",
+          });
+        }
         await this.command.updateOrderStatus({
           id: order.id,
           status: "expired",
@@ -205,6 +220,20 @@ class PaymentCommandDomain {
 
       // FAILED / payment failure — mark order failed
       if (FAILED_WEBHOOK_STATUSES.has(normalizedStatus)) {
+        if (order.status === "paid") {
+          return wrapper.data({
+            order_id: order.id,
+            status: "paid",
+            message: "Already paid; ignoring failed webhook",
+          });
+        }
+        if (terminalStatuses.has(order.status)) {
+          return wrapper.data({
+            order_id: order.id,
+            status: order.status,
+            message: "Already in terminal status",
+          });
+        }
         await this.command.updateOrderStatus({
           id: order.id,
           status: "failed",
@@ -223,6 +252,13 @@ class PaymentCommandDomain {
           status: order.status,
           message: `Unhandled status: ${normalizedStatus}`,
         });
+      }
+
+      // Tolak aktivasi jika order sudah terminal non-paid (expired/failed)
+      if (order.status === "expired" || order.status === "failed") {
+        return wrapper.error(
+          new BadRequestError("Cannot mark paid: order already in terminal status")
+        );
       }
 
       // Cross-check Xendit invoice id against stored order
