@@ -178,6 +178,54 @@ describe("[QA] job_posts module", () => {
       expect(result.err).toBeNull();
       expect(result.data).toEqual([]);
     });
+
+    it("[BUG-JP-008] public listing should force OPEN and exclude hot boost", async () => {
+      const domain = new JobPostsQueryDomain({});
+      let captured = null;
+      domain.query = {
+        countAllJobPosts: jest.fn().mockResolvedValue({ data: { rowCount: 0 } }),
+        findAll: jest.fn().mockImplementation((payload) => {
+          captured = payload;
+          return Promise.resolve({
+            err: "Data Not Found Please Try Another Input",
+            data: null,
+          });
+        }),
+      };
+
+      await domain.getJobPostsLogic({
+        listing: "public",
+        page: 1,
+        limit: 10,
+      });
+
+      expect(String(captured.conditions)).toContain("j.status_id = 1");
+      expect(String(captured.conditions)).toContain("j.boost_type <> 'hot'");
+    });
+
+    it("[BUG-JP-009] hot listing should force OPEN and boost_type hot", async () => {
+      const domain = new JobPostsQueryDomain({});
+      let captured = null;
+      domain.query = {
+        countAllJobPosts: jest.fn().mockResolvedValue({ data: { rowCount: 0 } }),
+        findAll: jest.fn().mockImplementation((payload) => {
+          captured = payload;
+          return Promise.resolve({
+            err: "Data Not Found Please Try Another Input",
+            data: null,
+          });
+        }),
+      };
+
+      await domain.getJobPostsLogic({
+        listing: "hot",
+        page: 1,
+        limit: 10,
+      });
+
+      expect(String(captured.conditions)).toContain("j.status_id = 1");
+      expect(String(captured.conditions)).toContain("j.boost_type = 'hot'");
+    });
   });
 
   describe("Business logic — duplicate application", () => {
