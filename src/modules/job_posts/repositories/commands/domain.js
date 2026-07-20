@@ -708,13 +708,22 @@ class Jobpost {
 
     // Email is best-effort; status update already committed successfully
     try {
+      const config = require("../../../../config/global_config");
+      const feUrl = (config.get("/frontendUrl") || "").replace(/\/$/, "");
+      const actionUrl = feUrl
+        ? `${feUrl}/jobposts/${app.data.job_post_id}`
+        : undefined;
+
       await addEmailJob({
         to: app.data.email,
-        subject: `Application status updated — ${app.data.job_title}`,
+        subject: `Update lamaran — ${app.data.job_title}`,
         html: statusEmailTemplate({
           name: app.data.user_name,
           jobTitle: app.data.job_title,
           status: app.data.status_name,
+          stageName: app.data.status_name,
+          companyName: app.data.company_name,
+          actionUrl,
         }),
       });
     } catch (e) {
