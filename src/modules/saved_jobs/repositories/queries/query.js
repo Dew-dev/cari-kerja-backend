@@ -208,10 +208,10 @@ class Query {
               JOIN experience_levels el ON el.id = j.experience_level_id
               JOIN salary_types st ON st.id = j.salary_type_id
               JOIN workers w ON w.id = sj.worker_id
-              JOIN genders g ON g.id = w.gender_id
-              JOIN nationalities n ON n.id = w.nationality_id
-              JOIN religions r ON r.id = w.religion_id
-              JOIN marriage_statuses ms ON ms.id = w.marriage_status_id
+              LEFT JOIN genders g ON g.id = w.gender_id
+              LEFT JOIN nationalities n ON n.id = w.nationality_id
+              LEFT JOIN religions r ON r.id = w.religion_id
+              LEFT JOIN marriage_statuses ms ON ms.id = w.marriage_status_id
               JOIN recruiters rec ON rec.id = j.recruiter_id
               WHERE 1=1 ${conditions}
               ORDER BY ${orderColumn} ${orderDirection}

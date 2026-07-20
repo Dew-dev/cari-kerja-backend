@@ -224,7 +224,9 @@ const deleteUser = async (req, res) => {
 };
 
 const refreshToken = async (req, res) => {
-  const payload = { token: req.cookies.refreshToken };
+  const payload = {
+    token: req.body?.refreshToken || req.cookies.refreshToken,
+  };
   ////console.log("req.cookies.refreshToken \n", req.cookies);
   ////console.log("payload \n", payload);
   const validatePayload = validator.isValidPayload(

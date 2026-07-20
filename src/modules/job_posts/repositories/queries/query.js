@@ -61,12 +61,11 @@ class Query {
                  ${
                    user_id
                      ? `(
-        SELECT EXISTS (
-          SELECT id FROM saved_jobs sj
-          WHERE sj.worker_id = '${user_id}' AND sj.job_post_id = j.id
-        )
+        SELECT sj.id FROM saved_jobs sj
+        WHERE sj.worker_id = '${user_id}' AND sj.job_post_id = j.id
+        LIMIT 1
       ) AS saved_id,`
-                     : `false AS saved_id,`
+                     : `NULL AS saved_id,`
                  }
                 ${
                   user_id
@@ -163,12 +162,11 @@ class Query {
                 ${
                   user_id
                     ? `(
-        SELECT EXISTS (
-          SELECT id FROM saved_jobs sj
-          WHERE sj.worker_id = '${user_id}' AND sj.job_post_id = j.id
-        )
+        SELECT sj.id FROM saved_jobs sj
+        WHERE sj.worker_id = '${user_id}' AND sj.job_post_id = j.id
+        LIMIT 1
       ) AS saved_id,`
-                    : `false AS saved_id,`
+                    : `NULL AS saved_id,`
                 }
                 ${
                   user_id
