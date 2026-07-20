@@ -626,6 +626,23 @@ class AdminCommand {
     const result = await this.db.executeQuery(rawQuery, [message_id, conversation_id]);
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("Message not found"));
 
+    // Sync conversations.last_message ke pesan terbaru yang tersisa (atau NULL jika kosong)
+    const latest = await this.db.executeQuery(
+      `SELECT message, created_at
+       FROM messages
+       WHERE conversation_id = $1
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [conversation_id]
+    );
+    const latestRow = latest?.rows?.[0];
+    await this.db.executeQuery(
+      `UPDATE conversations
+       SET last_message = $1, last_message_at = $2, updated_at = NOW()
+       WHERE id = $3`,
+      [latestRow?.message ?? null, latestRow?.created_at ?? null, conversation_id]
+    );
+
     await this.insertAuditLog({
       user_id: admin_user_id,
       action: `ADMIN_DELETE_CHAT_MESSAGE ${message_id} (conversation ${conversation_id})`,
