@@ -88,6 +88,7 @@ const loginWithGoogle = async (req, res) => {
 
   const token = result?.data?.token;
   const refreshToken = result?.data?.refreshToken;
+  const requiresTelegramLink = result?.data?.requires_telegram_link;
 
   storeCookie(res, "refreshToken", refreshToken);
   storeCookie(res, "accessToken", token);
@@ -97,7 +98,10 @@ const loginWithGoogle = async (req, res) => {
   const config = require("../../../config/global_config");
   const feUrl = config.get("/frontendUrl");
   const redirectOrigin = origin || feUrl;
-  return res.redirect(`${redirectOrigin}/auth/callback?token=${token}&refreshToken=${refreshToken}`);
+  const telegramFlag = requiresTelegramLink ? "1" : "0";
+  return res.redirect(
+    `${redirectOrigin}/auth/callback?token=${token}&refreshToken=${refreshToken}&requires_telegram_link=${telegramFlag}`
+  );
 };
 
 const loginWithTelegram = async (req, res) => {
@@ -113,11 +117,30 @@ const loginWithTelegram = async (req, res) => {
   const query = req.query || {};
   const body = req.body || {};
   const headers = req.headers || {};
+  const purpose = stateData.purpose || body.purpose || "login";
+  const origin = stateData.origin || body.origin;
+  const code = query.code || body.code;
+
+  // Link-for-notifications flow: return OAuth code to FE, do NOT create a session.
+  if (purpose === "link") {
+    const config = require("../../../config/global_config");
+    const feUrl = config.get("/frontendUrl");
+    const redirectOrigin = origin || feUrl;
+    if (!code) {
+      return res.redirect(
+        `${redirectOrigin}/auth/telegram-link?error=${encodeURIComponent("missing_code")}`
+      );
+    }
+    return res.redirect(
+      `${redirectOrigin}/auth/telegram-link?code=${encodeURIComponent(code)}`
+    );
+  }
+
   const payload = {
-    code: query.code || body.code,
+    code,
     state: query.state || body.state,
     role_id: stateData.role_id || body.role_id || 1,
-    origin: stateData.origin || body.origin,
+    origin,
     ip_address: req.ip || req.connection?.remoteAddress,
     user_agent: headers["user-agent"],
   };
@@ -137,6 +160,8 @@ const loginWithTelegram = async (req, res) => {
 
   const token = result?.data?.token;
   const refreshToken = result?.data?.refreshToken;
+  const requiresEmailSetup =
+    result?.data?.requires_email_setup ?? result?.data?.requires_email_update;
 
   storeCookie(res, "refreshToken", refreshToken);
   storeCookie(res, "accessToken", token);
@@ -147,7 +172,10 @@ const loginWithTelegram = async (req, res) => {
     const config = require("../../../config/global_config");
     const feUrl = config.get("/frontendUrl");
     const redirectOrigin = payload.origin || feUrl;
-    return res.redirect(`${redirectOrigin}/auth/callback?token=${token}&refreshToken=${refreshToken}`);
+    const emailFlag = requiresEmailSetup ? "1" : "0";
+    return res.redirect(
+      `${redirectOrigin}/auth/callback?token=${token}&refreshToken=${refreshToken}&requires_email_setup=${emailFlag}&requires_email_update=${emailFlag}`
+    );
   }
 
   return sendResponse(result, res);
@@ -297,6 +325,48 @@ const changePassword = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const changeEmail = async (req, res) => {
+  const payload = {
+    user_id: req.userMeta.id,
+    email: req.body.email,
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.changeEmailParamType,
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.changeEmail(validatePayload.data);
+  if (!result.err && result?.data?.token) {
+    storeCookie(res, "accessToken", result.data.token);
+    storeCookie(res, "jp_session", result.data.token);
+  }
+  return sendResponse(result, res);
+};
+
+const linkTelegramNotification = async (req, res) => {
+  const payload = {
+    user_id: req.userMeta.id,
+    code: req.body.code,
+  };
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.linkTelegramNotificationParamType,
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+
+  const result = await commandHandler.linkTelegramNotification(
+    validatePayload.data,
+  );
+  return sendResponse(result, res);
+};
+
 const sendVerifyEmail = async (req, res) => {
   const payload = { user_id: req.userMeta.id };
 
@@ -350,6 +420,8 @@ module.exports = {
   forgotPassword,
   resetPassword,
   changePassword,
+  changeEmail,
+  linkTelegramNotification,
   verifyEmail,
   sendVerifyEmail,
   resendVerifyEmail,
