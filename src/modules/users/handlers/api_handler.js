@@ -10,6 +10,7 @@ const {
   storeCookie,
   deleteCookie,
 } = require("../../../helpers/auth/cookie_helper");
+const { verifyCaptchaToken } = require("../../../helpers/captcha/turnstile");
 const joi = require("joi");
 
 // super_admin (role_id 3) is allowed to access any user's profile
@@ -208,7 +209,14 @@ const registerWorker = async (req, res) => {
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
-  const result = await commandHandler.registerWorker(validatePayload.data);
+
+  const { captcha_token, ...data } = validatePayload.data;
+  const captchaResult = await verifyCaptchaToken(captcha_token, req.ip);
+  if (captchaResult.err) {
+    return sendResponse(captchaResult, res);
+  }
+
+  const result = await commandHandler.registerWorker(data);
   return sendResponse(result, res, 201);
 };
 
@@ -221,7 +229,14 @@ const registerRecruiter = async (req, res) => {
   if (validatePayload.err) {
     return sendResponse(validatePayload, res);
   }
-  const result = await commandHandler.registerRecruiter(validatePayload.data);
+
+  const { captcha_token, ...data } = validatePayload.data;
+  const captchaResult = await verifyCaptchaToken(captcha_token, req.ip);
+  if (captchaResult.err) {
+    return sendResponse(captchaResult, res);
+  }
+
+  const result = await commandHandler.registerRecruiter(data);
   return sendResponse(result, res, 201);
 };
 
