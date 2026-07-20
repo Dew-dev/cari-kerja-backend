@@ -44,6 +44,10 @@ const config = {
     successRedirectUrl: process.env.XENDIT_SUCCESS_REDIRECT_URL,
     failureRedirectUrl: process.env.XENDIT_FAILURE_REDIRECT_URL,
   },
+  turnstile: {
+    secretKey: process.env.TURNSTILE_SECRET_KEY || "",
+    siteKey: process.env.TURNSTILE_SITE_KEY || "",
+  },
 };
 
 const store = new confidence.Store(config);

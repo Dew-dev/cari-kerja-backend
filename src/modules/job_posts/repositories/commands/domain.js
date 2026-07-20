@@ -25,6 +25,10 @@ const jobPostQuestionParamType = require("./command_model.js");
 const tagsModel = require("../../../job_tags/repositories/commands/command_model.js");
 const statusEmailTemplate = require("../../../../helpers/utils/statusEmailTemplate");
 const { addEmailJob } = require("../../../../helpers/queues/email.queue");
+const {
+  assertRecruiterVerifiedForPublish,
+  isOpenJobStatus,
+} = require("../../../../helpers/fraud/employer_verification");
 
 class Jobpost {
   constructor(db) {
@@ -70,6 +74,17 @@ class Jobpost {
       return wrapper.error(quotaCheckResult.err);
     }
     // ======================================
+
+    // Unverified employers may create DRAFT/PENDING/etc., but not OPEN.
+    if (isOpenJobStatus(status_id)) {
+      const verified = await assertRecruiterVerifiedForPublish(
+        this.command.db,
+        recruiter_id
+      );
+      if (verified.err) {
+        return verified;
+      }
+    }
 
     const jobPostId = uuidv4();
     const data = {
@@ -376,6 +391,33 @@ class Jobpost {
 
       if (!value.id) {
         throw new Error("Field 'id' wajib ada untuk update");
+      }
+
+      const recruiterId = payload.recruiter_id;
+      if (!recruiterId) {
+        return wrapper.error(
+          new ForbiddenError("Recruiter context required to update job status"),
+        );
+      }
+
+      const job = await this.query.findOneJobPost({
+        id,
+        recruiter_id: recruiterId,
+      });
+      if (job.err || !job.data) {
+        return wrapper.error(
+          new NotFoundError("Job not found or not owned by recruiter"),
+        );
+      }
+
+      if (isOpenJobStatus(value.status_id)) {
+        const verified = await assertRecruiterVerifiedForPublish(
+          this.command.db,
+          recruiterId
+        );
+        if (verified.err) {
+          return verified;
+        }
       }
 
       const parameter = { id: id };
@@ -748,6 +790,16 @@ class Jobpost {
       return wrapper.error(
         new NotFoundError("Job not found or not owned by recruiter"),
       );
+    }
+
+    if (isOpenJobStatus(jobData.status_id)) {
+      const verified = await assertRecruiterVerifiedForPublish(
+        this.command.db,
+        recruiter_id
+      );
+      if (verified.err) {
+        return verified;
+      }
     }
 
     // 2️⃣ update job_posts - preserve existing values for fields not provided

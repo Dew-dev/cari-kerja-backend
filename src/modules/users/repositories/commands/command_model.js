@@ -117,6 +117,7 @@ const registerParamType = joi.object({
     .regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
     .message("Email format must be true"),
   name: joi.string().required(),
+  captcha_token: joi.string().optional().allow("", null),
 });
 
 const registerRecruiterParamType = joi.object({
@@ -149,6 +150,7 @@ const registerRecruiterParamType = joi.object({
   company_name: joi.string().required(),
   contact_name: joi.string().required(),
   contact_phone: joi.string().required(),
+  captcha_token: joi.string().optional().allow("", null),
 });
 
 const deleteParamType = joi.object({

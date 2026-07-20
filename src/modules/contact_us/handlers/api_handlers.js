@@ -7,6 +7,7 @@ const {
   sendResponse,
   paginationResponse,
 } = require("../../../helpers/utils/response");
+const { verifyCaptchaToken } = require("../../../helpers/captcha/turnstile");
 
 const createContactMessage = async (req, res) => {
   const validatePayload = validator.isValidPayload(
@@ -17,7 +18,13 @@ const createContactMessage = async (req, res) => {
     return sendResponse(validatePayload, res);
   }
 
-  const result = await commandHandler.createContactMessage(validatePayload.data);
+  const { captcha_token, ...data } = validatePayload.data;
+  const captchaResult = await verifyCaptchaToken(captcha_token, req.ip);
+  if (captchaResult.err) {
+    return sendResponse(captchaResult, res);
+  }
+
+  const result = await commandHandler.createContactMessage(data);
   return sendResponse(result, res, 201);
 };
 
