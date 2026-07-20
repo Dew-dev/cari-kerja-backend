@@ -185,6 +185,7 @@ class User {
             new InternalServerError("Sign up worker failed"),
           );
         }
+        data["worker_id"] = dataWorker.id;
       } else if (data.role_id == 2) {
         dataRecruiter = {
           id: uuidv4(),
@@ -200,6 +201,7 @@ class User {
             new InternalServerError("Sign up recruiter failed"),
           );
         }
+        data["recruiter_id"] = dataRecruiter.id;
       }
 
       if (result.err) {
@@ -321,6 +323,7 @@ class User {
             new InternalServerError("Sign up worker failed"),
           );
         }
+        data["worker_id"] = dataWorker.id;
       } else if (data.role_id == 2) {
         dataRecruiter = {
           id: uuidv4(),
@@ -336,6 +339,7 @@ class User {
             new InternalServerError("Sign up recruiter failed"),
           );
         }
+        data["recruiter_id"] = dataRecruiter.id;
       }
 
       if (result.err) {

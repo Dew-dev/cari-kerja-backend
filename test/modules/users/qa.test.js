@@ -11,6 +11,12 @@ jest.mock("../../../src/helpers/queues/email.queue", () => ({
   addEmailJob: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock("../../../src/helpers/auth/jwt_helper", () => ({
+  generateAccessToken: jest.fn(async (payload) => `access:${payload.worker_id || payload.recruiter_id || "none"}`),
+  generateRefreshToken: jest.fn(async () => "refresh-token"),
+  verifyRefreshToken: jest.fn(),
+}));
+
 jest.mock("uuid", () => ({
   v4: jest.fn(() => "user-uuid-1234"),
 }));
@@ -27,6 +33,9 @@ jest.mock("../../../src/modules/users/repositories/queries/query_handler", () =>
 }));
 
 const { storeCookie } = require("../../../src/helpers/auth/cookie_helper");
+const {
+  generateAccessToken,
+} = require("../../../src/helpers/auth/jwt_helper");
 const UsersCommandDomain = require("../../../src/modules/users/repositories/commands/domain");
 const apiHandler = require("../../../src/modules/users/handlers/api_handler");
 const commandHandler = require("../../../src/modules/users/repositories/commands/command_handler");
@@ -163,6 +172,66 @@ describe("[QA] users module", () => {
 
       expect(typeof countResult.data).toBe("number");
       expect(result.err).toBeInstanceOf(TooManyRequestsError);
+    });
+  });
+
+  describe("OAuth signup — JWT must include worker_id / recruiter_id", () => {
+    let domain;
+    let mockQuery;
+    let mockCommand;
+    let mockWorkerCommand;
+    let mockRecruiterCommand;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      domain = new UsersCommandDomain({});
+      mockQuery = { findOne: jest.fn() };
+      mockCommand = {
+        insertOne: jest.fn().mockResolvedValue({ err: null, data: true }),
+        insertAuditLog: jest.fn().mockResolvedValue({ err: null, data: true }),
+      };
+      mockWorkerCommand = {
+        insertOne: jest.fn().mockResolvedValue({ err: null, data: true }),
+      };
+      mockRecruiterCommand = {
+        insertOne: jest.fn().mockResolvedValue({ err: null, data: true }),
+      };
+      domain.query = mockQuery;
+      domain.command = mockCommand;
+      domain.workerCommand = mockWorkerCommand;
+      domain.recruiterCommand = mockRecruiterCommand;
+    });
+
+    it("[BUG-US-007] loginWithGoogle new worker must pass worker_id to generateAccessToken", async () => {
+      mockQuery.findOne.mockResolvedValue({ err: true, data: null });
+
+      const result = await domain.loginWithGoogle({
+        id: "google-sub-1",
+        email: "new.worker@gmail.com",
+        role_id: 1,
+        name: "New Worker",
+      });
+
+      expect(result.err).toBeNull();
+      expect(generateAccessToken).toHaveBeenCalledWith(
+        expect.objectContaining({ worker_id: "user-uuid-1234", role_id: 1 })
+      );
+    });
+
+    it("[BUG-US-008] loginWithGoogle new recruiter must pass recruiter_id to generateAccessToken", async () => {
+      mockQuery.findOne.mockResolvedValue({ err: true, data: null });
+
+      const result = await domain.loginWithGoogle({
+        id: "google-sub-2",
+        email: "new.recruiter@gmail.com",
+        role_id: 2,
+        name: "New Recruiter",
+      });
+
+      expect(result.err).toBeNull();
+      expect(generateAccessToken).toHaveBeenCalledWith(
+        expect.objectContaining({ recruiter_id: "user-uuid-1234", role_id: 2 })
+      );
     });
   });
 
