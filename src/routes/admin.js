@@ -108,6 +108,8 @@ module.exports = (server) => {
   server.get("/api/v1/admin/employers/:employer_id/conversations", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployerConversations);
   server.get("/api/v1/admin/conversations/:id/messages", verifyToken, verifyRole(allowedRoles), adminHandler.getConversationMessages);
   server.delete("/api/v1/admin/conversations/:id/messages/:message_id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteConversationMessage);
+  server.delete("/api/v1/admin/conversations/:id/messages", verifyToken, verifyRole(allowedRoles), adminHandler.bulkDeleteConversationMessages);
+  server.put("/api/v1/admin/conversations/:id/status", verifyToken, verifyRole(allowedRoles), adminHandler.updateConversationStatus);
 
   server.get("/api/v1/admin/employers", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployers);
   server.get("/api/v1/admin/employers/:id", verifyToken, verifyRole(allowedRoles), adminHandler.getEmployerById);

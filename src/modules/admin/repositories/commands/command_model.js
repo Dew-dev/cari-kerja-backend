@@ -379,6 +379,24 @@ const deleteConversationMessageParamType = joi.object({
   user_agent: joi.string().allow("", null).optional()
 });
 
+const bulkDeleteConversationMessagesParamType = joi.object({
+  conversation_id: joi.string().guid().required(),
+  // empty / omitted = purge all messages in the conversation
+  message_ids: joi.array().items(joi.string().guid()).optional(),
+  admin_user_id: joi.string().guid().required(),
+  ip_address: joi.string().allow("", null).optional(),
+  user_agent: joi.string().allow("", null).optional(),
+});
+
+const updateConversationStatusParamType = joi.object({
+  id: joi.string().guid().required(),
+  status: joi.string().valid("ACTIVE", "ARCHIVED").required(),
+  reason: joi.string().max(1000).allow("", null).optional(),
+  admin_user_id: joi.string().guid().required(),
+  ip_address: joi.string().allow("", null).optional(),
+  user_agent: joi.string().allow("", null).optional(),
+});
+
 module.exports = {
   updateUserStatusParamType,
   verifyEmployerParamType,
@@ -427,5 +445,7 @@ module.exports = {
   deleteEmployerJobPostParamType,
   updateEmployerSubscriptionParamType,
   deleteEmployerSubscriptionParamType,
-  deleteConversationMessageParamType
+  deleteConversationMessageParamType,
+  bulkDeleteConversationMessagesParamType,
+  updateConversationStatusParamType,
 };
