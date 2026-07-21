@@ -5,6 +5,11 @@ const getDashboardStats = async () => {
   return await adminQuery.getDashboardStats();
 };
 
+const getDashboardTrustStats = async () => {
+  const adminQuery = new Domain();
+  return await adminQuery.getDashboardTrustStats();
+};
+
 const getUsers = async (payload) => {
   const adminQuery = new Domain();
   return await adminQuery.getUsers(payload);
@@ -193,6 +198,7 @@ const getAllPlans = async () => {
 
 module.exports = {
   getDashboardStats,
+  getDashboardTrustStats,
   getUsers,
   getEmployers,
   getJobs,

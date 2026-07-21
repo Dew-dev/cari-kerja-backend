@@ -2,6 +2,7 @@ const verifyToken = require("../middlewares/verifyToken");
 const verifyRole = require("../middlewares/verifyRole");
 const recruiterHandler = require("../modules/recruiters/handlers/api_handler");
 const { uploadAvatarRecruiter } = require("../middlewares/uploader");
+const { validateUploadedMagicBytes } = require("../helpers/fraud/magic_bytes");
 
 // Recruiter self-service profile routes
 const recruiterRoles = [2, 3]; // recruiter (2), super_admin (3)
@@ -40,6 +41,7 @@ module.exports = (server) => {
     verifyToken,
     verifyRole(recruiterRoles),
     uploadAvatarRecruiter.single("avatar"),
+    validateUploadedMagicBytes(),
     recruiterHandler.updateOneRecruiterSelf
   );
 

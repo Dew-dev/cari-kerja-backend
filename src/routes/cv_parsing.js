@@ -1,6 +1,7 @@
 const verifyToken = require("../middlewares/verifyToken");
 const { parseCVHandler } = require("../modules/cv-parsing/handlers/api_handler");
 const { uploadCV } = require("../middlewares/uploader");
+const { validateUploadedMagicBytes } = require("../helpers/fraud/magic_bytes");
 
 module.exports = (server) => {
   /**
@@ -12,6 +13,7 @@ module.exports = (server) => {
     "/api/v1/workers/cv/parse",
     verifyToken,
     uploadCV.single("cv"),
+    validateUploadedMagicBytes(),
     parseCVHandler
   );
 };

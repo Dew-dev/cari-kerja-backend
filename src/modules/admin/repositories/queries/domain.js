@@ -27,6 +27,75 @@ class AdminQuery {
     });
   }
 
+  async getSystemSettings() {
+    const result = await this.db.executeQuery(
+      `SELECT setting_key, setting_value FROM system_settings`
+    );
+    const settings = {};
+    for (const row of result?.rows || []) {
+      const key = row.setting_key;
+      const val = row.setting_value;
+      if (val === "true" || val === "false") {
+        settings[key] = val === "true";
+      } else if (val !== null && val !== undefined && !Number.isNaN(Number(val)) && String(val).trim() !== "") {
+        const asNum = Number(val);
+        settings[key] = Number.isInteger(asNum) && !String(val).includes(".") ? asNum : val;
+      } else {
+        settings[key] = val;
+      }
+    }
+    return wrapper.data(settings);
+  }
+
+  /**
+   * Trust & Safety KPIs for superadmin dashboard.
+   */
+  async getDashboardTrustStats() {
+    const q = async (sql) => {
+      const r = await this.db.executeQuery(sql);
+      return parseInt(r?.rows?.[0]?.count || 0, 10);
+    };
+
+    const [
+      open_fraud_events,
+      open_chat_reports,
+      jobs_needs_review,
+      pending_jobs,
+      suspended_users,
+      unverified_employers,
+    ] = await Promise.all([
+      q(`SELECT COUNT(*) FROM fraud_events WHERE status IN ('open', 'reviewing')`),
+      q(`SELECT COUNT(*) FROM chat_reports WHERE status = 'open'`),
+      q(`
+        SELECT COUNT(DISTINCT j.id)
+        FROM job_posts j
+        WHERE j.deleted_at IS NULL
+          AND EXISTS (
+            SELECT 1 FROM fraud_events fe
+            WHERE fe.entity_type = 'job_post'
+              AND fe.entity_id = j.id
+              AND fe.status IN ('open', 'reviewing')
+          )
+      `),
+      q(`
+        SELECT COUNT(*) FROM job_posts j
+        JOIN job_post_statuses s ON s.id = j.status_id
+        WHERE j.deleted_at IS NULL AND UPPER(s.name) = 'PENDING'
+      `),
+      q(`SELECT COUNT(*) FROM users WHERE is_suspended = TRUE AND deleted_at IS NULL`),
+      q(`SELECT COUNT(*) FROM recruiters WHERE is_verified = FALSE AND deleted_at IS NULL`),
+    ]);
+
+    return wrapper.data({
+      open_fraud_events,
+      open_chat_reports,
+      jobs_needs_review,
+      pending_jobs,
+      suspended_users,
+      unverified_employers,
+    });
+  }
+
   async getUsers(payload) {
     const { page, limit, search, sort_by, sort_order, role_id, is_suspended, deleted_state } = payload;
 

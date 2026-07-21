@@ -16,6 +16,7 @@ const {
   UnauthorizedError,
   TooManyRequestsError,
 } = require("../../../../helpers/errors");
+const { isDisposableEmail } = require("../../../../helpers/fraud/disposable_email");
 const config = require("../../../../config/global_config");
 const { verifyTelegramOidcToken } = require("../../../../helpers/auth/telegram_oidc");
 const axios = require("axios");
@@ -474,6 +475,13 @@ class User {
   async registerWorker(payload) {
     const { username, password, email, name } = payload;
     const stdUsername = username.toLowerCase().trim();
+
+    if (isDisposableEmail(email)) {
+      return wrapper.error(
+        new BadRequestError("CONTENT_REJECTED: Disposable email addresses are not allowed")
+      );
+    }
+
     const hashPassword = await generateHash(password);
 
     const user = await this.query.findOne({ username: stdUsername }, { id: 1 });
@@ -569,6 +577,13 @@ class User {
       contact_phone,
     } = payload;
     const stdUsername = username.toLowerCase().trim();
+
+    if (isDisposableEmail(email)) {
+      return wrapper.error(
+        new BadRequestError("CONTENT_REJECTED: Disposable email addresses are not allowed")
+      );
+    }
+
     const hashPassword = await generateHash(password);
 
     const user = await this.query.findOne({ username: stdUsername }, { id: 1 });

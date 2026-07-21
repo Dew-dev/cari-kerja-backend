@@ -2,6 +2,7 @@ const cors = require("./cors");
 const path = require("path");
 const http = require("http");
 const express = require("express");
+const helmet = require("helmet");
 const routes = require("../routes");
 const config = require("../config/global_config");
 const cookieParser = require("cookie-parser");
@@ -13,11 +14,19 @@ const jobAlertsScheduler = require("../helpers/schedulers/jobAlerts.scheduler");
 const swaggerUi = require("swagger-ui-express");
 const fs = require("fs");
 const { initSocket } = require("../helpers/socket");
+const { maintenanceModeGuard } = require("../middlewares/maintenanceMode");
 
 class AppServer {
   constructor() {
     this.app = express();
     this.server = http.createServer(this.app);
+    // Needed so express-rate-limit / req.ip honor X-Forwarded-For behind proxy.
+    this.app.set("trust proxy", 1);
+    this.app.use(
+      helmet({
+        crossOriginResourcePolicy: { policy: "cross-origin" },
+      })
+    );
     this.app.use(cors);
     this.port = config.get("/port");
 
@@ -40,6 +49,7 @@ class AppServer {
   _middlewares() {
     this.app.use(express.json());
     this.app.use(cookieParser());
+    this.app.use(maintenanceModeGuard);
   }
 
   _routes() {

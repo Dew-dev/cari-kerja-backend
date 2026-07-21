@@ -2,6 +2,7 @@ const { uploadResume } = require("../middlewares/uploader");
 const verifyToken = require("../middlewares/verifyToken");
 const verifyRole = require("../middlewares/verifyRole");
 const resumeHandler = require("../modules/resumes/handlers/api_handler");
+const { validateUploadedMagicBytes } = require("../helpers/fraud/magic_bytes");
 
 // Resumes are worker self-scoped resources.
 const workerRoles = [1, 3]; // worker (1), super_admin (3)
@@ -24,6 +25,7 @@ module.exports = (server) => {
     verifyToken,
     verifyRole(workerRoles),
     uploadResume.single("resume"),
+    validateUploadedMagicBytes(),
     resumeHandler.addResume
   );
   server.put(

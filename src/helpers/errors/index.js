@@ -5,6 +5,7 @@ const NotFoundError = require("./not_found_error");
 const UnauthorizedError = require("./unauthorized_error");
 const BadRequestError = require("./bad_request_error");
 const TooManyRequestsError = require("./too_many_requests_error");
+const ServiceUnavailableError = require("./service_unavailable_error");
 module.exports = {
   ConflictError,
   ForbiddenError,
@@ -12,5 +13,6 @@ module.exports = {
   NotFoundError,
   UnauthorizedError,
   BadRequestError,
-  TooManyRequestsError
+  TooManyRequestsError,
+  ServiceUnavailableError,
 };
