@@ -147,6 +147,7 @@ const createJobApplicationParamType = joi.object({
   worker_id: joi.string().uuid().required(),
   resume_id: joi.string().uuid().allow(null),
   cover_letter: joi.string().max(5000).allow(null, ""),
+  captcha_token: joi.string().optional().allow("", null),
   // application_status_id tidak lagi diterima dari client — backend selalu
   // meng-override dengan stage stage_type='applied' milik job_post_id ini.
   application_status_id: joi.any().strip(),

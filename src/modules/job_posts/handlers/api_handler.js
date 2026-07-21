@@ -11,6 +11,11 @@ const {
   paginationResponse,
 } = require("../../../helpers/utils/response");
 const { get } = require("../../../config/global_config");
+const { verifyCaptchaToken } = require("../../../helpers/captcha/turnstile");
+const { workerNeedsApplyCaptcha } = require("../../../helpers/fraud/apply_captcha");
+const DB = require("../../../helpers/databases/postgresql/db");
+
+const applyCaptchaDb = new DB(get("/postgresqlUrl"));
 
 const getJobpostsByRecruiterId = async (req, res) => {
   const payload = { ...req.params, ...req.query };
@@ -240,10 +245,16 @@ const createJobApplication = async (req, res) => {
     return sendResponse(validatePayload, res);
   }
 
+  const { captcha_token, ...applicationData } = validatePayload.data;
+  if (await workerNeedsApplyCaptcha(applyCaptchaDb, applicationData.worker_id)) {
+    const captchaResult = await verifyCaptchaToken(captcha_token, req.ip);
+    if (captchaResult.err) {
+      return sendResponse(captchaResult, res);
+    }
+  }
+
   // eksekusi command
-  const result = await commandHandler.createJobApplication(
-    validatePayload.data
-  );
+  const result = await commandHandler.createJobApplication(applicationData);
   return sendResponse(result, res);
 };
 

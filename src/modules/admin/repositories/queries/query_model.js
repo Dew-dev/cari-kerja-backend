@@ -59,8 +59,9 @@ const getUserByIdParamType = joi.object({
 });
 
 const getWorkersParamType = joi.object({
-  ...listBaseKeys(["created_at", "updated_at", "gender_id"]),
+  ...listBaseKeys(["created_at", "updated_at", "gender_id", "needs_review"]),
   gender_id: joi.number().optional(),
+  needs_review: joi.boolean().optional(),
   deleted_state: deletedStateType
 });
 

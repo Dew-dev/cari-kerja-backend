@@ -542,7 +542,9 @@ class Jobpost {
       );
       if (existing.data) {
         return wrapper.error(
-          new ConflictError("Anda sudah melamar pekerjaan ini."),
+          new ConflictError(
+            "DUPLICATE_SUBMISSION: Anda sudah melamar pekerjaan ini."
+          ),
         );
       }
 
@@ -604,7 +606,9 @@ class Jobpost {
           /duplicate key|unique constraint/i.test(message);
         if (isDuplicate) {
           return wrapper.error(
-            new ConflictError("Anda sudah melamar pekerjaan ini."),
+            new ConflictError(
+              "DUPLICATE_SUBMISSION: Anda sudah melamar pekerjaan ini."
+            ),
           );
         }
         logger.error(ctx, "Create Job Application", ctx, result.err);

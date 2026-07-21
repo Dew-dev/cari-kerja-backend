@@ -303,6 +303,7 @@ class AdminQuery {
         j.is_remote,
         r.company_name,
         s.name as status,
+        j.reject_reason,
         j.created_at,
         j.updated_at,
         j.deleted_at,
@@ -947,24 +948,60 @@ class AdminQuery {
   }
 
   async getWorkers(payload) {
-    const { page, limit, search, sort_by, sort_order, gender_id, deleted_state } = payload;
+    const { page, limit, search, sort_by, sort_order, gender_id, deleted_state, needs_review } = payload;
+
+    const openFraudExistsSql = `
+      SELECT 1 FROM fraud_events fe
+      WHERE fe.status IN ('open', 'reviewing')
+        AND (
+          (fe.entity_type = 'user' AND fe.entity_id = w.user_id)
+          OR (
+            fe.entity_type = 'chat_message'
+            AND EXISTS (
+              SELECT 1 FROM messages m
+              WHERE m.id = fe.entity_id AND m.sender_id = w.user_id
+            )
+          )
+        )
+    `;
 
     const builder = new ListQueryBuilder();
     builder.addSearch(search, [], ["w.name", "w.telephone", "u.email", "u.username"]);
     builder.addEquals("w.gender_id", gender_id);
     builder.addDeletedState("w.deleted_at", deleted_state);
+    if (needs_review !== undefined && needs_review !== null && needs_review !== "") {
+      builder.addExists(openFraudExistsSql, needs_review);
+    }
 
     const whereQuery = builder.whereClause();
     const orderClause = buildOrderClause({
       created_at: "w.created_at",
       updated_at: "w.updated_at",
-      gender_id: "w.gender_id"
+      gender_id: "w.gender_id",
+      needs_review: "needs_review",
     }, sort_by, sort_order, "created_at", "w.id");
     const offset = limit * (page - 1);
 
     const rawQuery = `
       SELECT w.id, w.user_id, w.name, w.avatar_url, w.telephone, w.gender_id, w.created_at, w.updated_at, w.deleted_at,
-             u.email as user_email, u.username as user_username
+             u.email as user_email, u.username as user_username,
+             EXISTS (${openFraudExistsSql}) AS needs_review,
+             (
+               SELECT fe.id FROM fraud_events fe
+               WHERE fe.status IN ('open', 'reviewing')
+                 AND (
+                   (fe.entity_type = 'user' AND fe.entity_id = w.user_id)
+                   OR (
+                     fe.entity_type = 'chat_message'
+                     AND EXISTS (
+                       SELECT 1 FROM messages m
+                       WHERE m.id = fe.entity_id AND m.sender_id = w.user_id
+                     )
+                   )
+                 )
+               ORDER BY fe.risk_score DESC, fe.created_at DESC
+               LIMIT 1
+             ) AS open_fraud_event_id
       FROM workers w
       LEFT JOIN users u ON w.user_id = u.id
       ${whereQuery}
@@ -981,7 +1018,12 @@ class AdminQuery {
     const countResult = await this.db.executeQuery(countQuery, builder.values);
     const totalData = parseInt(countResult?.rows[0]?.count || 0);
 
-    return wrapper.paginationData(result?.rows || [], {
+    const rows = (result?.rows || []).map((row) => ({
+      ...row,
+      needs_review: Boolean(row.needs_review),
+    }));
+
+    return wrapper.paginationData(rows, {
       page, limit, totalData, totalPage: Math.ceil(totalData / limit)
     });
   }
@@ -989,13 +1031,48 @@ class AdminQuery {
   async getWorkerById(payload) {
     const { id } = payload;
     const rawQuery = `
-      SELECT id, user_id, name, avatar_url, telephone, date_of_birth, gender_id, nationality_id, religion_id, marriage_status_id, address, profile_summary, current_salary, expected_salary, created_at
-      FROM workers
-      WHERE id = $1 AND deleted_at IS NULL
+      SELECT w.id, w.user_id, w.name, w.avatar_url, w.telephone, w.date_of_birth, w.gender_id, w.nationality_id,
+             w.religion_id, w.marriage_status_id, w.address, w.profile_summary, w.current_salary, w.expected_salary, w.created_at,
+             EXISTS (
+               SELECT 1 FROM fraud_events fe
+               WHERE fe.status IN ('open', 'reviewing')
+                 AND (
+                   (fe.entity_type = 'user' AND fe.entity_id = w.user_id)
+                   OR (
+                     fe.entity_type = 'chat_message'
+                     AND EXISTS (
+                       SELECT 1 FROM messages m
+                       WHERE m.id = fe.entity_id AND m.sender_id = w.user_id
+                     )
+                   )
+                 )
+             ) AS needs_review,
+             (
+               SELECT fe.id FROM fraud_events fe
+               WHERE fe.status IN ('open', 'reviewing')
+                 AND (
+                   (fe.entity_type = 'user' AND fe.entity_id = w.user_id)
+                   OR (
+                     fe.entity_type = 'chat_message'
+                     AND EXISTS (
+                       SELECT 1 FROM messages m
+                       WHERE m.id = fe.entity_id AND m.sender_id = w.user_id
+                     )
+                   )
+                 )
+               ORDER BY fe.risk_score DESC, fe.created_at DESC
+               LIMIT 1
+             ) AS open_fraud_event_id
+      FROM workers w
+      WHERE w.id = $1 AND w.deleted_at IS NULL
     `;
     const result = await this.db.executeQuery(rawQuery, [id]);
     if (result.rows.length === 0) return wrapper.error(new NotFoundError("Worker not found"));
-    return wrapper.data(result.rows[0]);
+    const row = result.rows[0];
+    return wrapper.data({
+      ...row,
+      needs_review: Boolean(row.needs_review),
+    });
   }
 
   async getEmployerById(payload) {
@@ -1077,6 +1154,7 @@ class AdminQuery {
         j.max_salary,
         j.salary_type_id,
         j.status_id,
+        j.reject_reason,
         j.created_at,
         r.company_name,
         EXISTS (

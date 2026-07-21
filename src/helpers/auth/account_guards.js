@@ -32,7 +32,9 @@ const isSuspendedValue = (value) =>
 /** Reject suspended accounts at login / refresh / OAuth. */
 const rejectIfSuspended = (user) => {
   if (user && isSuspendedValue(user.is_suspended)) {
-    return wrapper.error(new ForbiddenError("Account is suspended"));
+    return wrapper.error(
+      new ForbiddenError("ACCOUNT_RESTRICTED: Account is suspended")
+    );
   }
   return null;
 };
@@ -42,7 +44,9 @@ const rejectIfSuspended = (user) => {
  */
 const assertUserNotSuspendedById = async (userId) => {
   if (!userId) {
-    return wrapper.error(new ForbiddenError("Account is suspended"));
+    return wrapper.error(
+      new ForbiddenError("ACCOUNT_RESTRICTED: Account is suspended")
+    );
   }
   try {
     const result = await getDb().executeQuery(
@@ -50,15 +54,21 @@ const assertUserNotSuspendedById = async (userId) => {
       [userId]
     );
     if (!result?.rows?.length) {
-      return wrapper.error(new ForbiddenError("Account is suspended"));
+      return wrapper.error(
+        new ForbiddenError("ACCOUNT_RESTRICTED: Account is suspended")
+      );
     }
     if (isSuspendedValue(result.rows[0].is_suspended)) {
-      return wrapper.error(new ForbiddenError("Account is suspended"));
+      return wrapper.error(
+        new ForbiddenError("ACCOUNT_RESTRICTED: Account is suspended")
+      );
     }
     return wrapper.data({ ok: true });
   } catch (err) {
     // Fail closed: jangan biarkan request lewat jika status tidak bisa diverifikasi
-    return wrapper.error(new ForbiddenError("Account is suspended"));
+    return wrapper.error(
+      new ForbiddenError("ACCOUNT_RESTRICTED: Account is suspended")
+    );
   }
 };
 
