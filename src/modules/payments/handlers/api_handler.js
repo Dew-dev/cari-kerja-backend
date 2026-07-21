@@ -48,6 +48,9 @@ const createInvoice = async (req, res) => {
     ...req.body,
     recruiter_id: req.userMeta.recruiter_id,
     user_email: req.userMeta.email,
+    user_id: req.userMeta.id,
+    ip_address: req.ip || req.connection?.remoteAddress,
+    user_agent: req.headers["user-agent"],
   };
 
   const validatePayload = validator.isValidPayload(payload, commandModel.createInvoiceParamType);

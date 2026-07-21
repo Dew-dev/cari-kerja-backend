@@ -5,6 +5,8 @@ const userHandler = require("../modules/users/handlers/api_handler");
 const { authGoogle, authGoogleCallback } = require("../helpers/auth/google_oauth");
 const forgotPasswordLimiter = require("../middlewares/rateLimitForgotPassword");
 const registerLimiter = require("../middlewares/rateLimitRegister");
+const loginLimiter = require("../middlewares/rateLimitLogin");
+const verifyEmailResendLimiter = require("../middlewares/rateLimitVerifyEmailResend");
 
 // User account management (login, logout, register, password/email flows) is
 // intentionally NOT role-gated here: it must remain reachable by every role
@@ -29,7 +31,12 @@ module.exports = (server) => {
     userHandler.registerRecruiter
   );
   server.put("/api/v1/users/update-user/:id", verifyToken, userHandler.updateOneUser);
-  server.post("/api/v1/users/login", basicAuth.isAuthenticated, userHandler.login);
+  server.post(
+    "/api/v1/users/login",
+    basicAuth.isAuthenticated,
+    loginLimiter,
+    userHandler.login
+  );
   server.get("/api/v1/users/google", authGoogle);
   server.get("/api/v1/users/google/callback", authGoogleCallback, userHandler.loginWithGoogle);
   server.get("/api/v1/users/telegram", (req, res) => {
@@ -87,6 +94,10 @@ module.exports = (server) => {
   );
 
   server.get("/api/v1/auth/verify-email", userHandler.verifyEmail);
-  server.post("/api/v1/auth/verify-email/resend", userHandler.resendVerifyEmail);
+  server.post(
+    "/api/v1/auth/verify-email/resend",
+    verifyEmailResendLimiter,
+    userHandler.resendVerifyEmail
+  );
 
 };

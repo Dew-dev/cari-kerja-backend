@@ -97,25 +97,45 @@ class AdminQuery {
   }
 
   async getUsers(payload) {
-    const { page, limit, search, sort_by, sort_order, role_id, is_suspended, deleted_state } = payload;
+    const { page, limit, search, sort_by, sort_order, role_id, is_suspended, deleted_state, needs_review } = payload;
+
+    const openFraudExistsSql = `
+      SELECT 1 FROM fraud_events fe
+      WHERE fe.entity_type = 'user'
+        AND fe.entity_id = u.id
+        AND fe.status IN ('open', 'reviewing')
+    `;
 
     const builder = new ListQueryBuilder();
     builder.addSearch(search, [], ["u.username", "u.email"]);
     builder.addEquals("u.role_id", role_id);
     builder.addEquals("u.is_suspended", is_suspended);
     builder.addDeletedState("u.deleted_at", deleted_state);
+    if (needs_review !== undefined && needs_review !== null && needs_review !== "") {
+      builder.addExists(openFraudExistsSql, needs_review);
+    }
 
     const whereQuery = builder.whereClause();
     const orderClause = buildOrderClause({
       created_at: "u.created_at",
       updated_at: "u.updated_at",
       role_id: "u.role_id",
-      is_suspended: "u.is_suspended"
+      is_suspended: "u.is_suspended",
+      needs_review: "needs_review",
     }, sort_by, sort_order, "created_at", "u.id");
     const offset = limit * (page - 1);
 
     const rawQuery = `
-      SELECT u.id, u.username, u.email, u.login_provider, u.role_id, u.is_suspended, u.created_at, u.updated_at, u.deleted_at
+      SELECT u.id, u.username, u.email, u.login_provider, u.role_id, u.is_suspended, u.created_at, u.updated_at, u.deleted_at,
+             EXISTS (${openFraudExistsSql}) AS needs_review,
+             (
+               SELECT fe.id FROM fraud_events fe
+               WHERE fe.entity_type = 'user'
+                 AND fe.entity_id = u.id
+                 AND fe.status IN ('open', 'reviewing')
+               ORDER BY fe.risk_score DESC, fe.created_at DESC
+               LIMIT 1
+             ) AS open_fraud_event_id
       FROM users u
       ${whereQuery}
       ${orderClause}
@@ -127,32 +147,87 @@ class AdminQuery {
     const countResult = await this.db.executeQuery(countQuery, builder.values);
     const totalData = parseInt(countResult?.rows[0]?.count || 0);
 
-    return wrapper.paginationData(result?.rows || [], {
+    const rows = (result?.rows || []).map((row) => ({
+      ...row,
+      needs_review: Boolean(row.needs_review),
+    }));
+
+    return wrapper.paginationData(rows, {
       page, limit, totalData, totalPage: Math.ceil(totalData / limit)
     });
   }
 
   async getEmployers(payload) {
-    const { page, limit, search, sort_by, sort_order, is_verified, industry_id, deleted_state } = payload;
+    const { page, limit, search, sort_by, sort_order, is_verified, industry_id, deleted_state, needs_review } = payload;
+
+    const openFraudExistsSql = `
+      SELECT 1 FROM fraud_events fe
+      WHERE fe.status IN ('open', 'reviewing')
+        AND (
+          (fe.entity_type = 'user' AND fe.entity_id = r.user_id)
+          OR (
+            fe.entity_type = 'job_post'
+            AND EXISTS (
+              SELECT 1 FROM job_posts jp
+              WHERE jp.id = fe.entity_id AND jp.recruiter_id = r.id
+            )
+          )
+          OR (
+            fe.entity_type = 'payment_order'
+            AND EXISTS (
+              SELECT 1 FROM payment_orders po
+              WHERE po.id = fe.entity_id AND po.recruiter_id = r.id
+            )
+          )
+        )
+    `;
 
     const builder = new ListQueryBuilder();
     builder.addSearch(search, [], ["r.company_name", "r.contact_name", "r.contact_phone", "u.email", "u.username"]);
     builder.addEquals("r.is_verified", is_verified);
     builder.addEquals("r.industry_id", industry_id);
     builder.addDeletedState("r.deleted_at", deleted_state);
+    if (needs_review !== undefined && needs_review !== null && needs_review !== "") {
+      builder.addExists(openFraudExistsSql, needs_review);
+    }
 
     const whereQuery = builder.whereClause();
     const orderClause = buildOrderClause({
       created_at: "r.created_at",
       updated_at: "r.updated_at",
       is_verified: "r.is_verified",
-      is_vip: "r.is_vip"
+      is_vip: "r.is_vip",
+      needs_review: "needs_review",
     }, sort_by, sort_order, "created_at", "r.id");
     const offset = limit * (page - 1);
 
     const rawQuery = `
       SELECT r.id, r.user_id, r.company_name, r.contact_name, r.contact_phone, r.is_vip, r.is_verified, r.created_at, r.updated_at, r.deleted_at,
-             u.email as user_email, u.username as user_username
+             u.email as user_email, u.username as user_username,
+             EXISTS (${openFraudExistsSql}) AS needs_review,
+             (
+               SELECT fe.id FROM fraud_events fe
+               WHERE fe.status IN ('open', 'reviewing')
+                 AND (
+                   (fe.entity_type = 'user' AND fe.entity_id = r.user_id)
+                   OR (
+                     fe.entity_type = 'job_post'
+                     AND EXISTS (
+                       SELECT 1 FROM job_posts jp
+                       WHERE jp.id = fe.entity_id AND jp.recruiter_id = r.id
+                     )
+                   )
+                   OR (
+                     fe.entity_type = 'payment_order'
+                     AND EXISTS (
+                       SELECT 1 FROM payment_orders po
+                       WHERE po.id = fe.entity_id AND po.recruiter_id = r.id
+                     )
+                   )
+                 )
+               ORDER BY fe.risk_score DESC, fe.created_at DESC
+               LIMIT 1
+             ) AS open_fraud_event_id
       FROM recruiters r
       LEFT JOIN users u ON r.user_id = u.id
       ${whereQuery}
@@ -169,7 +244,12 @@ class AdminQuery {
     const countResult = await this.db.executeQuery(countQuery, builder.values);
     const totalData = parseInt(countResult?.rows[0]?.count || 0);
 
-    return wrapper.paginationData(result?.rows || [], {
+    const rows = (result?.rows || []).map((row) => ({
+      ...row,
+      needs_review: Boolean(row.needs_review),
+    }));
+
+    return wrapper.paginationData(rows, {
       page, limit, totalData, totalPage: Math.ceil(totalData / limit)
     });
   }
@@ -698,7 +778,14 @@ class AdminQuery {
 
   // ==================== PAYMENT ORDERS ====================
   async getPaymentOrders(payload) {
-    const { page, limit, search, sort_by, sort_order, status, order_type } = payload;
+    const { page, limit, search, sort_by, sort_order, status, order_type, needs_review } = payload;
+
+    const openFraudExistsSql = `
+      SELECT 1 FROM fraud_events fe
+      WHERE fe.entity_type = 'payment_order'
+        AND fe.entity_id = po.id
+        AND fe.status IN ('open', 'reviewing')
+    `;
 
     const builder = new ListQueryBuilder();
     builder.addSearch(
@@ -712,6 +799,9 @@ class AdminQuery {
     );
     builder.addEquals("po.status", status);
     builder.addEquals("po.order_type", order_type);
+    if (needs_review !== undefined && needs_review !== null && needs_review !== "") {
+      builder.addExists(openFraudExistsSql, needs_review);
+    }
 
     const whereQuery = builder.whereClause();
     const orderClause = buildOrderClause({
@@ -719,7 +809,8 @@ class AdminQuery {
       updated_at: "po.updated_at",
       amount: "po.amount",
       paid_at: "po.paid_at",
-      status: "po.status"
+      status: "po.status",
+      needs_review: "needs_review",
     }, sort_by, sort_order, "created_at", "po.id");
     const offset = limit * (page - 1);
 
@@ -734,7 +825,16 @@ class AdminQuery {
              po.xendit_invoice_id, po.xendit_external_id, po.amount, po.status,
              po.paid_at, po.invoice_expires_at, po.created_at, po.updated_at,
              r.company_name,
-             COALESCE(sp.display_name, spp.display_name, bp.display_name) AS plan_name
+             COALESCE(sp.display_name, spp.display_name, bp.display_name) AS plan_name,
+             EXISTS (${openFraudExistsSql}) AS needs_review,
+             (
+               SELECT fe.id FROM fraud_events fe
+               WHERE fe.entity_type = 'payment_order'
+                 AND fe.entity_id = po.id
+                 AND fe.status IN ('open', 'reviewing')
+               ORDER BY fe.risk_score DESC, fe.created_at DESC
+               LIMIT 1
+             ) AS open_fraud_event_id
       FROM payment_orders po
       JOIN recruiters r ON po.recruiter_id = r.id
       ${planJoin}
@@ -754,7 +854,12 @@ class AdminQuery {
     const countResult = await this.db.executeQuery(countQuery, builder.values);
     const totalData = parseInt(countResult?.rows[0]?.count || 0);
 
-    return wrapper.paginationData(result?.rows || [], {
+    const rows = (result?.rows || []).map((row) => ({
+      ...row,
+      needs_review: Boolean(row.needs_review),
+    }));
+
+    return wrapper.paginationData(rows, {
       page, limit, totalData, totalPage: Math.ceil(totalData / limit)
     });
   }
@@ -766,7 +871,21 @@ class AdminQuery {
              po.xendit_invoice_id, po.xendit_external_id, po.amount, po.status,
              po.paid_at, po.invoice_expires_at, po.metadata, po.created_at, po.updated_at,
              r.company_name,
-             COALESCE(sp.display_name, spp.display_name, bp.display_name) AS plan_name
+             COALESCE(sp.display_name, spp.display_name, bp.display_name) AS plan_name,
+             EXISTS (
+               SELECT 1 FROM fraud_events fe
+               WHERE fe.entity_type = 'payment_order'
+                 AND fe.entity_id = po.id
+                 AND fe.status IN ('open', 'reviewing')
+             ) AS needs_review,
+             (
+               SELECT fe.id FROM fraud_events fe
+               WHERE fe.entity_type = 'payment_order'
+                 AND fe.entity_id = po.id
+                 AND fe.status IN ('open', 'reviewing')
+               ORDER BY fe.risk_score DESC, fe.created_at DESC
+               LIMIT 1
+             ) AS open_fraud_event_id
       FROM payment_orders po
       JOIN recruiters r ON po.recruiter_id = r.id
       LEFT JOIN subscription_plans sp ON po.plan_type = 'subscription_plans' AND po.plan_id = sp.id
@@ -776,7 +895,11 @@ class AdminQuery {
     `;
     const result = await this.db.executeQuery(rawQuery, [id]);
     if (result.rows.length === 0) return wrapper.error(new NotFoundError("Payment order not found"));
-    return wrapper.data(result.rows[0]);
+    const row = result.rows[0];
+    return wrapper.data({
+      ...row,
+      needs_review: Boolean(row.needs_review),
+    });
   }
 
   // ==================== PLANS ====================
@@ -878,14 +1001,62 @@ class AdminQuery {
   async getEmployerById(payload) {
     const { id } = payload;
     const rawQuery = `
-      SELECT id, user_id, company_name, contact_name, contact_phone, company_website, address, description, avatar_url,
-             employee_count, instagram_url, tiktok_url, industry_id, is_vip, is_verified, created_at
-      FROM recruiters
-      WHERE id = $1 AND deleted_at IS NULL
+      SELECT r.id, r.user_id, r.company_name, r.contact_name, r.contact_phone, r.company_website, r.address, r.description, r.avatar_url,
+             r.employee_count, r.instagram_url, r.tiktok_url, r.industry_id, r.is_vip, r.is_verified, r.created_at,
+             EXISTS (
+               SELECT 1 FROM fraud_events fe
+               WHERE fe.status IN ('open', 'reviewing')
+                 AND (
+                   (fe.entity_type = 'user' AND fe.entity_id = r.user_id)
+                   OR (
+                     fe.entity_type = 'job_post'
+                     AND EXISTS (
+                       SELECT 1 FROM job_posts jp
+                       WHERE jp.id = fe.entity_id AND jp.recruiter_id = r.id
+                     )
+                   )
+                   OR (
+                     fe.entity_type = 'payment_order'
+                     AND EXISTS (
+                       SELECT 1 FROM payment_orders po
+                       WHERE po.id = fe.entity_id AND po.recruiter_id = r.id
+                     )
+                   )
+                 )
+             ) AS needs_review,
+             (
+               SELECT fe.id FROM fraud_events fe
+               WHERE fe.status IN ('open', 'reviewing')
+                 AND (
+                   (fe.entity_type = 'user' AND fe.entity_id = r.user_id)
+                   OR (
+                     fe.entity_type = 'job_post'
+                     AND EXISTS (
+                       SELECT 1 FROM job_posts jp
+                       WHERE jp.id = fe.entity_id AND jp.recruiter_id = r.id
+                     )
+                   )
+                   OR (
+                     fe.entity_type = 'payment_order'
+                     AND EXISTS (
+                       SELECT 1 FROM payment_orders po
+                       WHERE po.id = fe.entity_id AND po.recruiter_id = r.id
+                     )
+                   )
+                 )
+               ORDER BY fe.risk_score DESC, fe.created_at DESC
+               LIMIT 1
+             ) AS open_fraud_event_id
+      FROM recruiters r
+      WHERE r.id = $1 AND r.deleted_at IS NULL
     `;
     const result = await this.db.executeQuery(rawQuery, [id]);
     if (result.rows.length === 0) return wrapper.error(new NotFoundError("Employer not found"));
-    return wrapper.data(result.rows[0]);
+    const row = result.rows[0];
+    return wrapper.data({
+      ...row,
+      needs_review: Boolean(row.needs_review),
+    });
   }
 
   async getJobById(payload) {

@@ -47,9 +47,10 @@ const getFraudEventByIdParamType = joi.object({
 });
 
 const getUsersParamType = joi.object({
-  ...listBaseKeys(["created_at", "updated_at", "role_id", "is_suspended"]),
+  ...listBaseKeys(["created_at", "updated_at", "role_id", "is_suspended", "needs_review"]),
   role_id: joi.number().optional(),
   is_suspended: joi.boolean().optional(),
+  needs_review: joi.boolean().optional(),
   deleted_state: deletedStateType
 });
 
@@ -68,9 +69,10 @@ const getWorkerByIdParamType = joi.object({
 });
 
 const getEmployersParamType = joi.object({
-  ...listBaseKeys(["created_at", "updated_at", "is_verified", "is_vip"]),
+  ...listBaseKeys(["created_at", "updated_at", "is_verified", "is_vip", "needs_review"]),
   is_verified: joi.boolean().optional(),
   industry_id: joi.number().integer().optional(),
+  needs_review: joi.boolean().optional(),
   deleted_state: deletedStateType
 });
 
@@ -112,9 +114,10 @@ const getConversationMessagesParamType = joi.object({
 });
 
 const getPaymentOrdersParamType = joi.object({
-  ...listBaseKeys(["created_at", "updated_at", "amount", "paid_at", "status"]),
+  ...listBaseKeys(["created_at", "updated_at", "amount", "paid_at", "status", "needs_review"]),
   status: joi.string().valid("pending", "paid", "expired", "failed").optional(),
-  order_type: joi.string().valid("subscription", "single_post", "boost").optional()
+  order_type: joi.string().valid("subscription", "single_post", "boost").optional(),
+  needs_review: joi.boolean().optional(),
 });
 
 const getPaymentOrderByIdParamType = joi.object({
