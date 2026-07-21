@@ -79,9 +79,10 @@ const getEmployerByIdParamType = joi.object({
 });
 
 const getJobsParamType = joi.object({
-  ...listBaseKeys(["created_at", "updated_at", "title"]),
+  ...listBaseKeys(["created_at", "updated_at", "title", "needs_review"]),
   status: joi.string().optional(),
-  recruiter_id: joi.string().guid().optional()
+  recruiter_id: joi.string().guid().optional(),
+  needs_review: joi.boolean().optional(),
 });
 
 const getApplicationsParamType = joi.object({
