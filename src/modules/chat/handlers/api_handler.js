@@ -145,10 +145,82 @@ const markAsRead = async (req, res) => {
   return sendResponse(result, res);
 };
 
+/**
+ * POST /api/v1/chat/block
+ * Body: { user_id } — block the other user (users.id).
+ */
+const blockUser = async (req, res) => {
+  const payload = {
+    blocker_user_id: req.userMeta.id,
+    blocked_user_id: req.body.user_id,
+  };
+  const validatePayload = validator.isValidPayload(payload, commandModel.blockUserParamType);
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+  const result = await commandHandler.blockUser(validatePayload.data);
+  return sendResponse(result, res, 201);
+};
+
+/**
+ * DELETE /api/v1/chat/block/:userId
+ */
+const unblockUser = async (req, res) => {
+  const payload = {
+    blocker_user_id: req.userMeta.id,
+    blocked_user_id: req.params.userId,
+  };
+  const validatePayload = validator.isValidPayload(payload, commandModel.unblockUserParamType);
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+  const result = await commandHandler.unblockUser(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+/**
+ * GET /api/v1/chat/blocks
+ */
+const listBlocks = async (req, res) => {
+  const payload = { user_id: req.userMeta.id };
+  const validatePayload = validator.isValidPayload(payload, commandModel.listBlocksParamType);
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+  const result = await commandHandler.listBlocks(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+/**
+ * POST /api/v1/chat/:conversationId/report
+ * Body: { reason, message_id? }
+ */
+const reportConversation = async (req, res) => {
+  const payload = {
+    conversation_id: req.params.conversationId,
+    reporter_user_id: req.userMeta.id,
+    message_id: req.body.message_id || null,
+    reason: req.body.reason,
+  };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.reportConversationParamType
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+  const result = await commandHandler.reportConversation(validatePayload.data);
+  return sendResponse(result, res, 201);
+};
+
 module.exports = {
   startConversation,
   getConversations,
   getMessages,
   sendMessage,
   markAsRead,
+  blockUser,
+  unblockUser,
+  listBlocks,
+  reportConversation,
 };

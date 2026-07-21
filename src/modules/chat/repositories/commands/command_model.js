@@ -21,8 +21,33 @@ const markAsReadParamType = joi.object({
   role_id: joi.number().valid(1, 2).required(),
 });
 
+const blockUserParamType = joi.object({
+  blocker_user_id: joi.string().uuid().required(),
+  blocked_user_id: joi.string().uuid().required(),
+});
+
+const unblockUserParamType = joi.object({
+  blocker_user_id: joi.string().uuid().required(),
+  blocked_user_id: joi.string().uuid().required(),
+});
+
+const listBlocksParamType = joi.object({
+  user_id: joi.string().uuid().required(),
+});
+
+const reportConversationParamType = joi.object({
+  conversation_id: joi.string().uuid().required(),
+  reporter_user_id: joi.string().uuid().required(),
+  message_id: joi.string().uuid().optional().allow(null, ""),
+  reason: joi.string().trim().min(3).max(1000).required(),
+});
+
 module.exports = {
   startConversationParamType,
   sendMessageParamType,
   markAsReadParamType,
+  blockUserParamType,
+  unblockUserParamType,
+  listBlocksParamType,
+  reportConversationParamType,
 };

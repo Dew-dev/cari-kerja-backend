@@ -16,8 +16,28 @@ const markAsRead = async (payload) => {
   return domain.markAsRead(payload);
 };
 
+const blockUser = async (payload) => {
+  return domain.blockUser(payload);
+};
+
+const unblockUser = async (payload) => {
+  return domain.unblockUser(payload);
+};
+
+const listBlocks = async (payload) => {
+  return domain.listBlocks(payload);
+};
+
+const reportConversation = async (payload) => {
+  return domain.reportConversation(payload);
+};
+
 module.exports = {
   startConversation,
   sendMessage,
   markAsRead,
+  blockUser,
+  unblockUser,
+  listBlocks,
+  reportConversation,
 };

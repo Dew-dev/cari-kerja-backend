@@ -9,6 +9,11 @@ module.exports = (server) => {
   // List all conversations for the authenticated user
   server.get("/api/v1/chat/conversations", verifyToken, chatHandler.getConversations);
 
+  // Block list
+  server.get("/api/v1/chat/blocks", verifyToken, chatHandler.listBlocks);
+  server.post("/api/v1/chat/block", verifyToken, chatHandler.blockUser);
+  server.delete("/api/v1/chat/block/:userId", verifyToken, chatHandler.unblockUser);
+
   // Get paginated messages for a conversation
   server.get("/api/v1/chat/:conversationId/messages", verifyToken, chatHandler.getMessages);
 
@@ -18,6 +23,13 @@ module.exports = (server) => {
     verifyToken,
     chatMessageLimiter,
     chatHandler.sendMessage
+  );
+
+  // Report conversation / message → chat_reports + fraud_events
+  server.post(
+    "/api/v1/chat/:conversationId/report",
+    verifyToken,
+    chatHandler.reportConversation
   );
 
   // Mark all messages in a conversation as read
