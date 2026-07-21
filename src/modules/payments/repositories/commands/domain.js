@@ -21,6 +21,7 @@ const {
   flagPaymentSessionAnomaly,
 } = require("../../../../helpers/fraud/session_anomaly");
 const { ACTIONS } = require("../../../../helpers/audit/actions");
+const { claimWebhookDelivery } = require("../../../../helpers/fraud/webhook_replay");
 
 const ctx = "Payments-Command-Domain";
 
@@ -266,6 +267,17 @@ class PaymentCommandDomain {
 
       const order = orderResult.rows[0];
       const normalizedStatus = String(status || "").toUpperCase();
+
+      // Soft replay guard: same external_id+status within TTL is ignored
+      const claim = await claimWebhookDelivery(external_id, normalizedStatus);
+      if (!claim.claimed) {
+        return wrapper.data({
+          order_id: order.id,
+          status: order.status,
+          message: "Duplicate webhook delivery ignored",
+        });
+      }
+
       const terminalStatuses = new Set(["paid", "expired", "failed"]);
 
       // PENDING — keep order pending; do not mark failed

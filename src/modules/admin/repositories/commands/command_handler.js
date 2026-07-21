@@ -191,6 +191,16 @@ const deleteConversationMessage = async (payload) => {
   return await adminCommand.deleteConversationMessage(payload);
 };
 
+const bulkDeleteConversationMessages = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.bulkDeleteConversationMessages(payload);
+};
+
+const updateConversationStatus = async (payload) => {
+  const adminCommand = new Domain();
+  return await adminCommand.updateConversationStatus(payload);
+};
+
 const updatePaymentOrderStatus = async (payload) => {
   const adminCommand = new Domain();
   return await adminCommand.updatePaymentOrderStatus(payload);
@@ -289,5 +299,7 @@ module.exports = {
   deleteEmployerJobPost,
   updateEmployerSubscription,
   deleteEmployerSubscription,
-  deleteConversationMessage
+  deleteConversationMessage,
+  bulkDeleteConversationMessages,
+  updateConversationStatus,
 };

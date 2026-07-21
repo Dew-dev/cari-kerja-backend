@@ -649,7 +649,108 @@ class AdminCommand {
     const result = await this.db.executeQuery(rawQuery, [message_id, conversation_id]);
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("Message not found"));
 
-    // Sync conversations.last_message ke pesan terbaru yang tersisa (atau NULL jika kosong)
+    await this._syncConversationLastMessage(conversation_id);
+
+    await this.insertAuditLog({
+      user_id: admin_user_id,
+      action: ACTIONS.ADMIN_DELETE_CHAT_MESSAGE,
+      ip_address,
+      user_agent
+    });
+
+    return wrapper.data("Message deleted successfully");
+  }
+
+  /**
+   * Bulk-delete messages in a conversation.
+   * If message_ids omitted/empty → purge all messages in the conversation.
+   */
+  async bulkDeleteConversationMessages(payload) {
+    const { conversation_id, message_ids, admin_user_id, ip_address, user_agent } = payload;
+
+    const conv = await this.db.findOne({ id: conversation_id }, { id: 1 }, "conversations");
+    if (conv.err) return wrapper.error(new NotFoundError("Conversation not found"));
+
+    let result;
+    const ids = Array.isArray(message_ids)
+      ? message_ids.filter((id) => typeof id === "string" && id.length > 0)
+      : [];
+
+    if (ids.length > 0) {
+      result = await this.db.executeQuery(
+        `
+        DELETE FROM messages
+        WHERE conversation_id = $1
+          AND id = ANY($2::uuid[])
+        RETURNING id
+        `,
+        [conversation_id, ids]
+      );
+    } else {
+      result = await this.db.executeQuery(
+        `
+        DELETE FROM messages
+        WHERE conversation_id = $1
+        RETURNING id
+        `,
+        [conversation_id]
+      );
+    }
+
+    await this._syncConversationLastMessage(conversation_id);
+
+    await this.insertAuditLog({
+      user_id: admin_user_id,
+      action: ACTIONS.ADMIN_BULK_DELETE_CHAT_MESSAGES,
+      ip_address,
+      user_agent,
+    });
+
+    return wrapper.data({
+      conversation_id,
+      deleted_count: result.rowCount || 0,
+      deleted_ids: (result.rows || []).map((r) => r.id),
+    });
+  }
+
+  async updateConversationStatus(payload) {
+    const { id, status, reason, admin_user_id, ip_address, user_agent } = payload;
+
+    const conv = await this.db.findOne({ id }, { id: 1, status: 1 }, "conversations");
+    if (conv.err) return wrapper.error(new NotFoundError("Conversation not found"));
+
+    const nextStatus = String(status || "").toUpperCase();
+    if (!["ACTIVE", "ARCHIVED"].includes(nextStatus)) {
+      return wrapper.error(new BadRequestError("status must be ACTIVE or ARCHIVED"));
+    }
+
+    const result = await this.db.executeQuery(
+      `
+      UPDATE conversations
+      SET status = $1, updated_at = NOW()
+      WHERE id = $2
+      RETURNING id, worker_id, recruiter_id, job_id, status, last_message, last_message_at, created_at, updated_at
+      `,
+      [nextStatus, id]
+    );
+
+    await this.insertAuditLog({
+      user_id: admin_user_id,
+      action:
+        nextStatus === "ARCHIVED"
+          ? ACTIONS.ADMIN_ARCHIVE_CONVERSATION
+          : ACTIONS.ADMIN_RESTORE_CONVERSATION,
+      ip_address,
+      user_agent,
+    });
+
+    return wrapper.data({
+      ...result.rows[0],
+      moderation_reason: reason || null,
+    });
+  }
+
+  async _syncConversationLastMessage(conversation_id) {
     const latest = await this.db.executeQuery(
       `SELECT message, created_at
        FROM messages
@@ -665,15 +766,6 @@ class AdminCommand {
        WHERE id = $3`,
       [latestRow?.message ?? null, latestRow?.created_at ?? null, conversation_id]
     );
-
-    await this.insertAuditLog({
-      user_id: admin_user_id,
-      action: `ADMIN_DELETE_CHAT_MESSAGE ${message_id} (conversation ${conversation_id})`,
-      ip_address,
-      user_agent
-    });
-
-    return wrapper.data("Message deleted successfully");
   }
 
   // ==================== PAYMENT ORDERS ====================

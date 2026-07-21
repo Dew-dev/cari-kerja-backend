@@ -615,6 +615,42 @@ const deleteConversationMessage = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const bulkDeleteConversationMessages = async (req, res) => {
+  const payload = {
+    conversation_id: req.params.id,
+    message_ids: req.body?.message_ids,
+    admin_user_id: req.userMeta.id,
+    ip_address: req.ip,
+    user_agent: req.headers["user-agent"],
+  };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.bulkDeleteConversationMessagesParamType
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.bulkDeleteConversationMessages(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const updateConversationStatus = async (req, res) => {
+  const payload = {
+    id: req.params.id,
+    ...req.body,
+    admin_user_id: req.userMeta.id,
+    ip_address: req.ip,
+    user_agent: req.headers["user-agent"],
+  };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    commandModel.updateConversationStatusParamType
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+
+  const result = await commandHandler.updateConversationStatus(validatePayload.data);
+  return sendResponse(result, res);
+};
+
 // payment orders
 const getPaymentOrders = async (req, res) => {
   const payload = { ...req.query };
@@ -846,5 +882,7 @@ module.exports = {
   getWorkerConversations,
   getEmployerConversations,
   getConversationMessages,
-  deleteConversationMessage
+  deleteConversationMessage,
+  bulkDeleteConversationMessages,
+  updateConversationStatus,
 };
