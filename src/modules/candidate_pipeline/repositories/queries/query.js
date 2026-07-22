@@ -129,7 +129,7 @@ class Query {
     limit,
     offset,
   }) {
-    try {
+    const run = async ({ includeMatchScores }) => {
       const conditions = [`jp.recruiter_id = $1`];
       const values = [recruiter_id];
       let idx = 2;
@@ -152,69 +152,122 @@ class Query {
         idx += 1;
       }
 
-      if (min_match_score !== undefined && min_match_score !== null && min_match_score !== "") {
-        // Treat missing scores as 0 so unscored / zero-match applicants stay visible
-        // when filtering (SQL NULL >= n is unknown and would drop the row).
+      if (
+        includeMatchScores &&
+        min_match_score !== undefined &&
+        min_match_score !== null &&
+        min_match_score !== ""
+      ) {
+        // Treat missing scores as 0 so unscored applicants stay visible.
         conditions.push(`COALESCE(ams.match_score, 0) >= $${idx}`);
         values.push(Number(min_match_score));
         idx += 1;
       }
 
       const whereClause = conditions.join(" AND ");
-
       const orderDirection = String(order).toLowerCase() === "asc" ? "ASC" : "DESC";
+
       let orderClause = `ja.updated_at ${orderDirection}`;
       if (sort === "applied_at") {
         orderClause = `ja.applied_at ${orderDirection}`;
-      } else if (sort === "match_score") {
+      } else if (sort === "match_score" && includeMatchScores) {
         orderClause = `COALESCE(ams.match_score, 0) ${orderDirection}, ja.updated_at DESC`;
+      } else if (sort === "match_score") {
+        orderClause = `ja.updated_at DESC`;
       }
 
-      const countRes = await this.db.executeQuery(
-        `SELECT COUNT(*) AS total
+      const matchJoin = includeMatchScores
+        ? `LEFT JOIN application_match_scores ams ON ams.application_id = ja.id`
+        : "";
+
+      const matchSelect = includeMatchScores
+        ? `COALESCE(ams.match_score, 0) AS match_score,
+            COALESCE(ams.match_status, 'pending') AS match_status,
+            ams.match_breakdown,
+            COALESCE(ams.match_reasons, '[]'::jsonb) AS match_reasons,
+            ams.computed_at AS match_computed_at`
+        : `0 AS match_score,
+            'pending'::varchar AS match_status,
+            NULL::jsonb AS match_breakdown,
+            '[]'::jsonb AS match_reasons,
+            NULL::timestamptz AS match_computed_at`;
+
+      // LEFT JOIN users — do not drop applications when user row is missing
+      // (analytics does not require users; candidates must stay consistent).
+      const countSql = `
+         SELECT COUNT(*) AS total
          FROM job_applications ja
          JOIN job_posts jp ON jp.id = ja.job_post_id
          JOIN workers w ON w.id = ja.worker_id
+         LEFT JOIN users u ON u.id = w.user_id
          LEFT JOIN application_statuses ast ON ast.id = ja.application_status_id
-         LEFT JOIN application_match_scores ams ON ams.application_id = ja.id
-         WHERE ${whereClause};`,
-        values,
-      );
-      const total = parseInt(countRes?.rows?.[0]?.total ?? 0, 10);
+         ${matchJoin}
+         WHERE ${whereClause}`;
 
-      const dataValues = [...values, limit, offset];
-      const dataRes = await this.db.executeQuery(
-        `SELECT
+      const dataSql = `
+         SELECT
             ja.id AS application_id,
             ja.worker_id,
+            w.id AS worker_profile_id,
+            w.user_id,
             w.name,
             u.email,
             w.avatar_url,
             ja.job_post_id,
             jp.title AS job_post_title,
+            ja.cover_letter,
             ast.id AS stage_id,
             ast.name AS stage_name,
             ast.stage_type,
             ja.applied_at,
             ja.updated_at,
-            COALESCE(ams.match_score, 0) AS match_score,
-            COALESCE(ams.match_status, 'pending') AS match_status,
-            ams.match_breakdown,
-            COALESCE(ams.match_reasons, '[]'::jsonb) AS match_reasons,
-            ams.computed_at AS match_computed_at
+            ${matchSelect}
          FROM job_applications ja
          JOIN job_posts jp ON jp.id = ja.job_post_id
          JOIN workers w ON w.id = ja.worker_id
-         JOIN users u ON u.id = w.user_id
+         LEFT JOIN users u ON u.id = w.user_id
          LEFT JOIN application_statuses ast ON ast.id = ja.application_status_id
-         LEFT JOIN application_match_scores ams ON ams.application_id = ja.id
+         ${matchJoin}
          WHERE ${whereClause}
          ORDER BY ${orderClause}
-         LIMIT $${idx} OFFSET $${idx + 1};`,
-        dataValues,
-      );
+         LIMIT $${idx} OFFSET $${idx + 1}`;
 
-      return wrapper.paginationData(dataRes?.rows || [], { total });
+      const countRes = await this.db.executeQuery(countSql, values);
+      if (!countRes) {
+        return { failed: true };
+      }
+
+      const total = parseInt(countRes?.rows?.[0]?.total ?? 0, 10);
+      const dataValues = [...values, limit, offset];
+      const dataRes = await this.db.executeQuery(dataSql, dataValues);
+      if (!dataRes) {
+        return { failed: true };
+      }
+
+      return {
+        failed: false,
+        data: Array.isArray(dataRes.rows) ? dataRes.rows : [],
+        total,
+      };
+    };
+
+    try {
+      let result = await run({ includeMatchScores: true });
+      if (result.failed) {
+        logger.error(
+          ctx,
+          "findPipelineCandidates match-score query failed; retrying without application_match_scores",
+          "findPipelineCandidates",
+          "executeQuery returned null (table missing or SQL error)",
+        );
+        result = await run({ includeMatchScores: false });
+      }
+
+      if (result.failed) {
+        return wrapper.error(errorQueryMessage);
+      }
+
+      return wrapper.paginationData(result.data, { total: result.total });
     } catch (error) {
       logger.error(ctx, errorQueryMessage, "findPipelineCandidates", error);
       return wrapper.error(errorQueryMessage);

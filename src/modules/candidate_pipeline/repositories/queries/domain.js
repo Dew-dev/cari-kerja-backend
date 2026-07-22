@@ -94,6 +94,10 @@ class CandidatePipeline {
       limit: parseInt(limit, 10),
       total,
       totalPage: limit > 0 ? Math.ceil(total / limit) : 0,
+      // Keep aliases expected by various FE clients
+      total_data: total,
+      total_pages: limit > 0 ? Math.ceil(total / limit) : 0,
+      per_page: parseInt(limit, 10),
     });
   }
 
