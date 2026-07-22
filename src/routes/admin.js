@@ -154,4 +154,36 @@ module.exports = (server) => {
   server.get("/api/v1/admin/applications", verifyToken, verifyRole(allowedRoles), adminHandler.getApplications);
   server.put("/api/v1/admin/applications/:id", verifyToken, verifyRole(allowedRoles), adminHandler.updateApplication);
   server.delete("/api/v1/admin/applications/:id", verifyToken, verifyRole(allowedRoles), adminHandler.deleteApplication);
+
+  // Employer company verification (KYC) review queue
+  server.get(
+    "/api/v1/admin/employer-verification/applications",
+    verifyToken,
+    verifyRole(allowedRoles),
+    adminHandler.listEmployerVerificationApplications
+  );
+  server.get(
+    "/api/v1/admin/employer-verification/applications/:id",
+    verifyToken,
+    verifyRole(allowedRoles),
+    adminHandler.getEmployerVerificationApplicationById
+  );
+  server.put(
+    "/api/v1/admin/employer-verification/applications/:id/review",
+    verifyToken,
+    verifyRole(allowedRoles),
+    adminHandler.reviewEmployerVerificationApplication
+  );
+  server.put(
+    "/api/v1/admin/employer-verification/applications/:id/under-review",
+    verifyToken,
+    verifyRole(allowedRoles),
+    adminHandler.markEmployerVerificationUnderReview
+  );
+  server.get(
+    "/api/v1/admin/employer-verification/reactivation-requests",
+    verifyToken,
+    verifyRole(allowedRoles),
+    adminHandler.listAccountReactivationRequests
+  );
 };

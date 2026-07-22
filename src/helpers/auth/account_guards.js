@@ -29,18 +29,31 @@ const sanitizeOauthRoleId = (roleId) => {
 const isSuspendedValue = (value) =>
   value === true || value === "t" || value === "true" || value === 1 || value === "1";
 
-/** Reject suspended accounts at login / refresh / OAuth. */
-const rejectIfSuspended = (user) => {
-  if (user && isSuspendedValue(user.is_suspended)) {
-    return wrapper.error(
-      new ForbiddenError("ACCOUNT_RESTRICTED: Account is suspended")
-    );
+/** Reject suspended accounts at login / refresh / OAuth.
+ * Soft exception: verification_incomplete → allow restricted session.
+ */
+const evaluateSuspension = (user) => {
+  if (!user || !isSuspendedValue(user.is_suspended)) {
+    return { restricted_verification: false };
   }
-  return null;
+  if (user.suspension_reason === "verification_incomplete") {
+    return { restricted_verification: true };
+  }
+  return {
+    error: wrapper.error(
+      new ForbiddenError("ACCOUNT_RESTRICTED: Account is suspended")
+    ),
+  };
+};
+
+const rejectIfSuspended = (user) => {
+  const result = evaluateSuspension(user);
+  return result.error || null;
 };
 
 /**
  * DB check for middleware / socket — returns wrapper.error if suspended or missing.
+ * Soft-allows verification_incomplete (restricted mode).
  */
 const assertUserNotSuspendedById = async (userId) => {
   if (!userId) {
@@ -50,7 +63,7 @@ const assertUserNotSuspendedById = async (userId) => {
   }
   try {
     const result = await getDb().executeQuery(
-      `SELECT is_suspended FROM users WHERE id = $1 AND deleted_at IS NULL LIMIT 1`,
+      `SELECT is_suspended, suspension_reason FROM users WHERE id = $1 AND deleted_at IS NULL LIMIT 1`,
       [userId]
     );
     if (!result?.rows?.length) {
@@ -58,14 +71,18 @@ const assertUserNotSuspendedById = async (userId) => {
         new ForbiddenError("ACCOUNT_RESTRICTED: Account is suspended")
       );
     }
-    if (isSuspendedValue(result.rows[0].is_suspended)) {
-      return wrapper.error(
-        new ForbiddenError("ACCOUNT_RESTRICTED: Account is suspended")
-      );
-    }
-    return wrapper.data({ ok: true });
+    const row = result.rows[0];
+    const evaluated = evaluateSuspension({
+      is_suspended: row.is_suspended,
+      suspension_reason: row.suspension_reason,
+    });
+    if (evaluated.error) return evaluated.error;
+    return wrapper.data({
+      ok: true,
+      restricted_verification: Boolean(evaluated.restricted_verification),
+      suspension_reason: row.suspension_reason || null,
+    });
   } catch (err) {
-    // Fail closed: jangan biarkan request lewat jika status tidak bisa diverifikasi
     return wrapper.error(
       new ForbiddenError("ACCOUNT_RESTRICTED: Account is suspended")
     );
@@ -93,6 +110,7 @@ module.exports = {
   ALLOWED_OAUTH_ROLE_IDS,
   sanitizeOauthRoleId,
   isSuspendedValue,
+  evaluateSuspension,
   rejectIfSuspended,
   assertUserNotSuspendedById,
   requireValidOauthRole,

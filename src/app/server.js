@@ -11,6 +11,7 @@ const pgConnectionPool = require("../helpers/databases/postgresql/connection");
 const redisConnection = require("../helpers/databases/redis/connection");
 const emailWorker = require("../helpers/queues/email.worker");
 const jobAlertsScheduler = require("../helpers/schedulers/jobAlerts.scheduler");
+const employerVerificationScheduler = require("../helpers/schedulers/employerVerification.scheduler");
 const swaggerUi = require("swagger-ui-express");
 const fs = require("fs");
 const { initSocket } = require("../helpers/socket");
@@ -42,6 +43,7 @@ class AppServer {
     redisConnection.init();
     emailWorker.start();
     jobAlertsScheduler.start();
+    employerVerificationScheduler.start();
     initSocket(this.server);
   }
 

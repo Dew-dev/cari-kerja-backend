@@ -46,8 +46,11 @@ const {
 } = require("../../../../helpers/auth/login_status");
 const {
   requireValidOauthRole,
-  rejectIfSuspended,
+  evaluateSuspension,
 } = require("../../../../helpers/auth/account_guards");
+const {
+  buildRecruiterGraceFields,
+} = require("../../../../helpers/fraud/employer_verification_settings");
 const COOLDOWN_SECONDS = 60;
 const MAX_PER_HOUR = 5;
 
@@ -77,6 +80,7 @@ class User {
         role_id: 1,
         email_verified_at: 1,
         is_suspended: 1,
+        suspension_reason: 1,
       },
       "OR",
     );
@@ -88,8 +92,8 @@ class User {
       }
     }
 
-    const suspended = rejectIfSuspended(user.data);
-    if (suspended) return suspended;
+    const suspensionEval = evaluateSuspension(user.data);
+    if (suspensionEval.error) return suspensionEval.error;
 
     if (user.data.login_provider && user.data.login_provider !== "local") {
       return wrapper.error(
@@ -187,6 +191,11 @@ class User {
         ...userResponse,
         login_provider: user.data.login_provider,
       },
+      restricted_verification: Boolean(suspensionEval.restricted_verification),
+      suspension_reason: user.data.suspension_reason || null,
+      account_notice: suspensionEval.restricted_verification
+        ? "VERIFICATION_REQUIRED: Submit company verification documents to restore full access"
+        : null,
     });
   }
 
@@ -206,6 +215,7 @@ class User {
         role_id: 1,
         email_verified_at: 1,
         is_suspended: 1,
+        suspension_reason: 1,
       },
     );
     let data;
@@ -244,6 +254,7 @@ class User {
           company_name: name,
           contact_name: name,
           contact_phone: "NULL",
+          ...(await buildRecruiterGraceFields()),
         };
         const resultRecruiter =
           await this.recruiterCommand.insertOne(dataRecruiter);
@@ -260,8 +271,11 @@ class User {
       }
     } else {
       data = user.data;
-      const suspended = rejectIfSuspended(data);
-      if (suspended) return suspended;
+      const suspensionEval = evaluateSuspension(data);
+      if (suspensionEval.error) return suspensionEval.error;
+      data._restricted_verification = Boolean(
+        suspensionEval.restricted_verification
+      );
       if (data.login_provider !== "google") {
         return wrapper.error(
           new ConflictError(
@@ -284,6 +298,8 @@ class User {
       }
     }
 
+    const restricted = Boolean(data._restricted_verification);
+    delete data._restricted_verification;
     const token = await generateAccessToken({
       ...data,
       login_provider: data.login_provider || "google",
@@ -301,6 +317,11 @@ class User {
     return wrapper.data({
       token,
       refreshToken,
+      restricted_verification: restricted,
+      suspension_reason: data.suspension_reason || null,
+      account_notice: restricted
+        ? "VERIFICATION_REQUIRED: Submit company verification documents to restore full access"
+        : null,
     });
   }
 
@@ -369,6 +390,7 @@ class User {
         role_id: 1,
         email_verified_at: 1,
         is_suspended: 1,
+        suspension_reason: 1,
       }
     );
 
@@ -408,6 +430,7 @@ class User {
           company_name: name,
           contact_name: name,
           contact_phone: "NULL",
+          ...(await buildRecruiterGraceFields()),
         };
         const resultRecruiter =
           await this.recruiterCommand.insertOne(dataRecruiter);
@@ -424,8 +447,11 @@ class User {
       }
     } else {
       data = user.data;
-      const suspended = rejectIfSuspended(data);
-      if (suspended) return suspended;
+      const suspensionEval = evaluateSuspension(data);
+      if (suspensionEval.error) return suspensionEval.error;
+      data._restricted_verification = Boolean(
+        suspensionEval.restricted_verification
+      );
       if (data.role_id === 1) {
         const resultWorker = await this.queryWorker.findOne(
           { user_id: data.id },
@@ -441,6 +467,8 @@ class User {
       }
     }
 
+    const restricted = Boolean(data._restricted_verification);
+    delete data._restricted_verification;
     const token = await generateAccessToken({
       ...data,
       login_provider: data.login_provider || "telegram",
@@ -458,6 +486,11 @@ class User {
     return wrapper.data({
       token,
       refreshToken,
+      restricted_verification: restricted,
+      suspension_reason: data.suspension_reason || null,
+      account_notice: restricted
+        ? "VERIFICATION_REQUIRED: Submit company verification documents to restore full access"
+        : null,
     });
   }
 
@@ -608,6 +641,7 @@ class User {
       company_name,
       contact_name,
       contact_phone,
+      ...(await buildRecruiterGraceFields()),
     };
 
     const result = await this.command.insertOne(data);
@@ -722,6 +756,7 @@ class User {
         email_verified_at: 1,
         username: 1,
         is_suspended: 1,
+        suspension_reason: 1,
       },
     );
     if (userData.err) {
@@ -729,8 +764,8 @@ class User {
       return wrapper.error(new NotFoundError("User Not Found"));
     }
 
-    const suspended = rejectIfSuspended(userData.data);
-    if (suspended) return suspended;
+    const suspensionEval = evaluateSuspension(userData.data);
+    if (suspensionEval.error) return suspensionEval.error;
 
     if (userData.data.role_id === 1) {
       const result = await this.queryWorker.findOne(
@@ -772,6 +807,11 @@ class User {
         ...authStatus,
       },
       ...authStatus,
+      restricted_verification: Boolean(suspensionEval.restricted_verification),
+      suspension_reason: userData.data.suspension_reason || null,
+      account_notice: suspensionEval.restricted_verification
+        ? "VERIFICATION_REQUIRED: Submit company verification documents to restore full access"
+        : null,
     });
   }
 

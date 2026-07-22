@@ -102,10 +102,19 @@ const uploadCV = createUploader(
   5
 );
 
+// Employer KYC docs → PDF/JPG/PNG, max 10MB
+const uploadVerificationDoc = createUploader(
+  "employer-verification",
+  "evdoc",
+  ["application/pdf", "image/jpeg", "image/jpg", "image/png"],
+  10
+);
+
 module.exports = {
   uploadAvatarRecruiter,
   uploadAvatarWorker,
   uploadResume,
   uploadPortfolio,
   uploadCV,
+  uploadVerificationDoc,
 };

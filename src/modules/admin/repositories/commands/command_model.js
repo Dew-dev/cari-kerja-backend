@@ -33,7 +33,9 @@ const updateSystemSettingsParamType = joi.object({
   support_email: joi.string().email().optional(),
   maintenance_mode: joi.boolean().optional(),
   max_upload_size_mb: joi.number().optional(),
-  allow_employer_registration: joi.boolean().optional()
+  allow_employer_registration: joi.boolean().optional(),
+  employer_verification_grace_days: joi.number().integer().min(1).max(90).optional(),
+  employer_verification_auto_block: joi.boolean().optional(),
 });
 
 // Lookup ids: serial (number) untuk tabel master biasa, UUID untuk skills & job_tags
