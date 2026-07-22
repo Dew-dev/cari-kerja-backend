@@ -14,6 +14,7 @@ const telegramWorker = require("../helpers/queues/telegram.worker");
 const matchingWorker = require("../helpers/queues/matching.worker");
 const jobAlertsScheduler = require("../helpers/schedulers/jobAlerts.scheduler");
 const jobBoostExpiryScheduler = require("../helpers/schedulers/jobBoostExpiry.scheduler");
+const employerVerificationScheduler = require("../helpers/schedulers/employerVerification.scheduler");
 const swaggerUi = require("swagger-ui-express");
 const fs = require("fs");
 const { initSocket } = require("../helpers/socket");
@@ -64,6 +65,7 @@ class AppServer {
     matchingWorker.start();
     jobAlertsScheduler.start();
     jobBoostExpiryScheduler.start();
+    employerVerificationScheduler.start();
     initSocket(this.server);
   }
 

@@ -34,6 +34,7 @@ const candidateMatching = require('./candidate_matching');
 const news = require('./news');
 const telegram = require('./telegram');
 const jobTitles = require('./job_titles');
+const employerVerification = require('./employer_verification');
 
 
 module.exports = (server) => {
@@ -73,5 +74,6 @@ module.exports = (server) => {
   jobAlerts(server);
   candidateMatching(server);
   news(server);
+  employerVerification(server);
 };
 

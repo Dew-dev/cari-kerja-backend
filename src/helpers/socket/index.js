@@ -73,6 +73,14 @@ const initSocket = (httpServer) => {
         return next(new Error("Forbidden: ACCOUNT_RESTRICTED: account is suspended"));
       }
 
+      if (suspension.data?.restricted_verification) {
+        return next(
+          new Error(
+            "Forbidden: ACCOUNT_RESTRICTED: VERIFICATION_REQUIRED: Complete company verification before using chat"
+          )
+        );
+      }
+
       socket.userMeta = verified.data;
       return next();
     } catch (err) {
