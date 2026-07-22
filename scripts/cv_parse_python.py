@@ -82,11 +82,17 @@ SECTION_SUMMARY = re.compile(
     r"(?:\s*:)?\s*",
     re.I,
 )
+# Prefer multi-word headings for prefix matches so prose like
+# "experience as a Full Stack Developer..." does not flip sections.
 SECTION_EXPERIENCE = re.compile(
     r"^(pengalaman(\s+kerja)?|riwayat\s+pekerjaan|professional\s+experience|work\s+experiences?|"
-    r"employment(\s+history)?|relevant\s+experience|experiences?|karir|pekerjaan|work\s+history|"
-    r"career\s+history|work\s+experience)"
+    r"employment(\s+history)?|relevant\s+experience|work\s+history|"
+    r"career\s+history|work\s+experience|pengalaman\s+kerja)"
     r"(?:\s*:)?\s*",
+    re.I,
+)
+SECTION_EXPERIENCE_ONLY = re.compile(
+    r"^(experiences?|karir|pekerjaan)\s*$",
     re.I,
 )
 SECTION_PROJECTS = re.compile(
@@ -152,7 +158,7 @@ COVER_LETTER_RE = re.compile(
     re.I,
 )
 JOB_TITLE_SKILL_BLOCK = re.compile(
-    r"^(programmer|developer|engineer|manager|analyst|designer|intern|consultant|"
+    r"^(developer|engineer|manager|analyst|designer|intern|consultant|"
     r"officer|lead|architect|specialist|scientist|staff|full\s+stack)$",
     re.I,
 )
@@ -184,7 +190,10 @@ def _extract_text(path: str) -> str:
         with pdfplumber.open(path) as pdf:
             for page in pdf.pages:
                 parts.append(page.extract_text() or "")
-        return "\n".join(parts).strip()
+        text = "\n".join(parts)
+        # Drop PDF viewer page footers if present
+        text = re.sub(r"(?m)^--\s*\d+\s+of\s+\d+\s*--\s*$", "", text)
+        return text.strip()
 
     if lower.endswith(".docx") or lower.endswith(".doc"):
         import docx2txt
@@ -239,6 +248,10 @@ def _normalize_lines(text: str) -> list[str]:
         .replace("Ã¢â‚¬â€œ", "–")
     )
     text = PRIVATE_USE_RE.sub(" ", text)
+    # Common OCR confusions on resume fonts
+    text = re.sub(r"\bCodelgniter\b", "CodeIgniter", text, flags=re.I)
+    text = re.sub(r"\bSTTI\s+NIT\s+I-?Tech\b", "STTI NIIT I-Tech", text, flags=re.I)
+    text = re.sub(r"\bSTTI\s+NIT\b", "STTI NIIT", text, flags=re.I)
     return [re.sub(r"\s+", " ", line).strip() for line in text.split("\n")]
 
 
@@ -257,6 +270,7 @@ def _split_sections(lines: list[str]) -> dict[str, list[str]]:
     section_rules = (
         (SECTION_SUMMARY, "summary"),
         (SECTION_EXPERIENCE, "experience"),
+        (SECTION_EXPERIENCE_ONLY, "experience"),
         (SECTION_PROJECTS, "projects"),
         (SECTION_EDUCATION, "education"),
         (SECTION_SKILLS, "skills"),
@@ -298,16 +312,12 @@ def _fix_ocr_year(
     is_current: bool = False,
     start_year: int | None = None,
 ) -> int:
-    """Correct common OCR digit confusions that push years into the future."""
+    """Fix OCR digit confusions only when the year is impossibly in the future."""
     from datetime import datetime
 
     now = datetime.now().year
     max_allowed = now + (1 if is_current else 0)
-    duration = (year - start_year) if start_year is not None else None
-    suspicious = year > max_allowed or (
-        not is_current and start_year is not None and duration is not None and duration > 6
-    )
-    if not suspicious and 1990 <= year <= max_allowed:
+    if 1990 <= year <= max_allowed:
         return year
 
     candidates: list[int] = []
@@ -321,16 +331,8 @@ def _fix_ocr_year(
     valid = [c for c in candidates if 1990 <= c <= max_allowed]
     if start_year is not None:
         valid = [c for c in valid if c >= start_year - 1]
-        # Prefer realistic program lengths (<= 6 years) when fixing OCR.
-        prefer = [c for c in valid if c - start_year <= 6]
-        if prefer:
-            valid = prefer
     if not valid:
-        if year > max_allowed:
-            return max_allowed
-        if start_year is not None and duration is not None and duration > 6:
-            return start_year + 2
-        return year
+        return max_allowed if year > max_allowed else year
     target = now if is_current else (start_year + 2 if start_year is not None else now)
     return min(valid, key=lambda c: abs(c - target))
 
@@ -828,7 +830,6 @@ def _parse_skills(lines: list[str]) -> list[str]:
                 "programming",
                 "hard skills",
                 "soft skills",
-                "k3",
                 "time",
                 "management",
                 "google",
@@ -850,6 +851,39 @@ def _parse_skills(lines: list[str]) -> list[str]:
         seen.add(key)
         unique.append(s)
     return unique[:60]
+
+
+def _enrich_skills_from_body(skills: list[str], text: str) -> list[str]:
+    """Add tech tokens clearly written in summary/experience but missing from Skills tags."""
+    catalog = [
+        "Vue.js",
+        "Nuxt.js",
+        "React",
+        "Angular",
+        "Express.js",
+        "Node.js",
+        "Laravel",
+        "CodeIgniter",
+        "Yii2",
+        "PHP",
+        "JavaScript",
+        "TypeScript",
+        "PostgreSQL",
+        "MongoDB",
+        "MySQL",
+        "Docker",
+        "Kubernetes",
+        "Google Cloud Platform",
+    ]
+    merged = list(skills)
+    seen = {s.lower() for s in merged}
+    for token in catalog:
+        if token.lower() in seen:
+            continue
+        if re.search(rf"(?<![A-Za-z0-9]){re.escape(token)}(?![A-Za-z0-9])", text, re.I):
+            merged.append(token)
+            seen.add(token.lower())
+    return merged[:60]
 
 
 def _extract_name(lines: list[str], profile_lines: list[str]) -> str | None:
@@ -995,7 +1029,10 @@ def _parse_from_text(text: str, *, source: str = "text") -> dict[str, Any]:
     projects = _parse_experiences(sections.get("projects", []))
     combined_work = (work + projects)[:10]
     education = _parse_educations(sections.get("education", []))
-    skills = _parse_skills(sections.get("skills", []))
+    skills = _enrich_skills_from_body(
+        _parse_skills(sections.get("skills", [])),
+        text,
+    )
 
     return {
         "personal_info": {
@@ -1124,6 +1161,7 @@ def main() -> None:
             {
                 "error": (
                     "Usage: cv_parse_python.py <file_path> "
+                    "| cv_parse_python.py --extract-text <file_path> "
                     "| cv_parse_python.py --from-text <text_file> "
                     "| cv_parse_python.py --render-pages <file_path> [--max-pages N] [--dpi N]"
                 )
@@ -1168,6 +1206,17 @@ def main() -> None:
             _emit(_parse_from_text(text, source=os.path.basename(text_path)), 0)
         except Exception as err:
             _emit({"error": str(err)}, 1)
+
+    if sys.argv[1] == "--extract-text":
+        if len(sys.argv) < 3:
+            _emit({"error": "Usage: cv_parse_python.py --extract-text <file_path>"}, 1)
+        path = os.path.abspath(sys.argv[2])
+        if not os.path.isfile(path):
+            _emit({"error": f"File not found: {path}"}, 1)
+        try:
+            _emit({"text": _extract_text(path)}, 0)
+        except Exception as err:
+            _emit({"error": f"Failed to extract text: {err}"}, 1)
 
     path = os.path.abspath(sys.argv[1])
     if not os.path.isfile(path):

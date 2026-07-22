@@ -13,6 +13,7 @@ const {
 const {
   isPythonResumeParserEnabled,
   parseWithPythonResumeParser,
+  extractTextWithPython,
 } = require("./cv_python_parser");
 
 const AI_PARSER_MODEL_DEFAULT = "gpt-4o-mini";
@@ -40,6 +41,13 @@ try {
 
 // ─── TEXT EXTRACTION ─────────────────────────────────────────────────────────
 
+function scrubExtractedText(text) {
+  return String(text || "")
+    .replace(/\u00a0/g, " ")
+    .replace(/^--\s*\d+\s+of\s+\d+\s*--\s*$/gm, "")
+    .trim();
+}
+
 /**
  * @returns {Promise<{ text: string, method: string }>}
  */
@@ -48,15 +56,23 @@ async function extractText(filePath, mimetype) {
   let method = "digital";
 
   if (mimetype === "application/pdf") {
-    const buffer = fs.readFileSync(filePath);
-    const parser = new PDFParse({ data: buffer });
-    const data = await parser.getText();
-    const digital = data.text || "";
+    let digital = "";
+    // pdfplumber (via Python) preserves reading order on multi-column CVs.
+    // Node pdf-parse often interleaves columns and breaks title/company pairing.
+    try {
+      digital = scrubExtractedText(await extractTextWithPython(filePath));
+    } catch (err) {
+      console.warn("Python PDF text extract failed; falling back to pdf-parse:", err.message);
+      const buffer = fs.readFileSync(filePath);
+      const parser = new PDFParse({ data: buffer });
+      const data = await parser.getText();
+      digital = scrubExtractedText(data.text || "");
+    }
     const hybrid = await extractPdfTextHybrid(filePath, digital);
-    text = hybrid.text;
+    text = scrubExtractedText(hybrid.text);
     method = hybrid.method;
   } else if (isDocxMimetype(mimetype)) {
-    text = await extractDocxText(filePath);
+    text = scrubExtractedText(await extractDocxText(filePath));
     method = "digital";
   } else {
     throw new Error("Unsupported file type. Only PDF and DOCX are allowed.");

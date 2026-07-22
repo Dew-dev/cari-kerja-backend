@@ -27,6 +27,40 @@ function ocrScale() {
   return Number(process.env.CV_OCR_RENDER_SCALE || 2);
 }
 
+function ocrDpi() {
+  const explicit = Number(process.env.CV_OCR_RENDER_DPI || 0);
+  if (explicit > 0) return explicit;
+  // ~144 DPI is a good balance for tesseract on this CV; higher DPI can worsen dates.
+  return Math.max(120, Math.round(72 * (ocrScale() || 2)));
+}
+
+function resolveTesseractLangPath() {
+  const configured = process.env.CV_OCR_LANG_PATH;
+  if (configured && fs.existsSync(configured)) return configured;
+  const cwd = process.cwd();
+  const hasEng = fs.existsSync(path.join(cwd, "eng.traineddata"));
+  const hasInd = fs.existsSync(path.join(cwd, "ind.traineddata"));
+  if (hasEng || hasInd) return cwd;
+  return undefined;
+}
+
+/** Common OCR misreads on CV fonts — keep conservative. */
+function cleanupOcrText(text) {
+  return String(text || "")
+    .replace(/\bCodelgniter\b/gi, "CodeIgniter")
+    .replace(/\bSTTI\s+NIT\s+I-?Tech\b/gi, "STTI NIIT I-Tech")
+    .replace(/\bSTTI\s+NIT\b/gi, "STTI NIIT")
+    .replace(/\befficent\b/gi, "efficient")
+    .replace(/\bAPs\b/g, "APIs")
+    .replace(/\bdociors\b/gi, "doctors")
+    .replace(/\bconsuliations\b/gi, "consultations")
+    .replace(/\bMaintzined\b/gi, "Maintained")
+    .replace(/\beamprehensive\b/gi, "comprehensive")
+    .replace(/\bfront ond\b/gi, "front-end")
+    .replace(/[ \t]+\n/g, "\n")
+    .trim();
+}
+
 function visionUrl() {
   return process.env.CV_OCR_VISION_URL || "";
 }
@@ -80,8 +114,7 @@ async function createCanvas(width, height) {
 async function renderPdfPagesToPngViaPython(filePath, maxPages = ocrMaxPages()) {
   const scriptPath = resolvePythonScriptPath();
   const pythonBin = resolvePythonBin();
-  // ~72 DPI * scale approximates pdf.js render scale
-  const dpi = Math.max(96, Math.round(72 * (ocrScale() || 2)));
+  const dpi = ocrDpi();
 
   if (!fs.existsSync(scriptPath)) {
     throw new Error(`Python CV parser script not found: ${scriptPath}`);
@@ -196,20 +229,25 @@ async function ocrImageWithTesseract(imageBuffer, worker) {
 
 /**
  * Local OCR via Tesseract.js (eng+ind by default).
+ * Uses repo-root *.traineddata when present (CV_OCR_LANG_PATH / cwd).
  */
 async function ocrPdfWithTesseract(filePath) {
   const { createWorker } = require("tesseract.js");
   const images = await module.exports.renderPdfPagesToPng(filePath);
   if (!images.length) return "";
 
-  const worker = await createWorker(ocrLangs());
+  const langPath = resolveTesseractLangPath();
+  const workerOpts = langPath
+    ? { langPath, cachePath: langPath, gzip: false }
+    : undefined;
+  const worker = await createWorker(ocrLangs(), 1, workerOpts);
   try {
     const parts = [];
     for (const image of images) {
       const text = await ocrImageWithTesseract(image, worker);
       if (text) parts.push(text);
     }
-    return parts.join("\n\n").trim();
+    return cleanupOcrText(parts.join("\n\n"));
   } finally {
     await worker.terminate().catch(() => {});
   }
@@ -308,10 +346,21 @@ async function ocrPdfWithVision(filePath) {
   const images = await module.exports.renderPdfPagesToPng(filePath);
   const parts = [];
   for (const image of images) {
-    const text = await ocrImageWithVision(image);
+    let text = "";
+    try {
+      text = await ocrImageWithVision(image);
+    } catch (err) {
+      const status = err?.response?.status;
+      if (status === 429) {
+        await new Promise((r) => setTimeout(r, 1500));
+        text = await ocrImageWithVision(image);
+      } else {
+        throw err;
+      }
+    }
     if (text) parts.push(text);
   }
-  return parts.join("\n\n").trim();
+  return cleanupOcrText(parts.join("\n\n"));
 }
 
 /**

@@ -145,9 +145,93 @@ function stripInternalMeta(payload) {
   };
 }
 
+/**
+ * Extract plain text via Python (pdfplumber/docx2txt).
+ * Prefer this over Node pdf-parse for multi-column resume PDFs.
+ * @param {string} filePath
+ * @returns {Promise<string>}
+ */
+function extractTextWithPython(filePath) {
+  if (!fs.existsSync(filePath)) {
+    return Promise.reject(new Error(`CV file not found: ${filePath}`));
+  }
+
+  const scriptPath = resolvePythonScriptPath();
+  const pythonBin = resolvePythonBin();
+  const timeoutMs = resolvePythonTimeoutMs();
+
+  if (!fs.existsSync(scriptPath)) {
+    return Promise.reject(new Error(`Python CV parser script not found: ${scriptPath}`));
+  }
+
+  return new Promise((resolve, reject) => {
+    const child = spawn(
+      pythonBin,
+      [scriptPath, "--extract-text", path.resolve(filePath)],
+      { windowsHide: true, env: process.env }
+    );
+
+    let stdout = "";
+    let stderr = "";
+    let settled = false;
+
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      child.kill("SIGTERM");
+      reject(new Error(`Python text extract timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString("utf8");
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString("utf8");
+    });
+    child.on("error", (err) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      reject(new Error(`Failed to start Python (${pythonBin}): ${err.message}`));
+    });
+    child.on("close", (code) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+
+      const line = stdout
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .pop();
+
+      if (!line) {
+        reject(new Error(stderr.trim() || `Python text extract exited with ${code}`));
+        return;
+      }
+
+      let payload;
+      try {
+        payload = JSON.parse(line);
+      } catch (err) {
+        reject(new Error(`Python text extract returned invalid JSON: ${err.message}`));
+        return;
+      }
+
+      if (code !== 0 || payload.error) {
+        reject(new Error(payload.error || stderr.trim() || `Python text extract exited with ${code}`));
+        return;
+      }
+
+      resolve(String(payload.text || ""));
+    });
+  });
+}
+
 module.exports = {
   isPythonResumeParserEnabled,
   parseWithPythonResumeParser,
+  extractTextWithPython,
   resolvePythonScriptPath,
   resolvePythonBin,
 };
