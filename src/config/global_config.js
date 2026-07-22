@@ -53,11 +53,21 @@ const config = {
     modelVersion: process.env.MATCHING_MODEL_VERSION || "hybrid-v1",
     embeddingUrl: process.env.MATCHING_EMBEDDING_URL || "",
     embeddingApiKey: process.env.MATCHING_EMBEDDING_API_KEY || "",
+    embeddingDims: Number(process.env.MATCHING_EMBEDDING_DIMS || 256),
     weights: {
       semantic: Number(process.env.MATCHING_W_SEMANTIC || 0.5),
       skills: Number(process.env.MATCHING_W_SKILLS || 0.25),
       experience: Number(process.env.MATCHING_W_EXPERIENCE || 0.15),
       education: Number(process.env.MATCHING_W_EDUCATION || 0.1),
+    },
+    elasticsearch: {
+      enabled: process.env.MATCHING_ES_ENABLED === "true",
+      node: process.env.ELASTICSEARCH_NODE || "http://localhost:9200",
+      username: process.env.ELASTICSEARCH_USERNAME || "",
+      password: process.env.ELASTICSEARCH_PASSWORD || "",
+      jobsIndex: process.env.MATCHING_ES_JOBS_INDEX || "matching_jobs",
+      workersIndex: process.env.MATCHING_ES_WORKERS_INDEX || "matching_workers",
+      knnCandidates: Number(process.env.MATCHING_ES_KNN_CANDIDATES || 50),
     },
   },
 };
