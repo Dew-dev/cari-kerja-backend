@@ -10,7 +10,8 @@
     "test:coverage": "jest --coverage",
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "swagger": "node swagger.js && node format-swagger.js"
+    "swagger": "node swagger.js && node format-swagger.js",
+    "backfill:matches": "node scripts/backfill_application_matches.js"
   },
   "author": "Dylan",
   "license": "ISC",

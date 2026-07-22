@@ -388,7 +388,13 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
         ast.name AS status,
 
         re.resume_url,
-        re.title AS resume_title
+        re.title AS resume_title,
+
+        ams.match_score,
+        ams.match_status,
+        ams.match_breakdown,
+        ams.match_reasons,
+        ams.computed_at AS match_computed_at
 
       FROM job_applications ja
       JOIN workers w ON w.id = ja.worker_id
@@ -396,13 +402,11 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
 
       LEFT JOIN application_statuses ast ON ast.id = ja.application_status_id
       LEFT JOIN resumes re ON re.id = ja.resume_id
+      LEFT JOIN application_match_scores ams ON ams.application_id = ja.id
 
       WHERE ja.job_post_id = $1
-      ORDER BY ja.applied_at DESC;
+      ORDER BY ams.match_score DESC NULLS LAST, ja.applied_at DESC;
     `;
-      // console.log("Executing query to find job applicants:", query, [
-      //   job_post_id,
-      // ]);
       const result = await this.db.executeQuery(query, [job_post_id]);
 
       return wrapper.data(result.rows);
