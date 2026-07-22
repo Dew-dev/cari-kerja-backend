@@ -48,6 +48,18 @@ const config = {
     secretKey: process.env.TURNSTILE_SECRET_KEY || "",
     siteKey: process.env.TURNSTILE_SITE_KEY || "",
   },
+  matching: {
+    enabled: process.env.MATCHING_ENABLED !== "false",
+    modelVersion: process.env.MATCHING_MODEL_VERSION || "hybrid-v1",
+    embeddingUrl: process.env.MATCHING_EMBEDDING_URL || "",
+    embeddingApiKey: process.env.MATCHING_EMBEDDING_API_KEY || "",
+    weights: {
+      semantic: Number(process.env.MATCHING_W_SEMANTIC || 0.5),
+      skills: Number(process.env.MATCHING_W_SKILLS || 0.25),
+      experience: Number(process.env.MATCHING_W_EXPERIENCE || 0.15),
+      education: Number(process.env.MATCHING_W_EDUCATION || 0.1),
+    },
+  },
 };
 
 const store = new confidence.Store(config);
