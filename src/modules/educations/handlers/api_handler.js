@@ -29,7 +29,8 @@ const getAllEducations = async (req, res) => {
 // command
 const insertEducations = async (req, res) => {
     const payload = {...req.body, worker_id: req.userMeta.worker_id};
-    const validatePayload = validator.isValidPayload(payload, commandModel.addEducationsParamType);
+    const { created_at, updated_at, _pending, ...payloadWithoutUiFields } = payload;
+    const validatePayload = validator.isValidPayload(payloadWithoutUiFields, commandModel.addEducationsParamType);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);
     }
@@ -39,8 +40,8 @@ const insertEducations = async (req, res) => {
 
 const updateEducations = async (req, res) => {
     const payload = {...req.body, worker_id: req.userMeta.worker_id, ...req.params};
-    const {created_at,updated_at, ...payloadWithoutCreatedAt} = payload;
-    const validatePayload = validator.isValidPayload(payloadWithoutCreatedAt, commandModel.updateEducationsParamType);
+    const { created_at, updated_at, _pending, ...payloadWithoutUiFields } = payload;
+    const validatePayload = validator.isValidPayload(payloadWithoutUiFields, commandModel.updateEducationsParamType);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);
     }

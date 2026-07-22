@@ -86,6 +86,18 @@ class AppServer {
   }
 
   listen() {
+    this.server.on("error", (err) => {
+      if (err && err.code === "EADDRINUSE") {
+        console.error(
+          `[CRASH] Port ${this.port} is already in use (EADDRINUSE). ` +
+            `Stop the other node/nodemon process or change APP_PORT.`
+        );
+        process.exit(1);
+      }
+      console.error("[CRASH] HTTP server error:", err);
+      process.exit(1);
+    });
+
     this.server.listen(this.port, () => {
       console.log("\n", __dirname);
       console.log(`🚀 Server running at http://localhost:${this.port}\n\n`);
