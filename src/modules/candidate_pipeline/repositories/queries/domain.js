@@ -50,7 +50,17 @@ class CandidatePipeline {
   }
 
   async getPipelineCandidates(payload) {
-    const { recruiter_id, job_post_id, search, stage_type, page = 1, limit = 10 } = payload;
+    const {
+      recruiter_id,
+      job_post_id,
+      search,
+      stage_type,
+      sort = "updated_at",
+      order = "desc",
+      min_match_score,
+      page = 1,
+      limit = 10,
+    } = payload;
     const jobPostIds = parseJobPostIds(job_post_id);
     const offset = (page - 1) * limit;
 
@@ -59,6 +69,9 @@ class CandidatePipeline {
       jobPostIds,
       search,
       stage_type,
+      sort,
+      order,
+      min_match_score,
       limit,
       offset,
     });

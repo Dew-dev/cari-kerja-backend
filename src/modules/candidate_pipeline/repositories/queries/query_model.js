@@ -16,6 +16,12 @@ const getPipelineCandidatesParamType = joi.object({
   job_post_id: uuidCsvOrArray.optional(),
   search: joi.string().trim().allow("").optional(),
   stage_type: joi.string().valid(...STAGE_TYPES).optional(),
+  sort: joi
+    .string()
+    .valid("updated_at", "applied_at", "match_score")
+    .default("updated_at"),
+  order: joi.string().valid("asc", "desc").default("desc"),
+  min_match_score: joi.number().integer().min(0).max(100).optional(),
   page: joi.number().integer().min(1).default(1),
   limit: joi.number().integer().min(1).max(100).default(10),
 });

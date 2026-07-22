@@ -118,7 +118,17 @@ class Query {
     }
   }
 
-  async findPipelineCandidates({ recruiter_id, jobPostIds, search, stage_type, limit, offset }) {
+  async findPipelineCandidates({
+    recruiter_id,
+    jobPostIds,
+    search,
+    stage_type,
+    sort = "updated_at",
+    order = "desc",
+    min_match_score,
+    limit,
+    offset,
+  }) {
     try {
       const conditions = [`jp.recruiter_id = $1`];
       const values = [recruiter_id];
@@ -142,7 +152,21 @@ class Query {
         idx += 1;
       }
 
+      if (min_match_score !== undefined && min_match_score !== null && min_match_score !== "") {
+        conditions.push(`ams.match_score >= $${idx}`);
+        values.push(Number(min_match_score));
+        idx += 1;
+      }
+
       const whereClause = conditions.join(" AND ");
+
+      const orderDirection = String(order).toLowerCase() === "asc" ? "ASC" : "DESC";
+      let orderClause = `ja.updated_at ${orderDirection}`;
+      if (sort === "applied_at") {
+        orderClause = `ja.applied_at ${orderDirection}`;
+      } else if (sort === "match_score") {
+        orderClause = `ams.match_score ${orderDirection} NULLS LAST, ja.updated_at DESC`;
+      }
 
       const countRes = await this.db.executeQuery(
         `SELECT COUNT(*) AS total
@@ -150,6 +174,7 @@ class Query {
          JOIN job_posts jp ON jp.id = ja.job_post_id
          JOIN workers w ON w.id = ja.worker_id
          LEFT JOIN application_statuses ast ON ast.id = ja.application_status_id
+         LEFT JOIN application_match_scores ams ON ams.application_id = ja.id
          WHERE ${whereClause};`,
         values,
       );
@@ -169,14 +194,20 @@ class Query {
             ast.name AS stage_name,
             ast.stage_type,
             ja.applied_at,
-            ja.updated_at
+            ja.updated_at,
+            ams.match_score,
+            ams.match_status,
+            ams.match_breakdown,
+            ams.match_reasons,
+            ams.computed_at AS match_computed_at
          FROM job_applications ja
          JOIN job_posts jp ON jp.id = ja.job_post_id
          JOIN workers w ON w.id = ja.worker_id
          JOIN users u ON u.id = w.user_id
          LEFT JOIN application_statuses ast ON ast.id = ja.application_status_id
+         LEFT JOIN application_match_scores ams ON ams.application_id = ja.id
          WHERE ${whereClause}
-         ORDER BY ja.updated_at DESC
+         ORDER BY ${orderClause}
          LIMIT $${idx} OFFSET $${idx + 1};`,
         dataValues,
       );
