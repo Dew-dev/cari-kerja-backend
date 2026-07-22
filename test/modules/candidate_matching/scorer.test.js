@@ -70,4 +70,22 @@ describe("Candidate Matching Scorer", () => {
       }),
     ).toBe(100);
   });
+
+  it("accepts semanticPctOverride from ES knn", () => {
+    const result = computeHybridScore({
+      jobEmbedding: perfectVec,
+      workerEmbedding: orthogonalVec,
+      jobSkillIds: [],
+      workerSkillIds: [],
+      experienceLevelName: "Junior",
+      totalYears: 2,
+      jobText: "",
+      educations: [],
+      weights: { semantic: 1, skills: 0, experience: 0, education: 0 },
+      semanticPctOverride: 88,
+    });
+
+    expect(result.match_breakdown.semantic).toBe(88);
+    expect(result.match_score).toBe(88);
+  });
 });
