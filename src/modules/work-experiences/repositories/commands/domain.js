@@ -7,6 +7,7 @@ const {
   NotFoundError,
   InternalServerError,
 } = require("../../../../helpers/errors");
+const { enqueueRecomputeWorkerMatches } = require("../../../../helpers/queues/matching.queue");
 const ctx = "WorkerExperience-Domain";
 
 class WorkExperience {
@@ -33,6 +34,7 @@ class WorkExperience {
         new InternalServerError("Failed to insert work experience")
       );
     }
+    await enqueueRecomputeWorkerMatches(payload.worker_id);
     return wrapper.data(result.data);
   }
 
@@ -60,6 +62,7 @@ class WorkExperience {
       );
     }
 
+    await enqueueRecomputeWorkerMatches(worker_id);
     return wrapper.data({ id });
   }
 
@@ -79,6 +82,7 @@ class WorkExperience {
       );
     }
 
+    await enqueueRecomputeWorkerMatches(worker_id);
     return wrapper.data("Successfully deleted");
   }
 }

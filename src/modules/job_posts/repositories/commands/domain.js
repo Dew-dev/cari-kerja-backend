@@ -35,6 +35,10 @@ const {
   PENDING_JOB_STATUS_ID,
 } = require("../../../../helpers/fraud/score_job_post");
 const { upsertOpenFraudEvent } = require("../../../../helpers/fraud/fraud_events");
+const {
+  enqueueComputeApplicationMatch,
+  enqueueRecomputeJobMatches,
+} = require("../../../../helpers/queues/matching.queue");
 
 class Jobpost {
   constructor(db) {
@@ -677,6 +681,8 @@ class Jobpost {
 
       // await client.query("COMMIT");
 
+      await enqueueComputeApplicationMatch(data.id);
+
       return wrapper.data({
         job_application: data,
         answers: answerPayload || [],
@@ -1002,6 +1008,16 @@ class Jobpost {
           );
         }
       }
+    }
+
+    const shouldRecomputeMatches =
+      skills !== undefined ||
+      jobData.description !== undefined ||
+      jobData.title !== undefined ||
+      jobData.experience_level_id !== undefined;
+
+    if (shouldRecomputeMatches) {
+      await enqueueRecomputeJobMatches(id);
     }
 
     return wrapper.data(
