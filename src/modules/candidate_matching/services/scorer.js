@@ -120,6 +120,8 @@ const clampScore = (value) => Math.max(0, Math.min(100, Math.round(value)));
 
 /**
  * Hybrid match score 0–100.
+ * @param {object} opts
+ * @param {number} [opts.semanticPctOverride] - optional 0–100 from ES knn
  */
 const computeHybridScore = ({
   jobEmbedding,
@@ -131,6 +133,7 @@ const computeHybridScore = ({
   jobText,
   educations,
   weights: weightsOverride,
+  semanticPctOverride,
 }) => {
   const cfg = config.get("/matching") || {};
   const weights = weightsOverride || cfg.weights || {};
@@ -139,7 +142,10 @@ const computeHybridScore = ({
   const wExperience = Number(weights.experience ?? 0.15);
   const wEducation = Number(weights.education ?? 0.1);
 
-  const semanticPct = cosineSimilarity(jobEmbedding, workerEmbedding) * 100;
+  const semanticPct =
+    semanticPctOverride != null && Number.isFinite(Number(semanticPctOverride))
+      ? Math.max(0, Math.min(100, Number(semanticPctOverride)))
+      : cosineSimilarity(jobEmbedding, workerEmbedding) * 100;
   const skillsPct = skillOverlapPct({ jobSkillIds, workerSkillIds });
   const experiencePct = experienceFitPct({ experienceLevelName, totalYears });
   const educationPct = educationFitPct({ jobText, educations });

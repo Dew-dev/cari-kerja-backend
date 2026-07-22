@@ -26,7 +26,9 @@ const tokenize = (text) =>
  * Deterministic bag-of-words hashed into a fixed-size vector (local fallback).
  */
 const localBagOfWordsEmbedding = (text) => {
-  const vec = new Array(LOCAL_DIM).fill(0);
+  const matching = config.get("/matching") || {};
+  const dim = Number(matching.embeddingDims) || LOCAL_DIM;
+  const vec = new Array(dim).fill(0);
   const tokens = tokenize(text);
   if (tokens.length === 0) return vec;
 
@@ -41,7 +43,7 @@ const localBagOfWordsEmbedding = (text) => {
       hash ^= token.charCodeAt(i);
       hash = Math.imul(hash, 16777619);
     }
-    const idx = Math.abs(hash) % LOCAL_DIM;
+    const idx = Math.abs(hash) % dim;
     const sign = hash & 1 ? 1 : -1;
     vec[idx] += sign * (count / tokens.length);
   }
@@ -114,4 +116,5 @@ module.exports = {
   embedText,
   localBagOfWordsEmbedding,
   tokenize,
+  LOCAL_DIM,
 };
