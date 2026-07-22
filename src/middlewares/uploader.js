@@ -1,6 +1,13 @@
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+require("dotenv").config();
+
+/** Absolute/relative root for disk uploads. Override via UPLOADS_PATH in .env */
+const getUploadsRoot = () =>
+  process.env.UPLOADS_PATH
+    ? path.resolve(process.env.UPLOADS_PATH)
+    : path.join(__dirname, "../uploads");
 
 // Utility pembuat uploader
 function createUploader(
@@ -9,8 +16,7 @@ function createUploader(
   allowedMimeTypes,
   maxSizeMB = 2,
 ) {
-  // const uploadPath = path.join(__dirname, "../uploads", subPath);
-  const uploadPath = path.join("/var/www/uploads", subPath);
+  const uploadPath = path.join(getUploadsRoot(), subPath);
 
   // pastikan folder ada
   if (!fs.existsSync(uploadPath)) {
