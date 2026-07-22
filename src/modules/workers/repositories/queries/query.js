@@ -30,9 +30,7 @@ class Query {
              c2.id AS expected_salary_currency_id, c2.code AS expected_salary_currency_code, c2.name AS expected_salary_currency_name, c2.symbol AS expected_salary_currency_symbol,
              u.email,
              u.login_provider,
-             u.email_verified_at,
-             u.notification_telegram_id,
-             u.notification_telegram_username
+             u.email_verified_at
       FROM ${collection} w
       LEFT JOIN genders g ON w.gender_id = g.id
       LEFT JOIN users u ON w.user_id = u.id

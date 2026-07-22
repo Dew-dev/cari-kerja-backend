@@ -128,6 +128,11 @@ class CommunicationCommand {
     for (const app of apps) {
       if (app.email_opt_out) {
         skipped.push({ application_id: app.application_id, reason: "opt_out" });
+      } else if (app.login_provider === "telegram") {
+        skipped.push({
+          application_id: app.application_id,
+          reason: "telegram_channel_only",
+        });
       } else if (!app.email) {
         skipped.push({ application_id: app.application_id, reason: "no_email" });
       } else {
