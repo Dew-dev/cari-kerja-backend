@@ -91,10 +91,32 @@ const enqueueRecomputeWorkerMatches = async (worker_id, opts = {}) => {
   }
 };
 
+/**
+ * Reindex PG entity_embeddings → Elasticsearch dense_vector indices.
+ */
+const enqueueReindexElasticsearch = async (opts = {}) => {
+  if (!isMatchingEnabled()) return null;
+
+  try {
+    return await matchingQueue.add(
+      "reindex_elasticsearch",
+      {},
+      {
+        jobId: `reindex-es-${Date.now()}`,
+        ...opts,
+      },
+    );
+  } catch (err) {
+    logger.error(ctx, "enqueueReindexElasticsearch failed", "queue", err.message || err);
+    return null;
+  }
+};
+
 module.exports = {
   matchingQueue,
   MATCHING_QUEUE_NAME,
   enqueueComputeApplicationMatch,
   enqueueRecomputeJobMatches,
   enqueueRecomputeWorkerMatches,
+  enqueueReindexElasticsearch,
 };

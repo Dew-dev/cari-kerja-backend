@@ -8,9 +8,11 @@ const domain = new Domain(db);
 const computeApplicationMatch = async (payload) => domain.computeApplicationMatch(payload);
 const rematchJobPost = async (payload) => domain.rematchJobPost(payload);
 const backfillAllApplications = async () => domain.backfillAllApplications();
+const reindexElasticsearchEmbeddings = async () => domain.reindexElasticsearchEmbeddings();
 
 module.exports = {
   computeApplicationMatch,
   rematchJobPost,
   backfillAllApplications,
+  reindexElasticsearchEmbeddings,
 };

@@ -6,6 +6,8 @@ const logger = require("../utils/logger");
 const { MATCHING_QUEUE_NAME } = require("./matching.queue");
 const CommandDomain = require("../../modules/candidate_matching/repositories/commands/domain");
 const Query = require("../../modules/candidate_matching/repositories/queries/query");
+const { ensureIndices } = require("../../modules/candidate_matching/services/elasticsearch_index");
+const { isEnabled: isEsEnabled } = require("../databases/elasticsearch/client");
 
 const ctx = "MatchingWorker";
 
@@ -17,6 +19,12 @@ const start = () => {
   const db = new DB(config.get("/postgresqlUrl"));
   const domain = new CommandDomain(db);
   const query = new Query(db);
+
+  if (isEsEnabled()) {
+    ensureIndices().catch((err) => {
+      logger.error(ctx, "ensureIndices on start failed", "matching.worker", err.message || err);
+    });
+  }
 
   matchingWorker = new Worker(
     MATCHING_QUEUE_NAME,
@@ -75,6 +83,14 @@ const start = () => {
           }
         }
         return { recomputed: results.length };
+      }
+
+      if (job.name === "reindex_elasticsearch") {
+        const result = await domain.reindexElasticsearchEmbeddings();
+        if (result.err) {
+          throw new Error(result.err.message || "reindex_elasticsearch failed");
+        }
+        return result.data;
       }
 
       throw new Error(`Unknown matching job: ${job.name}`);

@@ -251,6 +251,28 @@ class Query {
     }
   }
 
+  async findAllEmbeddings({ limit = 200, offset = 0 } = {}) {
+    try {
+      const res = await this.db.executeQuery(
+        `SELECT
+            entity_type,
+            entity_id,
+            text_hash,
+            model_version,
+            embedding,
+            source_text
+         FROM entity_embeddings
+         ORDER BY updated_at ASC
+         LIMIT $1 OFFSET $2`,
+        [limit, offset],
+      );
+      return wrapper.data(res?.rows || []);
+    } catch (error) {
+      logger.error(ctx, errorQueryMessage, "findAllEmbeddings", error);
+      return wrapper.error(errorQueryMessage);
+    }
+  }
+
   async findJobPostOwner(job_post_id) {
     try {
       const res = await this.db.executeQuery(

@@ -17,6 +17,13 @@ const {
 } = require("../../services/text_builder");
 const { embedText } = require("../../services/embedding_client");
 const { computeHybridScore } = require("../../services/scorer");
+const {
+  indexEntity,
+  knnSemanticSimilarity,
+  ensureIndices,
+  reindexFromRows,
+} = require("../../services/elasticsearch_index");
+const { isEnabled: isEsEnabled } = require("../../../../helpers/databases/elasticsearch/client");
 
 const ctx = "CandidateMatching-Command-Domain";
 
@@ -60,14 +67,33 @@ class CandidateMatchingCommand {
     });
 
     if (!cached.err && cached.data && cached.data.text_hash === text_hash) {
+      const embedding = parseEmbedding(cached.data.embedding);
+      // Keep ES index warm even on cache hit (idempotent upsert)
+      await indexEntity({
+        entity_type,
+        entity_id,
+        text_hash,
+        model_version,
+        embedding,
+        source_text: text.slice(0, 4000),
+      });
       return {
-        embedding: parseEmbedding(cached.data.embedding),
+        embedding,
         provider: "cache",
       };
     }
 
     const result = await embedText(text);
     await this.command.upsertEmbedding({
+      entity_type,
+      entity_id,
+      text_hash,
+      model_version,
+      embedding: result.embedding,
+      source_text: text.slice(0, 4000),
+    });
+
+    await indexEntity({
       entity_type,
       entity_id,
       text_hash,
@@ -177,6 +203,19 @@ class CandidateMatchingCommand {
         }),
       ]);
 
+      let semanticProvider = "local_cosine";
+      let semanticPctOverride;
+      if (isEsEnabled()) {
+        const knnSim = await knnSemanticSimilarity({
+          jobEmbedding: jobEmb.embedding,
+          worker_id,
+        });
+        if (knnSim != null) {
+          semanticPctOverride = knnSim * 100;
+          semanticProvider = "elasticsearch_knn";
+        }
+      }
+
       const scored = computeHybridScore({
         jobEmbedding: jobEmb.embedding,
         workerEmbedding: workerEmb.embedding,
@@ -186,6 +225,7 @@ class CandidateMatchingCommand {
         totalYears: totalYearsFromExperiences(workerSrc.data.work_experiences),
         jobText,
         educations: workerSrc.data.educations || [],
+        semanticPctOverride,
       });
 
       const saved = await this.command.upsertMatchScore({
@@ -200,6 +240,7 @@ class CandidateMatchingCommand {
             job: jobEmb.provider,
             worker: workerEmb.provider,
           },
+          semantic_provider: semanticProvider,
         },
         match_reasons: scored.match_reasons,
         model_version,
@@ -292,6 +333,42 @@ class CandidateMatchingCommand {
     }
 
     return wrapper.data({ enqueued: total });
+  }
+
+  /**
+   * Reindex all rows from entity_embeddings into Elasticsearch dense_vector indices.
+   */
+  async reindexElasticsearchEmbeddings() {
+    if (!isEsEnabled()) {
+      return wrapper.error(new BadRequestError("Elasticsearch matching is disabled"));
+    }
+
+    await ensureIndices();
+
+    let offset = 0;
+    const limit = 200;
+    let indexed = 0;
+    let skipped = 0;
+    let failed = 0;
+
+    for (;;) {
+      const batch = await this.query.findAllEmbeddings({ limit, offset });
+      if (batch.err) {
+        return wrapper.error(new InternalServerError("Failed to load embeddings for ES reindex"));
+      }
+      const rows = batch.data || [];
+      if (rows.length === 0) break;
+
+      const result = await reindexFromRows(rows);
+      indexed += result.indexed || 0;
+      skipped += result.skipped || 0;
+      failed += result.failed || 0;
+
+      offset += limit;
+      if (rows.length < limit) break;
+    }
+
+    return wrapper.data({ indexed, skipped, failed });
   }
 }
 
