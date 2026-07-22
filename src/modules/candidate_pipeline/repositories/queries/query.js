@@ -153,7 +153,9 @@ class Query {
       }
 
       if (min_match_score !== undefined && min_match_score !== null && min_match_score !== "") {
-        conditions.push(`ams.match_score >= $${idx}`);
+        // Treat missing scores as 0 so unscored / zero-match applicants stay visible
+        // when filtering (SQL NULL >= n is unknown and would drop the row).
+        conditions.push(`COALESCE(ams.match_score, 0) >= $${idx}`);
         values.push(Number(min_match_score));
         idx += 1;
       }
@@ -165,7 +167,7 @@ class Query {
       if (sort === "applied_at") {
         orderClause = `ja.applied_at ${orderDirection}`;
       } else if (sort === "match_score") {
-        orderClause = `ams.match_score ${orderDirection} NULLS LAST, ja.updated_at DESC`;
+        orderClause = `COALESCE(ams.match_score, 0) ${orderDirection}, ja.updated_at DESC`;
       }
 
       const countRes = await this.db.executeQuery(
@@ -195,10 +197,10 @@ class Query {
             ast.stage_type,
             ja.applied_at,
             ja.updated_at,
-            ams.match_score,
-            ams.match_status,
+            COALESCE(ams.match_score, 0) AS match_score,
+            COALESCE(ams.match_status, 'pending') AS match_status,
             ams.match_breakdown,
-            ams.match_reasons,
+            COALESCE(ams.match_reasons, '[]'::jsonb) AS match_reasons,
             ams.computed_at AS match_computed_at
          FROM job_applications ja
          JOIN job_posts jp ON jp.id = ja.job_post_id

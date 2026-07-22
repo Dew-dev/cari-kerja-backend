@@ -81,8 +81,15 @@ class CandidatePipeline {
       return wrapper.error(new NotFoundError("Failed to load candidates"));
     }
 
+    const rows = (result.data || []).map((row) => ({
+      ...row,
+      match_score: row.match_score == null ? 0 : Number(row.match_score),
+      match_status: row.match_status || "pending",
+      match_reasons: Array.isArray(row.match_reasons) ? row.match_reasons : row.match_reasons || [],
+    }));
+
     const total = result.meta?.total ?? 0;
-    return wrapper.paginationData(result.data, {
+    return wrapper.paginationData(rows, {
       page: parseInt(page, 10),
       limit: parseInt(limit, 10),
       total,

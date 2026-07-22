@@ -405,11 +405,18 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       LEFT JOIN application_match_scores ams ON ams.application_id = ja.id
 
       WHERE ja.job_post_id = $1
-      ORDER BY ams.match_score DESC NULLS LAST, ja.applied_at DESC;
+      ORDER BY COALESCE(ams.match_score, 0) DESC, ja.applied_at DESC;
     `;
       const result = await this.db.executeQuery(query, [job_post_id]);
 
-      return wrapper.data(result.rows);
+      const rows = (result.rows || []).map((row) => ({
+        ...row,
+        match_score: row.match_score == null ? 0 : Number(row.match_score),
+        match_status: row.match_status || "pending",
+        match_reasons: row.match_reasons || [],
+      }));
+
+      return wrapper.data(rows);
     } catch (error) {
       logger.error(ctx, "findJobApplicants", "Query failed", error);
       return wrapper.error("Failed to fetch applicants");
