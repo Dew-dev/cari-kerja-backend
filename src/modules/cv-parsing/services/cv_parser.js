@@ -10,12 +10,13 @@ const {
   extractPdfTextHybrid,
   isThinExtractedText,
 } = require("./cv_ocr");
+const {
+  isPythonResumeParserEnabled,
+  parseWithPythonResumeParser,
+  extractTextWithPython,
+} = require("./cv_python_parser");
 
-const AI_PARSER_URL = process.env.CV_PARSER_AI_URL;
-const AI_PARSER_API_KEY = process.env.CV_PARSER_AI_KEY;
-const AI_PARSER_MODEL = process.env.CV_PARSER_AI_MODEL || "gpt-4o-mini";
-const ENABLE_RESUME_PARSER = process.env.CV_USE_RESUME_PARSER === "true";
-const ENABLE_OPENRESUME_STYLE = process.env.CV_USE_OPENRESUME_STYLE !== "false";
+const AI_PARSER_MODEL_DEFAULT = "gpt-4o-mini";
 
 // resume-parser depends on mime@1 API (lookup/extension). mime@2+ renamed these.
 try {
@@ -40,6 +41,13 @@ try {
 
 // ─── TEXT EXTRACTION ─────────────────────────────────────────────────────────
 
+function scrubExtractedText(text) {
+  return String(text || "")
+    .replace(/\u00a0/g, " ")
+    .replace(/^--\s*\d+\s+of\s+\d+\s*--\s*$/gm, "")
+    .trim();
+}
+
 /**
  * @returns {Promise<{ text: string, method: string }>}
  */
@@ -48,15 +56,23 @@ async function extractText(filePath, mimetype) {
   let method = "digital";
 
   if (mimetype === "application/pdf") {
-    const buffer = fs.readFileSync(filePath);
-    const parser = new PDFParse({ data: buffer });
-    const data = await parser.getText();
-    const digital = data.text || "";
+    let digital = "";
+    // pdfplumber (via Python) preserves reading order on multi-column CVs.
+    // Node pdf-parse often interleaves columns and breaks title/company pairing.
+    try {
+      digital = scrubExtractedText(await extractTextWithPython(filePath));
+    } catch (err) {
+      console.warn("Python PDF text extract failed; falling back to pdf-parse:", err.message);
+      const buffer = fs.readFileSync(filePath);
+      const parser = new PDFParse({ data: buffer });
+      const data = await parser.getText();
+      digital = scrubExtractedText(data.text || "");
+    }
     const hybrid = await extractPdfTextHybrid(filePath, digital);
-    text = hybrid.text;
+    text = scrubExtractedText(hybrid.text);
     method = hybrid.method;
   } else if (isDocxMimetype(mimetype)) {
-    text = await extractDocxText(filePath);
+    text = scrubExtractedText(await extractDocxText(filePath));
     method = "digital";
   } else {
     throw new Error("Unsupported file type. Only PDF and DOCX are allowed.");
@@ -64,6 +80,12 @@ async function extractText(filePath, mimetype) {
 
   const trimmed = String(text).replace(/\u00a0/g, " ").trim();
   if (!trimmed) {
+    if (mimetype === "application/pdf") {
+      throw new Error(
+        "CV has no extractable content (empty text). This looks like a scanned/image-only PDF; " +
+          "enable CV_OCR_VISION_* (or install working local OCR) and retry."
+      );
+    }
     throw new Error("CV has no extractable content (empty text)");
   }
   return { text: trimmed, method };
@@ -198,12 +220,13 @@ const CV_JSON_SCHEMA = {
       personal_info: {
         type: "object",
         additionalProperties: false,
-        required: ["full_name", "email", "phone", "location"],
+        required: ["full_name", "email", "phone", "location", "summary"],
         properties: {
           full_name: { type: ["string", "null"] },
           email: { type: ["string", "null"] },
           phone: { type: ["string", "null"] },
           location: { type: ["string", "null"] },
+          summary: { type: ["string", "null"] },
         },
       },
       work_experiences: {
@@ -248,18 +271,28 @@ const CV_JSON_SCHEMA = {
 };
 
 function isAIParsingEnabled() {
-  return Boolean(AI_PARSER_URL && AI_PARSER_API_KEY);
+  return Boolean(process.env.CV_PARSER_AI_URL && process.env.CV_PARSER_AI_KEY);
 }
 
 function isResumeParserEnabled() {
-  return Boolean(ENABLE_RESUME_PARSER && resumeParserInternal);
+  return process.env.CV_USE_RESUME_PARSER === "true" && Boolean(resumeParserInternal);
 }
 
 function isOpenResumeStyleEnabled() {
-  return ENABLE_OPENRESUME_STYLE;
+  // Explicit false always wins.
+  if (process.env.CV_USE_OPENRESUME_STYLE === "false") return false;
+  // Explicit true always wins.
+  if (process.env.CV_USE_OPENRESUME_STYLE === "true") return true;
+  // When Python is the preferred local parser, skip OpenResume unless forced on.
+  if (process.env.CV_USE_PYTHON_RESUME_PARSER === "true") return false;
+  return true;
 }
 
 async function parseWithAI(rawText) {
+  const AI_PARSER_URL = process.env.CV_PARSER_AI_URL;
+  const AI_PARSER_API_KEY = process.env.CV_PARSER_AI_KEY;
+  const AI_PARSER_MODEL = process.env.CV_PARSER_AI_MODEL || AI_PARSER_MODEL_DEFAULT;
+
   const systemPrompt =
     "Extract only facts explicitly present in the CV. Preserve the candidate's date format. Do not infer missing values; use null. Put multiple responsibility bullet points into one description separated by newlines.";
   const userPrompt = `Extract structured candidate data from this CV:\n\n${rawText}`;
@@ -426,19 +459,19 @@ function toLineText(line) {
 }
 
 function hasSkillHeading(text) {
-  return /skills?|keahlian|kompetensi|tools|technologies|kemampuan|keahlian\s+teknis/i.test(text);
+  return /skills?|keahlian|kompetensi|tools|technologies|kemampuan|keahlian\s+teknis|core\s+competenc|technical\s+proficienc|expertise/i.test(text);
 }
 
 function hasExperienceHeading(text) {
-  return /experience|employment|riwayat\s+pekerjaan|pengalaman(\s+kerja)?|work\s+history|career|karir|pekerjaan/i.test(text);
+  return /experience|employment|riwayat\s+pekerjaan|pengalaman(\s+kerja)?|work\s+history|career|karir|pekerjaan|professional\s+experience|work\s+experience/i.test(text);
 }
 
 function hasEducationHeading(text) {
-  return /education|pendidikan|academic|riwayat\s+pendidikan|akademik/i.test(text);
+  return /education|pendidikan|academic|riwayat\s+pendidikan|akademik|qualifications|education\s*&\s*training|academic\s+background/i.test(text);
 }
 
 function hasProfileHeading(text) {
-  return /profile|profil|ringkasan|summary|tentang\s+saya|about\s+me|biodata/i.test(text);
+  return /profile|profil|ringkasan|summary|tentang\s+saya|about\s+me|biodata|professional\s+summary|objective|career\s+objective/i.test(text);
 }
 
 const SECTION_HEADING_EXCLUDES = new Set([
@@ -446,6 +479,9 @@ const SECTION_HEADING_EXCLUDES = new Set([
   "pengalaman", "pendidikan", "keahlian", "profil", "ringkasan", "kontak",
   "work experience", "employment history", "technical skills", "personal info",
   "riwayat pekerjaan", "riwayat pendidikan", "sertifikasi", "organisasi",
+  "professional experience", "professional summary", "core competencies",
+  "qualifications", "employment", "work history", "career history",
+  "academic background", "education & training", "expertise",
 ]);
 
 const ID_CITY_HINTS = [
@@ -455,11 +491,23 @@ const ID_CITY_HINTS = [
   "pontianak", "balikpapan", "samarinda", "pekanbaru", "banjarmasin",
 ];
 
+const EN_CITY_HINTS = [
+  "new york", "los angeles", "san francisco", "chicago", "seattle", "boston",
+  "austin", "denver", "miami", "london", "manchester", "birmingham", "edinburgh",
+  "toronto", "vancouver", "montreal", "sydney", "melbourne", "singapore",
+  "kuala lumpur", "manila", "bangkok", "dubai", "hong kong", "tokyo",
+  "berlin", "munich", "amsterdam", "paris", "dublin", "remote",
+];
+
 const PHONE_ID_RE = /(\+?62|0)[\s.-]?\d[\d\s.-]{7,14}/;
-const PHONE_US_RE = /\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/;
-const PHONE_ANY_RE = new RegExp(`(?:${PHONE_ID_RE.source})|(?:${PHONE_US_RE.source})`);
+const PHONE_US_RE = /(?:\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/;
+const PHONE_INTL_RE = /\+[1-9]\d{0,2}[\s.-]?\d[\d\s.-]{6,14}/;
+const PHONE_ANY_RE = new RegExp(
+  `(?:${PHONE_ID_RE.source})|(?:${PHONE_US_RE.source})|(?:${PHONE_INTL_RE.source})`
+);
 const EMAIL_ANY_RE = /[\w.+-]+@[\w-]+\.[a-zA-Z]{2,}/;
-const LOCATION_US_RE = /[A-Z][a-zA-Z\s]+,\s*[A-Z]{2}\b/;
+const LOCATION_US_RE = /[A-Z][a-zA-Z.\s]+,\s*[A-Z]{2}\b/;
+const LOCATION_CITY_COUNTRY_RE = /\b[A-Z][a-zA-Z.\s-]{1,40},\s*[A-Z][a-zA-Z\s-]{1,40}\b/;
 const LOCATION_ID_RE = /(?:kota|kab\.?|kabupaten)\s+[A-Za-z][A-Za-z\s.]+/i;
 
 function groupTextItemsIntoLines(items) {
@@ -686,24 +734,39 @@ function isLikelySectionHeadingName(text) {
   return hasExperienceHeading(lower) || hasEducationHeading(lower) || hasSkillHeading(lower) || hasProfileHeading(lower);
 }
 
-function matchIndonesianLocation(text) {
+function matchLocationFromCityHints(raw, lower, cities) {
+  for (const city of cities) {
+    if (!lower.includes(city)) continue;
+    if (raw.length <= 60 && !EMAIL_ANY_RE.test(raw) && !PHONE_ANY_RE.test(raw)) return raw;
+    const cityRe = new RegExp(`\\b${city.replace(/\s+/g, "\\s+")}\\b[\\w\\s.,-]*`, "i");
+    const m = raw.match(cityRe);
+    if (m) return m[0].trim();
+  }
+  return null;
+}
+
+/** Indonesian + English/international location heuristics. */
+function matchLocation(text) {
   const raw = String(text || "").trim();
   if (!raw) return null;
   const idMatch = raw.match(LOCATION_ID_RE);
   if (idMatch) return idMatch[0].trim();
   const usMatch = raw.match(LOCATION_US_RE);
   if (usMatch) return usMatch[0].trim();
-  const lower = raw.toLowerCase();
-  for (const city of ID_CITY_HINTS) {
-    if (lower.includes(city)) {
-      // Prefer the whole short line if it looks like a location
-      if (raw.length <= 60 && !EMAIL_ANY_RE.test(raw) && !PHONE_ANY_RE.test(raw)) return raw;
-      const cityRe = new RegExp(`\\b${city}\\b[\\w\\s.,]*`, "i");
-      const m = raw.match(cityRe);
-      if (m) return m[0].trim();
-    }
+  const cityCountry = raw.match(LOCATION_CITY_COUNTRY_RE);
+  if (cityCountry && raw.length <= 60 && !EMAIL_ANY_RE.test(raw) && !PHONE_ANY_RE.test(raw)) {
+    return cityCountry[0].trim();
   }
-  return null;
+  const lower = raw.toLowerCase();
+  return (
+    matchLocationFromCityHints(raw, lower, ID_CITY_HINTS) ||
+    matchLocationFromCityHints(raw, lower, EN_CITY_HINTS)
+  );
+}
+
+/** @deprecated use matchLocation — kept for call-site clarity during transition */
+function matchIndonesianLocation(text) {
+  return matchLocation(text);
 }
 
 function extractFirstMatch(text, regex) {
@@ -790,7 +853,7 @@ function extractProfileFromSections(sections) {
 
 function extractWorkFromSections(sections) {
   const lines = getSectionLinesByKeywords(sections, [
-    "work", "experience", "employment", "history", "job", "pengalaman", "pekerjaan", "karir", "career",
+    "work", "experience", "employment", "history", "job", "pengalaman", "pekerjaan", "karir", "career", "professional",
   ]);
   const subsections = divideSectionIntoSubsections(lines);
   const items = [];
@@ -805,7 +868,7 @@ function extractWorkFromSections(sections) {
       subsection.map((l) => l.text).find((t) => /(?:19|20)\d{2}/.test(t) || PRESENT_RE.test(t)) || "";
     const date = getTextWithHighestFeatureScore(
       infoItems,
-      [[(i) => /(?:19|20)\d{2}|present|current|sekarang|saat\s+ini/i.test(i.text || ""), 2]],
+      [[(i) => /(?:19|20)\d{2}|present|current|ongoing|to\s+date|till\s+date|sekarang|saat\s+ini/i.test(i.text || ""), 2]],
       true
     ) || dateFromLines;
     const jobTitle = getTextWithHighestFeatureScore(infoItems, [[(i) => JOB_TITLE_KEYWORDS.some((k) => (i.text || "").toLowerCase().includes(k)), 4]], true);
@@ -834,7 +897,9 @@ function extractWorkFromSections(sections) {
 }
 
 function extractEducationFromSections(sections) {
-  const lines = getSectionLinesByKeywords(sections, ["education", "course", "academic", "pendidikan", "akademik"]);
+  const lines = getSectionLinesByKeywords(sections, [
+    "education", "course", "academic", "pendidikan", "akademik", "qualification", "training",
+  ]);
   const subsections = divideSectionIntoSubsections(lines);
   const out = [];
 
@@ -863,7 +928,9 @@ function extractEducationFromSections(sections) {
 }
 
 function extractSkillsFromSections(sections) {
-  const lines = getSectionLinesByKeywords(sections, ["skill", "keahlian", "kompetensi", "kemampuan", "tools", "technology"]);
+  const lines = getSectionLinesByKeywords(sections, [
+    "skill", "keahlian", "kompetensi", "kemampuan", "tools", "technology", "competenc", "expertise", "proficienc",
+  ]);
   const descriptionsIdx = getDescriptionsLineIdx(lines);
   const descriptionsLines = descriptionsIdx === undefined ? lines : lines.slice(descriptionsIdx);
   const featuredLines = descriptionsIdx === undefined ? [] : lines.slice(0, descriptionsIdx);
@@ -934,6 +1001,7 @@ function buildParsedFromStructuredLines(lines, meta = {}) {
       email: profile.email,
       phone: profile.phone,
       location: profile.location,
+      summary: profile.summary || null,
     },
     work_experiences: workExperiences,
     educations,
@@ -966,30 +1034,49 @@ async function parseWithDocxStyle(filePath) {
 
 const EMAIL_RE = EMAIL_ANY_RE;
 const PHONE_RE = PHONE_ID_RE;
-const PRESENT_RE = /(present|current|now|sekarang|saat\s+ini)/i;
-const COMPANY_HINT_RE = /\b(pt\.?|cv\.?|inc\.?|llc|ltd\.?|corp\.?|company|co\.?|startup|bank|group|universitas|university|institute|institut|school|sekolah|politeknik|ud\.?|tbk\.?)\b/i;
-const DEGREE_HINT_RE = /\b(sma|smk|d1|d2|d3|d4|s1|s2|s3|bachelor|master|phd|sarjana|magister|doktor|diploma|associate)\b/i;
+const PRESENT_RE = /(present|current|now|ongoing|to\s+date|till\s+date|sekarang|saat\s+ini)/i;
+const COMPANY_HINT_RE = /\b(pt\.?|cv\.?|inc\.?|llc|ltd\.?|corp\.?|company|co\.?|startup|bank|group|gmbh|plc|universitas|university|college|institute|institut|school|sekolah|politeknik|ud\.?|tbk\.?)\b/i;
+const DEGREE_HINT_RE = /\b(sma|smk|d1|d2|d3|d4|s1|s2|s3|bachelor(?:'s)?|master(?:'s)?|phd|ph\.?d\.?|mba|b\.?\s?s\.?|b\.?\s?a\.?|b\.?\s?eng\.?|m\.?\s?s\.?|m\.?\s?a\.?|m\.?\s?eng\.?|sarjana|magister|doktor|diploma|associate|high\s+school|a-?levels?)\b/i;
 
 const SECTION_KEYWORDS = {
+  summary: [
+    "professional summary",
+    "summary",
+    "profile",
+    "profil",
+    "ringkasan",
+    "objective",
+    "career objective",
+    "about me",
+    "tentang saya",
+  ],
   experience: [
     "pengalaman kerja",
     "riwayat pekerjaan",
     "pengalaman",
     "work experience",
+    "professional experience",
     "employment history",
+    "employment",
     "career history",
     "experience",
     "karir",
     "pekerjaan",
     "work history",
+    "relevant experience",
   ],
   education: [
     "pendidikan",
     "riwayat pendidikan",
     "education",
+    "education & training",
+    "education and training",
     "academic",
+    "academic background",
     "akademik",
     "riwayat akademik",
+    "qualifications",
+    "educational background",
   ],
   skills: [
     "skills",
@@ -997,10 +1084,15 @@ const SECTION_KEYWORDS = {
     "keahlian",
     "kompetensi",
     "technical skills",
+    "core competencies",
+    "core skills",
+    "key skills",
     "kemampuan",
     "keahlian teknis",
     "tools",
     "technologies",
+    "technical proficiencies",
+    "expertise",
   ],
 };
 
@@ -1022,14 +1114,20 @@ const JOB_TITLE_KEYWORDS = [
   "architect",
   "qa",
   "devops",
+  "sre",
   "backend",
   "frontend",
   "fullstack",
   "full-stack",
+  "full stack",
+  "software",
   "product",
+  "project manager",
+  "program manager",
   "marketing",
   "sales",
   "hr",
+  "human resources",
   "recruiter",
   "staff",
   "supervisor",
@@ -1040,6 +1138,7 @@ const JOB_TITLE_KEYWORDS = [
   "admin",
   "akuntansi",
   "accounting",
+  "accountant",
   "kasir",
   "cashier",
   "guru",
@@ -1053,6 +1152,13 @@ const JOB_TITLE_KEYWORDS = [
   "director",
   "kepala",
   "head",
+  "chief",
+  "ceo",
+  "cto",
+  "cfo",
+  "coo",
+  "vp",
+  "vice president",
   "clerk",
   "teller",
   "barista",
@@ -1066,8 +1172,14 @@ const JOB_TITLE_KEYWORDS = [
   "writer",
   "editor",
   "data",
+  "scientist",
+  "researcher",
   "support",
   "customer service",
+  "customer success",
+  "account manager",
+  "business analyst",
+  "scrum master",
   "cs",
 ];
 
@@ -1080,6 +1192,8 @@ const SKILL_STOPWORDS = new Set([
   "for",
   "using",
   "use",
+  "with",
+  "from",
   "project",
   "projects",
   "team",
@@ -1087,6 +1201,8 @@ const SKILL_STOPWORDS = new Set([
   "skills",
   "skill",
   "keahlian",
+  "competencies",
+  "proficiencies",
 ]);
 
 function normalizeLines(rawText) {
@@ -1164,14 +1280,19 @@ function localizeDatesForChrono(text) {
   for (const [id, en] of Object.entries(ID_MONTH_MAP)) {
     out = out.replace(new RegExp(`\\b${id}\\b`, "gi"), en);
   }
-  return out.replace(/\bsaat\s+ini\b/gi, "present").replace(/\bsekarang\b/gi, "present");
+  return out
+    .replace(/\bsaat\s+ini\b/gi, "present")
+    .replace(/\bsekarang\b/gi, "present")
+    .replace(/\bto\s+date\b/gi, "present")
+    .replace(/\btill\s+date\b/gi, "present")
+    .replace(/\bongoing\b/gi, "present");
 }
 
 function isMostlyDateLine(line) {
   const t = String(line || "").trim();
   if (!t) return false;
   if (PRESENT_RE.test(t) && t.length <= 40) return true;
-  if (/\b((?:19|20)\d{2})\s*[-–—/]\s*((?:19|20)\d{2}|present|current|sekarang|saat\s+ini)\b/i.test(t) && t.length <= 50) {
+  if (/\b((?:19|20)\d{2})\s*[-–—/]\s*((?:19|20)\d{2}|present|current|ongoing|to\s+date|till\s+date|sekarang|saat\s+ini)\b/i.test(t) && t.length <= 50) {
     return true;
   }
   const localized = localizeDatesForChrono(t);
@@ -1183,7 +1304,7 @@ function isMostlyDateLine(line) {
 }
 
 function parseYearRange(text) {
-  const m = String(text || "").match(/\b((?:19|20)\d{2})\s*[-–—/]\s*((?:19|20)\d{2}|present|current|sekarang|saat\s+ini)\b/i);
+  const m = String(text || "").match(/\b((?:19|20)\d{2})\s*[-–—/]\s*((?:19|20)\d{2}|present|current|ongoing|to\s+date|till\s+date|sekarang|saat\s+ini)\b/i);
   if (!m) {
     const single = String(text || "").match(/\b((?:19|20)\d{2})\b/);
     if (!single) return null;
@@ -1237,15 +1358,35 @@ function extractPersonalInfo(lines) {
   const personCandidates = nlp(topText).people().out("array");
   const placeCandidates = nlp(topText).places().out("array");
 
-  const info = { full_name: null, email: null, phone: null, location: null };
+  const info = { full_name: null, email: null, phone: null, location: null, summary: null };
 
-  const bestName = personCandidates.find(
-    (name) =>
-      name.split(" ").length <= 4 &&
-      name.length <= 60 &&
-      !isLikelySectionHeadingName(name)
-  );
-  if (bestName) info.full_name = bestName;
+  // Prefer first-line ALL CAPS / Title Case name (common on designed CVs)
+  const headerName = topLines.find((line) => {
+    if (isLikelySectionHeadingName(line)) return false;
+    if (EMAIL_RE.test(line) || PHONE_ANY_RE.test(line)) return false;
+    if (/[:|/]/.test(line) || /\d/.test(line)) return false;
+    if (/https?:\/\/|www\.|github\.com|linkedin\.com/i.test(line)) return false;
+    const words = line.split(/\s+/).filter(Boolean);
+    return (
+      words.length >= 2 &&
+      words.length <= 6 &&
+      line.length <= 80 &&
+      /^[A-Za-zÀ-ÿ' .\-]+$/.test(line)
+    );
+  });
+  if (headerName) {
+    info.full_name = headerName === headerName.toUpperCase()
+      ? headerName.replace(/\w+/g, (w) => w.charAt(0) + w.slice(1).toLowerCase())
+      : headerName;
+  } else {
+    const bestName = personCandidates.find(
+      (name) =>
+        name.split(" ").length <= 6 &&
+        name.length <= 80 &&
+        !isLikelySectionHeadingName(name)
+    );
+    if (bestName) info.full_name = bestName;
+  }
 
   if (!info.full_name) {
     const fallback = topLines.find((line) => {
@@ -1266,7 +1407,7 @@ function extractPersonalInfo(lines) {
   if (phoneMatch) info.phone = phoneMatch[0].replace(/\s/g, "");
 
   for (const line of topLines) {
-    const loc = matchIndonesianLocation(line);
+    const loc = matchLocation(line);
     if (loc) {
       info.location = loc;
       break;
@@ -1375,15 +1516,15 @@ function inferEducationParts(lines) {
   const text = lines.join("\n");
   const orgs = nlp(text).organizations().out("array");
   const institution =
-    orgs.find((org) => /universitas|university|institut|institute|school|sekolah|politeknik|sma|smk/i.test(org)) ||
-    lines.find((line) => /universitas|university|institut|institute|politeknik|sekolah|sma|smk/i.test(line)) ||
+    orgs.find((org) => /universitas|university|college|institut|institute|school|sekolah|politeknik|sma|smk|academy/i.test(org)) ||
+    lines.find((line) => /universitas|university|college|institut|institute|politeknik|sekolah|sma|smk|academy/i.test(line)) ||
     orgs[0] ||
     null;
   const degreeLine = lines.find((line) => DEGREE_HINT_RE.test(line)) || null;
 
   let major = null;
   if (degreeLine) {
-    const match = degreeLine.match(/(?:-|–|—|\bin\b|jurusan|major)\s+(.+)$/i);
+    const match = degreeLine.match(/(?:-|–|—|\bin\b|\bof\b|jurusan|major)\s+(.+)$/i);
     if (match) major = match[1].trim();
     else {
       // e.g. "S1 Teknik Informatika" → major after degree code
@@ -1393,7 +1534,7 @@ function inferEducationParts(lines) {
   }
   if (!major) {
     const majorLine = lines.find((line) =>
-      /jurusan|informatika|computer|engineering|teknik|ekonomi|manajemen|akuntansi|hukum|psikologi/i.test(line)
+      /jurusan|informatika|computer|engineering|teknik|ekonomi|manajemen|akuntansi|hukum|psikologi|business|science|finance|marketing/i.test(line)
     );
     if (majorLine && majorLine !== degreeLine && majorLine !== institution) major = majorLine;
   }
@@ -1461,7 +1602,7 @@ function parseSkills(sectionLines, allLines) {
 
   for (const line of candidateLines) {
     const lower = line.toLowerCase();
-    if (!sectionLines.length && !/skill|keahlian|teknologi|tools|framework|language|kompetensi|kemampuan/i.test(lower)) {
+    if (!sectionLines.length && !/skill|keahlian|teknologi|tools|framework|language|kompetensi|kemampuan|competenc|expertise|proficienc/i.test(lower)) {
       continue;
     }
 
@@ -1521,13 +1662,30 @@ function normalizeEducationItem(item) {
 
 function normalizeParsedResult(parsed, meta = {}) {
   const personal = parsed?.personal_info || {};
+  const full_name = emptyToNull(personal.full_name);
+  const email = emptyToNull(personal.email);
+  const phone = emptyToNull(personal.phone) ? String(personal.phone).replace(/\s/g, "") : null;
+  const location = emptyToNull(personal.location);
+  const summary = emptyToNull(personal.summary);
+
+  const personal_info = {
+    full_name,
+    email,
+    phone,
+    location,
+    summary,
+  };
+
   return {
-    personal_info: {
-      full_name: emptyToNull(personal.full_name),
-      email: emptyToNull(personal.email),
-      phone: emptyToNull(personal.phone) ? String(personal.phone).replace(/\s/g, "") : null,
-      location: emptyToNull(personal.location),
-    },
+    personal_info,
+    // Flattened aliases expected by frontend profile CV parser UI
+    name: full_name,
+    email,
+    phone,
+    telephone: phone,
+    address: location,
+    summary,
+    profile_summary: summary,
     work_experiences: Array.isArray(parsed?.work_experiences)
       ? parsed.work_experiences.map(normalizeExperienceItem).filter((i) => i.company_name || i.job_title || i.description)
       : [],
@@ -1567,7 +1725,12 @@ function parseWithNlpFallback(rawText) {
 
   return normalizeParsedResult(
     {
-      personal_info: extractPersonalInfo(normalizedLines),
+      personal_info: {
+        ...extractPersonalInfo(normalizedLines),
+        summary:
+          getSectionLines(normalizedLines, sections, "summary").join(" ").trim() ||
+          null,
+      },
       work_experiences: parseWorkExperiences(getSectionLines(normalizedLines, sections, "experience")),
       educations: parseEducations(getSectionLines(normalizedLines, sections, "education")),
       skills: parseSkills(getSectionLines(normalizedLines, sections, "skills"), normalizedLines),
@@ -1592,6 +1755,32 @@ async function parseCV(filePath, mimetype) {
     mimetype: resolvedMime,
   };
 
+  // Prefer local Python parser when enabled (more accurate + avoids Gemini 429).
+  // Only inject extracted text for OCR scans — digital PDFs/DOCX are richer when
+  // Python reads the original file (pdfplumber/docx2txt) itself.
+  if (isPythonResumeParserEnabled()) {
+    try {
+      const pythonOptions =
+        extractionMethod === "digital" ? {} : { text: rawText };
+      const parsed = await parseWithPythonResumeParser(filePath, pythonOptions);
+      const pythonMeta = parsed._python_meta || {};
+      delete parsed._python_meta;
+      const normalized = normalizeParsedResult(parsed, {
+        parser: pythonMeta.parser || "python_resume_parser",
+        python_engine: pythonMeta.engine || null,
+        python_package_error: pythonMeta.package_error || null,
+        document_type: pythonMeta.document_type || null,
+        ...extractionMeta,
+      });
+      // Cover letters are intentionally thin (contact only) — do not fall through to NLP.
+      if (pythonMeta.document_type === "cover_letter") return normalized;
+      if (!isThinParsedResult(normalized)) return normalized;
+      console.warn("Python resume parser returned thin result; continuing fallbacks");
+    } catch (err) {
+      console.warn("Python resume parser failed; continuing fallbacks:", err.message);
+    }
+  }
+
   if (isAIParsingEnabled()) {
     try {
       const parsed = normalizeParsedResult(await parseWithAI(rawText), {
@@ -1603,7 +1792,12 @@ async function parseCV(filePath, mimetype) {
       console.warn("CV AI parsing returned thin result; using heuristic fallback");
     } catch (err) {
       // A provider failure must not prevent the user from reviewing local output.
-      console.warn("CV AI parsing failed; using heuristic fallback:", err.message);
+      const status = err?.response?.status;
+      if (status === 429) {
+        console.warn("CV AI rate-limited (429); using heuristic fallback");
+      } else {
+        console.warn("CV AI parsing failed; using heuristic fallback:", err.message);
+      }
     }
   }
 
@@ -1679,10 +1873,12 @@ module.exports = {
   parseWithOpenResumeStyle,
   parseWithDocxStyle,
   parseWithResumeParser,
+  parseWithPythonResumeParser,
   parseWithNlpFallback,
   isAIParsingEnabled,
   isOpenResumeStyleEnabled,
   isResumeParserEnabled,
+  isPythonResumeParserEnabled,
   isDocxMimetype,
   scoreParsedResult,
   isThinParsedResult,

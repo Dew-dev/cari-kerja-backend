@@ -13,6 +13,7 @@
     "swagger": "node swagger.js && node format-swagger.js",
     "backfill:matches": "node scripts/backfill_application_matches.js",
     "reindex:matching-es": "node scripts/reindex_matching_elasticsearch.js"
+    "dev:clean": "npx --yes kill-port 5001 && nodemon index.js"
   },
   "author": "Dylan",
   "license": "ISC",
@@ -44,7 +45,7 @@
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "pdf-parse": "^2.4.5",
-    "pdfjs-dist": "^5.4.296",
+    "pdfjs-dist": "5.4.296",
     "pg": "^8.16.3",
     "rate-limit-redis": "^6.0.0",
     "resume-parser": "^1.1.0",
@@ -59,5 +60,8 @@
     "jest": "^30.4.2",
     "nodemon": "^3.1.11",
     "swagger-autogen": "^2.23.7"
+  },
+  "overrides": {
+    "pdfjs-dist": "5.4.296"
   }
 }

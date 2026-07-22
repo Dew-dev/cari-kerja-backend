@@ -1,0 +1,18 @@
+{
+  "watch": ["src", "index.js", "swagger.js", "format-swagger.js"],
+  "ext": "js,json",
+  "ignore": [
+    "uploads/**",
+    "test/**",
+    "scripts/**",
+    "node_modules/**",
+    "*.pdf",
+    "*.docx",
+    "*.doc",
+    "*.md",
+    ".env",
+    ".git/**",
+    "swagger_output.json"
+  ],
+  "delay": 800
+}
