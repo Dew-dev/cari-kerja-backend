@@ -110,6 +110,20 @@ describe("Certifications API Handler", () => {
       });
     });
 
+    it("should strip _pending and isSaved from payload before validation", async () => {
+      const req = createWorkerRequest({
+        body: { ...validBody, _pending: true, isSaved: true },
+      });
+      commandHandler.addCertification.mockResolvedValue(wrapper.data({ id: certId }));
+
+      await apiHandler.addCertification(req, res);
+
+      expect(commandHandler.addCertification).toHaveBeenCalledWith({
+        worker_id: workerId,
+        ...validBody,
+      });
+    });
+
     it("should return validation error when required fields missing", async () => {
       const req = createWorkerRequest({ body: { name: "AWS" } });
 
@@ -148,6 +162,27 @@ describe("Certifications API Handler", () => {
           created_at: "2024-01-01",
           updated_at: "2024-01-02",
           isSaved: true,
+        },
+      });
+      commandHandler.updateCertification.mockResolvedValue(wrapper.data({ name: "Updated" }));
+
+      await apiHandler.updateCertification(req, res);
+
+      expect(commandHandler.updateCertification).toHaveBeenCalledWith({
+        id: certId,
+        worker_id: workerId,
+        name: "Updated",
+        link: "https://example.com",
+      });
+    });
+
+    it("should strip _pending from payload", async () => {
+      const req = createWorkerRequest({
+        params: { id: certId },
+        body: {
+          name: "Updated",
+          link: "https://example.com",
+          _pending: true,
         },
       });
       commandHandler.updateCertification.mockResolvedValue(wrapper.data({ name: "Updated" }));

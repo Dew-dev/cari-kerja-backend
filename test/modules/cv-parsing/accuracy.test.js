@@ -68,6 +68,28 @@ const INDONESIAN_CV = [
   "Microsoft Office, Komunikasi, Excel, Leadership",
 ].join("\n");
 
+const ENGLISH_CV = [
+  "Jane Smith",
+  "jane.smith@email.com",
+  "+1 (415) 555-0199",
+  "San Francisco, CA",
+  "",
+  "Professional Experience",
+  "Software Engineer",
+  "Acme Corp Inc.",
+  "January 2021 - Present",
+  "- Built REST APIs with Node.js",
+  "- Improved CI pipelines",
+  "",
+  "Education",
+  "Bachelor of Science in Computer Science",
+  "Stanford University",
+  "2016 - 2020",
+  "",
+  "Technical Skills",
+  "JavaScript, TypeScript, PostgreSQL, Docker",
+].join("\n");
+
 const INDONESIAN_CV_HTML = [
   "<p><strong>Budi Santoso</strong></p>",
   "<p>budi.santoso@email.com</p>",
@@ -170,6 +192,31 @@ describe("cv-parsing accuracy (local)", () => {
     expect(parsed.skills).toEqual(
       expect.arrayContaining(["Microsoft Office", "Excel", "Leadership"])
     );
+    expect(parsed._meta.parser).toBe("nlp_fallback");
+  });
+
+  it("should extract English CV fields via NLP fallback", () => {
+    const parsed = parseWithNlpFallback(ENGLISH_CV);
+
+    expect(parsed.personal_info.full_name).toMatch(/Jane/i);
+    expect(parsed.personal_info.email).toBe("jane.smith@email.com");
+    expect(parsed.personal_info.phone).toMatch(/415/);
+    expect(parsed.personal_info.location).toMatch(/San Francisco/i);
+
+    expect(parsed.work_experiences.length).toBeGreaterThanOrEqual(1);
+    expect(parsed.work_experiences[0].job_title).toMatch(/Software Engineer/i);
+    expect(parsed.work_experiences[0].company_name).toMatch(/Acme/i);
+    expect(parsed.work_experiences[0].is_current).toBe(true);
+    expect(parsed.work_experiences[0].start_date).toBe("2021-01");
+
+    expect(parsed.educations.length).toBeGreaterThanOrEqual(1);
+    expect(parsed.educations[0].institution_name).toMatch(/Stanford/i);
+    expect(parsed.educations[0].degree).toMatch(/Bachelor|Computer Science/i);
+
+    expect(parsed.skills).toEqual(
+      expect.arrayContaining(["JavaScript", "TypeScript", "PostgreSQL", "Docker"])
+    );
+    expect(isThinParsedResult(parsed)).toBe(false);
     expect(parsed._meta.parser).toBe("nlp_fallback");
   });
 

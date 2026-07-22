@@ -96,6 +96,21 @@ describe("Educations API Handler", () => {
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
+    it("should strip _pending from payload before validation", async () => {
+      const req = createWorkerRequest({ body: { ...validBody, _pending: true } });
+      commandHandler.insertEducations.mockResolvedValue(
+        wrapper.data({ id: educationId })
+      );
+
+      await apiHandler.insertEducations(req, res);
+
+      expect(commandHandler.insertEducations).toHaveBeenCalledWith({
+        worker_id: workerId,
+        ...validBody,
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
     it("should return validation error when required fields are missing", async () => {
       const req = createWorkerRequest({ body: {} });
 
@@ -139,6 +154,24 @@ describe("Educations API Handler", () => {
       const req = createWorkerRequest({
         params: { id: educationId },
         body: { ...validBody, created_at: "2024-01-01", updated_at: "2024-01-02" },
+      });
+      commandHandler.updateEducations.mockResolvedValue(
+        wrapper.data({ id: educationId })
+      );
+
+      await apiHandler.updateEducations(req, res);
+
+      expect(commandHandler.updateEducations).toHaveBeenCalledWith({
+        id: educationId,
+        worker_id: workerId,
+        ...validBody,
+      });
+    });
+
+    it("should strip _pending from payload", async () => {
+      const req = createWorkerRequest({
+        params: { id: educationId },
+        body: { ...validBody, _pending: true },
       });
       commandHandler.updateEducations.mockResolvedValue(
         wrapper.data({ id: educationId })

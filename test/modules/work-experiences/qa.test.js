@@ -184,4 +184,51 @@ describe("[QA] work-experiences module", () => {
       expect(error).toBeDefined();
     });
   });
+
+  describe("UI draft fields — strip _pending before validation", () => {
+    const validBody = {
+      company_name: "Acme",
+      job_title: "Engineer",
+      start_date: "2020-01-01",
+      end_date: null,
+      is_current: true,
+      description: null,
+    };
+
+    it("[BUG-WE-009] insert handler should strip _pending from payload", async () => {
+      const res = createMockResponse();
+      const req = createMockRequest({
+        userMeta: { worker_id: workerId },
+        body: { ...validBody, _pending: true },
+      });
+      commandHandler.insertWorkExperience.mockResolvedValue(wrapper.data({ id: expId }));
+
+      await apiHandler.insertWorkExperience(req, res);
+
+      expect(commandHandler.insertWorkExperience).toHaveBeenCalledWith({
+        worker_id: workerId,
+        ...validBody,
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it("[BUG-WE-010] update handler should strip _pending from payload", async () => {
+      const res = createMockResponse();
+      const req = createMockRequest({
+        userMeta: { worker_id: workerId },
+        params: { id: expId },
+        body: { ...validBody, _pending: true },
+      });
+      commandHandler.updateWorkExperience.mockResolvedValue(wrapper.data({ id: expId }));
+
+      await apiHandler.updateWorkExperience(req, res);
+
+      expect(commandHandler.updateWorkExperience).toHaveBeenCalledWith({
+        id: expId,
+        worker_id: workerId,
+        ...validBody,
+      });
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+  });
 });
