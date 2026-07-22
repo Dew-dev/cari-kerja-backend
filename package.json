@@ -10,7 +10,8 @@
     "test:coverage": "jest --coverage",
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "swagger": "node swagger.js && node format-swagger.js"
+    "swagger": "node swagger.js && node format-swagger.js",
+    "seed:workers-recruiters": "node scripts/seed_workers_recruiters.js"
   },
   "author": "Dylan",
   "license": "ISC",

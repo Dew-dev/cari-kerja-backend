@@ -45,3 +45,20 @@ MAIL_FROM="Job Portal <your_email@domain.com>"
 MAIL_USER=your_email@domain.com
 MAIL_PASS=your_mail_password
 FRONTEND_URL=http://localhost:5173
+
+## Seed workers & recruiters (dummy data)
+
+Script: `scripts/seed_workers_recruiters.js`
+
+1. **Menghapus** semua user role worker (`role_id=1`) dan recruiter (`role_id=2`) beserta data terkait (cascade).
+2. **Menyisipkan** 8 worker profesional (foto dari `randomuser.me`) + education/experience/skills/dll.
+3. **Menyisipkan** 7 recruiter dari domain wajib, logo via `https://logo.clearbit.com/{domain}`.
+
+```bash
+# Pastikan POSTGRESQL_URL & ENCRYPTION_KEY di .env sama dengan API
+npm run seed:workers-recruiters
+```
+
+Password semua akun seed: `Password123!`  
+Contoh login worker: `andika.prasetyo@gmail.com`  
+Contoh login recruiter: `hr@mecca-hotel.com`
