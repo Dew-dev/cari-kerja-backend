@@ -33,10 +33,10 @@ class AppServer {
     this._middlewares();
     this._routes();
     this.app.use(express.urlencoded({ extended: true }));
-    this.app.use(
-      "/uploads",
-      express.static(path.join(__dirname, "../uploads"))
-    );
+    const uploadsRoot = process.env.UPLOADS_PATH
+      ? path.resolve(process.env.UPLOADS_PATH)
+      : path.join(__dirname, "../uploads");
+    this.app.use("/uploads", express.static(uploadsRoot));
 
     pgConnectionPool.init(pgConfig);
     redisConnection.init();
