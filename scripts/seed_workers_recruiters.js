@@ -14,12 +14,18 @@
  *  - POSTGRESQL_URL set in .env
  *  - ENCRYPTION_KEY matches the running API (sensitive columns are encrypted)
  *  - Base schema + lookups (roles, industries, genders, currencies, skills, …) exist
+ *  - Run migration 026_widen_encrypted_recruiter_columns.sql before seeding
+ *    (encrypted contact_phone / company_name exceed old VARCHAR lengths)
+ *  - Migration 020 (email_verified_at) should already be applied for login
  *
  * Usage:
+ *   # 1) apply migration 026 (psql / your migration runner)
+ *   # 2) seed
  *   node scripts/seed_workers_recruiters.js
  *   npm run seed:workers-recruiters
  *
  * Default login password for all seeded accounts: Password123!
+ * Seeded accounts are email-verified so local login works immediately.
  */
 
 require("dotenv").config();
@@ -609,7 +615,44 @@ async function lookupId(client, sql, params) {
 }
 
 async function clearWorkersAndRecruiters(client) {
-  console.log("→ Deleting existing worker & recruiter users (cascades profiles & related data)...");
+  console.log("→ Clearing FK blockers, then deleting worker & recruiter users...");
+
+  // saved_jobs.worker_id is ON DELETE RESTRICT
+  await client.query(
+    `DELETE FROM saved_jobs
+     WHERE worker_id IN (
+       SELECT w.id FROM workers w
+       JOIN users u ON u.id = w.user_id
+       WHERE u.role_id = $1
+     )`,
+    [WORKER_ROLE_ID],
+  );
+
+  // application_stage_history.changed_by_recruiter_id has no ON DELETE CASCADE
+  await client.query(
+    `UPDATE application_stage_history
+     SET changed_by_recruiter_id = NULL
+     WHERE changed_by_recruiter_id IN (
+       SELECT r.id FROM recruiters r
+       JOIN users u ON u.id = r.user_id
+       WHERE u.role_id = $1
+     )`,
+    [RECRUITER_ROLE_ID],
+  );
+
+  // Optional tables that may not exist in older DBs
+  for (const sql of [
+    `DELETE FROM job_alerts WHERE worker_id IN (
+       SELECT w.id FROM workers w JOIN users u ON u.id = w.user_id WHERE u.role_id = ${WORKER_ROLE_ID}
+     )`,
+  ]) {
+    try {
+      await client.query(sql);
+    } catch (err) {
+      if (err.code !== "42P01") throw err;
+    }
+  }
+
   const del = await client.query(
     `DELETE FROM users
      WHERE role_id IN ($1, $2)
@@ -642,25 +685,43 @@ async function seedWorkers(client, passwordHash, idrCurrencyId, nationalityId) {
   const skillRows = (await client.query(`SELECT id, skill_name FROM skills`)).rows;
   const skillByName = Object.fromEntries(skillRows.map((s) => [s.skill_name, s.id]));
 
-  let langIdId = await lookupId(
-    client,
-    `SELECT id FROM languages WHERE LOWER(name) IN ('bahasa indonesia', 'indonesian') LIMIT 1`,
-  );
-  let langEn = await lookupId(
-    client,
-    `SELECT id FROM languages WHERE LOWER(name) = 'english' LIMIT 1`,
-  );
-  if (!langIdId) {
-    const ins = await client.query(
-      `INSERT INTO languages (name) VALUES ('Bahasa Indonesia') ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
+  // Post-017: master `languages(name)` + child `worker_languages`
+  // Pre-017: only per-worker `languages` table (no master name column)
+  let hasLanguageMaster = false;
+  let langIdId = null;
+  let langEn = null;
+  try {
+    const probe = await client.query(
+      `SELECT 1 FROM information_schema.columns
+       WHERE table_schema = 'public' AND table_name = 'languages' AND column_name = 'name'
+       LIMIT 1`,
     );
-    langIdId = ins.rows[0].id;
+    hasLanguageMaster = probe.rowCount > 0;
+  } catch {
+    hasLanguageMaster = false;
   }
-  if (!langEn) {
-    const ins = await client.query(
-      `INSERT INTO languages (name) VALUES ('English') ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
+
+  if (hasLanguageMaster) {
+    langIdId = await lookupId(
+      client,
+      `SELECT id FROM languages WHERE LOWER(name) IN ('bahasa indonesia', 'indonesian') LIMIT 1`,
     );
-    langEn = ins.rows[0].id;
+    langEn = await lookupId(
+      client,
+      `SELECT id FROM languages WHERE LOWER(name) = 'english' LIMIT 1`,
+    );
+    if (!langIdId) {
+      const ins = await client.query(
+        `INSERT INTO languages (name) VALUES ('Bahasa Indonesia') ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
+      );
+      langIdId = ins.rows[0].id;
+    }
+    if (!langEn) {
+      const ins = await client.query(
+        `INSERT INTO languages (name) VALUES ('English') ON CONFLICT (name) DO UPDATE SET name = EXCLUDED.name RETURNING id`,
+      );
+      langEn = ins.rows[0].id;
+    }
   }
 
   const proficiencyFluent = await lookupId(
@@ -677,8 +738,10 @@ async function seedWorkers(client, passwordHash, idrCurrencyId, nationalityId) {
     const workerId = uuidv4();
 
     await client.query(
-      `INSERT INTO users (id, username, email, hashed_password, login_provider, role_id, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, 'local', $5, NOW(), NOW())`,
+      `INSERT INTO users (
+          id, username, email, hashed_password, login_provider, role_id,
+          email_verified_at, created_at, updated_at
+       ) VALUES ($1, $2, $3, $4, 'local', $5, NOW(), NOW(), NOW())`,
       [userId, enc(w.username), enc(w.email), passwordHash, WORKER_ROLE_ID],
     );
 
@@ -771,7 +834,7 @@ async function seedWorkers(client, passwordHash, idrCurrencyId, nationalityId) {
         [
           uuidv4(),
           workerId,
-          cert.name,
+          enc(cert.name),
           cert.issuer,
           cert.issue_date,
           cert.expiry_date,
@@ -793,13 +856,23 @@ async function seedWorkers(client, passwordHash, idrCurrencyId, nationalityId) {
     try {
       const nativeId = proficiencyNative || proficiencyFluent || 4;
       const fluentId = proficiencyFluent || proficiencyNative || 3;
-      await client.query(
-        `INSERT INTO worker_languages (worker_id, language_name, language_id, proficiency_level_id, is_primary)
-         VALUES
-           ($1, 'Bahasa Indonesia', $2, $3, true),
-           ($1, 'English', $4, $5, false)`,
-        [workerId, langIdId, nativeId, langEn, fluentId],
-      );
+      if (hasLanguageMaster && langIdId && langEn) {
+        await client.query(
+          `INSERT INTO worker_languages (worker_id, language_name, language_id, proficiency_level_id, is_primary)
+           VALUES
+             ($1, 'Bahasa Indonesia', $2, $3, true),
+             ($1, 'English', $4, $5, false)`,
+          [workerId, langIdId, nativeId, langEn, fluentId],
+        );
+      } else {
+        await client.query(
+          `INSERT INTO languages (worker_id, language_name, proficiency_level_id, is_primary)
+           VALUES
+             ($1, 'Bahasa Indonesia', $2, true),
+             ($1, 'English', $3, false)`,
+          [workerId, nativeId, fluentId],
+        );
+      }
     } catch (err) {
       console.warn(`  ! Skipping languages for ${w.email}: ${err.message}`);
     }
@@ -826,8 +899,10 @@ async function seedRecruiters(client, passwordHash) {
     const contactAvatar = `https://randomuser.me/api/portraits/${contact.gender}/${contact.portraitIdx}.jpg`;
 
     await client.query(
-      `INSERT INTO users (id, username, email, hashed_password, login_provider, role_id, created_at, updated_at)
-       VALUES ($1,$2,$3,$4,'local',$5,NOW(),NOW())`,
+      `INSERT INTO users (
+          id, username, email, hashed_password, login_provider, role_id,
+          email_verified_at, created_at, updated_at
+       ) VALUES ($1,$2,$3,$4,'local',$5,NOW(),NOW(),NOW())`,
       [userId, enc(contact.username), enc(email), passwordHash, RECRUITER_ROLE_ID],
     );
 

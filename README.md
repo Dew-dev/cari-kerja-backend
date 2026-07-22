@@ -50,15 +50,18 @@ FRONTEND_URL=http://localhost:5173
 
 Script: `scripts/seed_workers_recruiters.js`
 
-1. **Menghapus** semua user role worker (`role_id=1`) dan recruiter (`role_id=2`) beserta data terkait (cascade).
+1. **Menghapus** semua user role worker (`role_id=1`) dan recruiter (`role_id=2`) beserta data terkait (cascade), setelah membersihkan FK blocker (`saved_jobs`, `application_stage_history`).
 2. **Menyisipkan** 8 worker profesional (foto dari `randomuser.me`) + education/experience/skills/dll.
 3. **Menyisipkan** 7 recruiter dari domain wajib, logo via `https://logo.clearbit.com/{domain}`.
 
 ```bash
-# Pastikan POSTGRESQL_URL & ENCRYPTION_KEY di .env sama dengan API
+# 1) Widen encrypted recruiter columns (required before seed)
+psql "$POSTGRESQL_URL" -f src/migration/026_widen_encrypted_recruiter_columns.sql
+
+# 2) Pastikan POSTGRESQL_URL & ENCRYPTION_KEY di .env sama dengan API
 npm run seed:workers-recruiters
 ```
 
-Password semua akun seed: `Password123!`  
+Password semua akun seed: `Password123!` (sudah `email_verified_at` = NOW, bisa login langsung)  
 Contoh login worker: `andika.prasetyo@gmail.com`  
 Contoh login recruiter: `hr@mecca-hotel.com`
