@@ -237,7 +237,7 @@ describe("[QA] users module", () => {
     });
   });
 
-  describe("Telegram — change placeholder email", () => {
+  describe("change-email — local only", () => {
     let domain;
 
     beforeEach(() => {
@@ -248,11 +248,11 @@ describe("[QA] users module", () => {
           err: null,
           data: {
             id: "550e8400-e29b-41d4-a716-446655440000",
-            email: "telegram_123@carikerja.id",
-            login_provider: "telegram",
-            provider_id: "123",
+            email: "old@gmail.com",
+            login_provider: "local",
+            provider_id: null,
             role_id: 1,
-            username: "telegram_user",
+            username: "local_user",
           },
         }),
         findUserByEmail: jest.fn().mockResolvedValue({ err: null, data: null }),
@@ -266,13 +266,13 @@ describe("[QA] users module", () => {
       domain.queryWorker = {
         findOne: jest.fn().mockResolvedValue({
           err: null,
-          data: { id: "worker-1", name: "Telegram User" },
+          data: { id: "worker-1", name: "Local User" },
         }),
       };
       domain.queryRecruiter = { findOne: jest.fn() };
     });
 
-    it("[BUG-US-009] changeEmail should update email and clear verification for telegram user", async () => {
+    it("[BUG-US-009] changeEmail should update email for local user", async () => {
       const result = await domain.changeEmail({
         user_id: "550e8400-e29b-41d4-a716-446655440000",
         email: "real.user@gmail.com",
@@ -281,7 +281,7 @@ describe("[QA] users module", () => {
       expect(result.err).toBeNull();
       expect(result.data.email).toBe("real.user@gmail.com");
       expect(result.data.requires_verification).toBe(true);
-      expect(result.data.requires_email_setup).toBe(true);
+      expect(result.data.requires_email_setup).toBeUndefined();
       expect(domain.command.updateOneNew).toHaveBeenCalledWith(
         { id: "550e8400-e29b-41d4-a716-446655440000" },
         { email: "real.user@gmail.com" }
@@ -311,7 +311,6 @@ describe("[QA] users module", () => {
           email: "real.user@gmail.com",
           token: "new-access",
           requires_verification: true,
-          requires_email_setup: true,
         })
       );
 
@@ -350,13 +349,35 @@ describe("[QA] users module", () => {
       expect(result.err).toBeInstanceOf(BadRequestError);
       expect(domain.command.updateOneNew).not.toHaveBeenCalled();
     });
+
+    it("[BUG-US-014] changeEmail should reject telegram login accounts", async () => {
+      domain.query.findOne.mockResolvedValue({
+        err: null,
+        data: {
+          id: "550e8400-e29b-41d4-a716-446655440000",
+          email: null,
+          login_provider: "telegram",
+          provider_id: "123",
+          role_id: 1,
+        },
+      });
+
+      const result = await domain.changeEmail({
+        user_id: "550e8400-e29b-41d4-a716-446655440000",
+        email: "other@gmail.com",
+      });
+
+      expect(result.err).toBeInstanceOf(BadRequestError);
+      expect(domain.command.updateOneNew).not.toHaveBeenCalled();
+    });
   });
 
-  describe("Telegram OAuth — purpose=link must not login", () => {
-    it("[BUG-US-013] telegram callback with purpose=link redirects code to FE without login", async () => {
+  describe("Telegram OAuth — no cross-provider link flow", () => {
+    it("[BUG-US-013] telegram callback ignores purpose=link and proceeds to login", async () => {
       const state = JSON.stringify({
         purpose: "link",
         origin: "http://localhost:5173",
+        role_id: 1,
       });
       const req = createMockRequest({
         method: "GET",
@@ -369,13 +390,15 @@ describe("[QA] users module", () => {
       const res = createMockResponse();
       res.redirect = jest.fn();
 
-      commandHandler.loginWithTelegram = jest.fn();
+      commandHandler.loginWithTelegram = jest.fn().mockResolvedValue(
+        wrapper.data({ token: "access", refreshToken: "refresh" })
+      );
 
       await apiHandler.loginWithTelegram(req, res);
 
-      expect(commandHandler.loginWithTelegram).not.toHaveBeenCalled();
+      expect(commandHandler.loginWithTelegram).toHaveBeenCalled();
       expect(res.redirect).toHaveBeenCalledWith(
-        "http://localhost:5173/auth/telegram-link?code=oauth-code-abc"
+        "http://localhost:5173/auth/callback?token=access&refreshToken=refresh"
       );
     });
   });

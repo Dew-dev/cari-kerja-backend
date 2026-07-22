@@ -44,7 +44,7 @@ module.exports = (server) => {
     const { sanitizeOauthRoleId } = require("../helpers/auth/account_guards");
     const clientId = config.get("/telegramAuth/clientId");
     const redirectUri = config.get("/telegramAuth/redirectUri");
-    const { role_id, origin, purpose } = req.query;
+    const { role_id, origin } = req.query;
     const safeRole = sanitizeOauthRoleId(role_id);
     if (role_id !== undefined && role_id !== null && role_id !== "" && safeRole === null) {
       const feUrl = config.get("/frontendUrl");
@@ -53,7 +53,7 @@ module.exports = (server) => {
     const state = JSON.stringify({
       role_id: safeRole ?? 1,
       origin,
-      purpose: purpose === "link" ? "link" : "login",
+      purpose: "login",
     });
     const authUrl = `https://oauth.telegram.org/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid+profile&state=${encodeURIComponent(state)}`;
     return res.redirect(authUrl);
@@ -81,11 +81,6 @@ module.exports = (server) => {
     "/api/v1/auth/change-email",
     verifyToken,
     userHandler.changeEmail,
-  );
-  server.post(
-    "/api/v1/auth/link-telegram",
-    verifyToken,
-    userHandler.linkTelegramNotification,
   );
   server.post(
     "/api/v1/auth/verify-email/send",

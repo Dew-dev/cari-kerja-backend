@@ -31,6 +31,14 @@ class JobAlertsCommand {
       return wrapper.error(new NotFoundError("Worker not found"));
     }
 
+    if (pref.data.login_provider === "telegram") {
+      return wrapper.error(
+        new BadRequestError(
+          "Akun Telegram menerima notifikasi via Telegram, bukan email job alerts.",
+        ),
+      );
+    }
+
     if (!pref.data.email) {
       return wrapper.error(
         new BadRequestError(

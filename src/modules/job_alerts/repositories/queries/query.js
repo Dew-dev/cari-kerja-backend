@@ -11,7 +11,7 @@ class Query {
   async findWorkerJobAlertsPreference(worker_id) {
     try {
       const res = await this.db.executeQuery(
-        `SELECT w.id, w.job_alerts_enabled, w.job_alerts_last_sent_at, u.email
+        `SELECT w.id, w.job_alerts_enabled, w.job_alerts_last_sent_at, u.email, u.login_provider
          FROM workers w
          JOIN users u ON u.id = w.user_id
          WHERE w.id = $1 AND w.deleted_at IS NULL
@@ -27,6 +27,7 @@ class Query {
 
   /**
    * Workers eligible for today's digest:
+   * - local/google login only (email channel; never telegram login)
    * - has email
    * - job_alerts_enabled
    * - not soft-deleted
@@ -44,6 +45,7 @@ class Query {
          JOIN users u ON u.id = w.user_id
          WHERE w.deleted_at IS NULL
            AND w.job_alerts_enabled = TRUE
+           AND u.login_provider IN ('local', 'google')
            AND u.email IS NOT NULL
            AND TRIM(u.email) <> ''
            AND (

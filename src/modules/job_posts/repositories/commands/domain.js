@@ -829,26 +829,35 @@ class Jobpost {
       return wrapper.error(new NotFoundError("Application not found"));
     }
 
-    // Email is best-effort; status update already committed successfully
+    // Email only for local/google accounts; telegram users are notified via Telegram (no email fallback)
     try {
-      const config = require("../../../../config/global_config");
-      const feUrl = (config.get("/frontendUrl") || "").replace(/\/$/, "");
-      const actionUrl = feUrl
-        ? `${feUrl}/jobposts/${app.data.job_post_id}`
-        : undefined;
+      const canEmail =
+        app.data.email &&
+        app.data.login_provider !== "telegram" &&
+        (app.data.login_provider === "local" ||
+          app.data.login_provider === "google" ||
+          !app.data.login_provider);
 
-      await addEmailJob({
-        to: app.data.email,
-        subject: `Update lamaran — ${app.data.job_title}`,
-        html: statusEmailTemplate({
-          name: app.data.user_name,
-          jobTitle: app.data.job_title,
-          status: app.data.status_name,
-          stageName: app.data.status_name,
-          companyName: app.data.company_name,
-          actionUrl,
-        }),
-      });
+      if (canEmail) {
+        const config = require("../../../../config/global_config");
+        const feUrl = (config.get("/frontendUrl") || "").replace(/\/$/, "");
+        const actionUrl = feUrl
+          ? `${feUrl}/jobposts/${app.data.job_post_id}`
+          : undefined;
+
+        await addEmailJob({
+          to: app.data.email,
+          subject: `Update lamaran — ${app.data.job_title}`,
+          html: statusEmailTemplate({
+            name: app.data.user_name,
+            jobTitle: app.data.job_title,
+            status: app.data.status_name,
+            stageName: app.data.status_name,
+            companyName: app.data.company_name,
+            actionUrl,
+          }),
+        });
+      }
     } catch (e) {
       logger.error(ctx, "changeApplicationStatus", "Send email failed", e);
     }

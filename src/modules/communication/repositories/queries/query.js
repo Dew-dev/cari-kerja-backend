@@ -55,6 +55,7 @@ class Query {
             w.email_opt_out,
             w.unsubscribe_token,
             u.email,
+            u.login_provider,
             ast.name AS stage_name,
             ast.stage_type
          FROM job_applications ja

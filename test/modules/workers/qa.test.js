@@ -135,7 +135,7 @@ describe("[QA] workers module", () => {
   });
 
   describe("Auth status on profile /me", () => {
-    it("[BUG-WK-008] getWorkerByUserId should include login_provider and telegram link flags", async () => {
+    it("[BUG-WK-008] getWorkerByUserId should include login_provider without cross-provider flags", async () => {
       const domain = new WorkersQueryDomain({});
       domain.query = {
         findOneByUserId: jest.fn().mockResolvedValue({
@@ -147,8 +147,6 @@ describe("[QA] workers module", () => {
             email: "user@test.com",
             login_provider: "local",
             email_verified_at: "2026-01-01T00:00:00.000Z",
-            notification_telegram_id: null,
-            notification_telegram_username: null,
           },
         }),
       };
@@ -157,10 +155,11 @@ describe("[QA] workers module", () => {
 
       expect(result.err).toBeNull();
       expect(result.data.login_provider).toBe("local");
-      expect(result.data.telegram_linked).toBe(false);
-      expect(result.data.requires_telegram_link).toBe(true);
-      expect(result.data.requires_email_setup).toBe(false);
       expect(result.data.email_verified_at).toBe("2026-01-01T00:00:00.000Z");
+      expect(result.data.requires_telegram_link).toBeUndefined();
+      expect(result.data.requires_email_setup).toBeUndefined();
+      expect(result.data.telegram_linked).toBeUndefined();
+      expect(result.data.notification_telegram_id).toBeUndefined();
     });
   });
 });

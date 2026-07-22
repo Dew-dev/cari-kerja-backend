@@ -659,6 +659,7 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       ja.id,
       ja.application_status_id,
       u.email,
+      u.login_provider,
       w.name AS user_name,
       j.title AS job_title,
       j.id AS job_post_id,
