@@ -11,7 +11,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "swagger": "node swagger.js && node format-swagger.js",
-    "seed:workers-recruiters": "node scripts/seed_workers_recruiters.js"
+    "seed:workers-recruiters": "node scripts/seed_workers_recruiters.js",
     "dev:clean": "npx --yes kill-port 5001 && nodemon index.js"
   },
   "author": "Dylan",
