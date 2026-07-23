@@ -53,8 +53,8 @@ Job copy: `scripts/data/dummy_job_posts.js`
 
 1. **Menghapus** semua `job_posts` lama (hindari listing yang 404 di detail).
 2. **Menghapus** semua user role worker (`role_id=1`) dan recruiter (`role_id=2`) beserta data terkait (cascade), setelah membersihkan FK blocker (`saved_jobs`, `application_stage_history`).
-3. **Menyisipkan** 8 worker profesional (foto dari `randomuser.me`) + education/experience/skills/dll.
-4. **Menyisipkan** 7 recruiter dari domain wajib, logo via `https://logo.clearbit.com/{domain}`.
+3. **Mengunduh** foto worker (randomuser.me) ke `uploads/avatars/worker/` dan menyimpan `avatar_url` relatif (`/uploads/...`) agar kompatibel dengan FE.
+4. **Mengunduh** logo perusahaan ke `uploads/avatars/recruiter/` (Clearbit → Google favicon domain → ui-avatars), description About Company bersih (tanpa teks Contact photo).
 5. **Menyisipkan** 3 lowongan OPEN per recruiter (1 Hot Job `boost_type='hot'` + 2 regular) sesuai bidang perusahaan, lengkap skill/requirement/benefit/responsibility.
 
 ```bash
@@ -62,10 +62,12 @@ Job copy: `scripts/data/dummy_job_posts.js`
 psql "$POSTGRESQL_URL" -f src/migration/026_widen_encrypted_recruiter_columns.sql
 
 # 2) Pastikan POSTGRESQL_URL & ENCRYPTION_KEY di .env sama dengan API
+#    (opsional) UPLOADS_PATH — folder yang sama dengan yang di-serve API
 npm run seed:workers-recruiters
 ```
 
 Password semua akun seed: `Password123!` (sudah `email_verified_at` = NOW, bisa login langsung)  
 Contoh login worker: `andika.prasetyo@gmail.com`  
 Contoh login recruiter: `hr@mecca-hotel.com`  
-Total lowongan seed: 21 (7 perusahaan × 3)
+Total lowongan seed: 21 (7 perusahaan × 3)  
+File avatar hasil seed ada di `src/uploads/` (atau `UPLOADS_PATH`) dan tidak di-commit ke git.
