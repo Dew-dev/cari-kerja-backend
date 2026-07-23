@@ -50,7 +50,7 @@ SELECT
   v.slug,
   v.excerpt,
   v.body,
-  NULL,
+  c.cover_url,
   'published',
   v.is_featured,
   v.meta_title,
@@ -394,5 +394,49 @@ $html$,
     9
   )
 ) AS v(id, category_id, title, slug, excerpt, body, is_featured, meta_title, meta_description, days_ago)
+INNER JOIN (
+  VALUES
+    ('b2000001-0001-4000-8000-000000000001'::uuid, 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000002'::uuid, 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000003'::uuid, 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000004'::uuid, 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000005'::uuid, 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000006'::uuid, 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000007'::uuid, 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000008'::uuid, 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000009'::uuid, 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000010'::uuid, 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000011'::uuid, 'https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000012'::uuid, 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000013'::uuid, 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000014'::uuid, 'https://images.unsplash.com/photo-1611944212129-29977ae1398c?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000015'::uuid, 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=1200&q=80')
+) AS c(id, cover_url) ON c.id = v.id
 WHERE EXISTS (SELECT 1 FROM author)
 ON CONFLICT (slug) WHERE deleted_at IS NULL DO NOTHING;
+
+-- Idempotent cover backfill (for DBs that already ran the seed without images)
+UPDATE news AS n
+SET cover_url = c.cover_url,
+    updated_at = NOW()
+FROM (
+  VALUES
+    ('b2000001-0001-4000-8000-000000000001'::uuid, 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000002'::uuid, 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000003'::uuid, 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000004'::uuid, 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000005'::uuid, 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000006'::uuid, 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000007'::uuid, 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000008'::uuid, 'https://images.unsplash.com/photo-1552664730-d307ca884978?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000009'::uuid, 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000010'::uuid, 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000011'::uuid, 'https://images.unsplash.com/photo-1466611653911-95081537e5b7?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000012'::uuid, 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000013'::uuid, 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000014'::uuid, 'https://images.unsplash.com/photo-1611944212129-29977ae1398c?auto=format&fit=crop&w=1200&q=80'),
+    ('b2000001-0001-4000-8000-000000000015'::uuid, 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?auto=format&fit=crop&w=1200&q=80')
+) AS c(id, cover_url)
+WHERE n.id = c.id
+  AND n.deleted_at IS NULL
+  AND (n.cover_url IS NULL OR n.cover_url = '');
