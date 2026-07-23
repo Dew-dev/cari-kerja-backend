@@ -1,19 +1,22 @@
 #!/usr/bin/env node
 /**
- * Seed / refresh worker & recruiter dummy data.
+ * Seed / refresh worker, recruiter, and job-post dummy data.
  *
  * What it does:
- *  1. Deletes ALL existing worker (role_id=1) and recruiter (role_id=2) users.
- *     Cascades remove workers/recruiters and related rows (applications, job posts, etc.).
+ *  1. Hard-deletes ALL job_posts (clears stale listings that 404 on detail).
+ *  2. Deletes ALL existing worker (role_id=1) and recruiter (role_id=2) users.
+ *     Cascades remove workers/recruiters and related rows.
  *     Admin / super_admin / moderator accounts are preserved.
- *  2. Inserts professional dummy workers (real portrait URLs) + profile children.
- *  3. Inserts professional dummy recruiters for the approved company domain list,
+ *  3. Inserts professional dummy workers (real portrait URLs) + profile children.
+ *  4. Inserts professional dummy recruiters for the approved company domain list,
  *     with Clearbit logos: https://logo.clearbit.com/{domain}
+ *  5. Inserts 3 OPEN job posts per recruiter (1 Hot Job via boost_type='hot' + 2 regular),
+ *     aligned to each company field, with skills / requirements / benefits / responsibilities.
  *
  * Prerequisites:
  *  - POSTGRESQL_URL set in .env
  *  - ENCRYPTION_KEY matches the running API (sensitive columns are encrypted)
- *  - Base schema + lookups (roles, industries, genders, currencies, skills, …) exist
+ *  - Base schema + lookups (roles, industries, genders, currencies, skills, categories, …) exist
  *  - Run migration 026_widen_encrypted_recruiter_columns.sql before seeding
  *    (encrypted contact_phone / company_name exceed old VARCHAR lengths)
  *  - Migration 020 (email_verified_at) should already be applied for login
@@ -33,6 +36,7 @@ const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
 const { v4: uuidv4 } = require("uuid");
 const { encrypt } = require("../src/helpers/utils/crypto_helper");
+const JOB_SEEDS_BY_DOMAIN = require("./data/dummy_job_posts");
 
 const PASSWORD_PLAIN = "Password123!";
 const WORKER_ROLE_ID = 1;
@@ -614,11 +618,64 @@ async function lookupId(client, sql, params) {
   return res.rows[0]?.id ?? null;
 }
 
+/**
+ * Run SQL inside a SAVEPOINT. Missing relations (42P01) are ignored so the
+ * outer transaction stays usable; other errors are rethrown.
+ */
+async function tryOptionalQuery(client, sql, params) {
+  await client.query("SAVEPOINT seed_optional");
+  try {
+    await client.query(sql, params);
+    await client.query("RELEASE SAVEPOINT seed_optional");
+    return true;
+  } catch (err) {
+    await client.query("ROLLBACK TO SAVEPOINT seed_optional");
+    if (err.code === "42P01") return false;
+    throw err;
+  }
+}
+
+/**
+ * Like tryOptionalQuery but swallows any error (used for best-effort inserts).
+ */
+async function tryBestEffortQuery(client, sql, params) {
+  await client.query("SAVEPOINT seed_best_effort");
+  try {
+    await client.query(sql, params);
+    await client.query("RELEASE SAVEPOINT seed_best_effort");
+    return null;
+  } catch (err) {
+    await client.query("ROLLBACK TO SAVEPOINT seed_best_effort");
+    return err;
+  }
+}
+
+async function clearAllJobPosts(client) {
+  console.log("→ Deleting all existing job posts...");
+  const del = await client.query(`DELETE FROM job_posts RETURNING id`);
+  console.log(`  Removed ${del.rowCount} job post(s).`);
+}
+
+async function ensureSkillId(client, skillByName, skillName) {
+  if (skillByName[skillName]) return skillByName[skillName];
+  const inserted = await client.query(
+    `INSERT INTO skills (id, skill_name)
+     VALUES ($1, $2)
+     ON CONFLICT (skill_name) DO UPDATE SET skill_name = EXCLUDED.skill_name
+     RETURNING id`,
+    [uuidv4(), skillName],
+  );
+  const id = inserted.rows[0].id;
+  skillByName[skillName] = id;
+  return id;
+}
+
 async function clearWorkersAndRecruiters(client) {
   console.log("→ Clearing FK blockers, then deleting worker & recruiter users...");
 
   // saved_jobs.worker_id is ON DELETE RESTRICT
-  await client.query(
+  await tryOptionalQuery(
+    client,
     `DELETE FROM saved_jobs
      WHERE worker_id IN (
        SELECT w.id FROM workers w
@@ -629,7 +686,8 @@ async function clearWorkersAndRecruiters(client) {
   );
 
   // application_stage_history.changed_by_recruiter_id has no ON DELETE CASCADE
-  await client.query(
+  await tryOptionalQuery(
+    client,
     `UPDATE application_stage_history
      SET changed_by_recruiter_id = NULL
      WHERE changed_by_recruiter_id IN (
@@ -640,18 +698,14 @@ async function clearWorkersAndRecruiters(client) {
     [RECRUITER_ROLE_ID],
   );
 
-  // Optional tables that may not exist in older DBs
-  for (const sql of [
+  // Optional: job_alerts may not exist in older DBs
+  await tryOptionalQuery(
+    client,
     `DELETE FROM job_alerts WHERE worker_id IN (
-       SELECT w.id FROM workers w JOIN users u ON u.id = w.user_id WHERE u.role_id = ${WORKER_ROLE_ID}
+       SELECT w.id FROM workers w JOIN users u ON u.id = w.user_id WHERE u.role_id = $1
      )`,
-  ]) {
-    try {
-      await client.query(sql);
-    } catch (err) {
-      if (err.code !== "42P01") throw err;
-    }
-  }
+    [WORKER_ROLE_ID],
+  );
 
   const del = await client.query(
     `DELETE FROM users
@@ -853,11 +907,13 @@ async function seedWorkers(client, passwordHash, idrCurrencyId, nationalityId) {
     }
 
     // Prefer worker_languages schema (post-017); fallback silently if table missing
-    try {
+    {
       const nativeId = proficiencyNative || proficiencyFluent || 4;
       const fluentId = proficiencyFluent || proficiencyNative || 3;
+      let langErr = null;
       if (hasLanguageMaster && langIdId && langEn) {
-        await client.query(
+        langErr = await tryBestEffortQuery(
+          client,
           `INSERT INTO worker_languages (worker_id, language_name, language_id, proficiency_level_id, is_primary)
            VALUES
              ($1, 'Bahasa Indonesia', $2, $3, true),
@@ -865,7 +921,8 @@ async function seedWorkers(client, passwordHash, idrCurrencyId, nationalityId) {
           [workerId, langIdId, nativeId, langEn, fluentId],
         );
       } else {
-        await client.query(
+        langErr = await tryBestEffortQuery(
+          client,
           `INSERT INTO languages (worker_id, language_name, proficiency_level_id, is_primary)
            VALUES
              ($1, 'Bahasa Indonesia', $2, true),
@@ -873,8 +930,9 @@ async function seedWorkers(client, passwordHash, idrCurrencyId, nationalityId) {
           [workerId, nativeId, fluentId],
         );
       }
-    } catch (err) {
-      console.warn(`  ! Skipping languages for ${w.email}: ${err.message}`);
+      if (langErr) {
+        console.warn(`  ! Skipping languages for ${w.email}: ${langErr.message}`);
+      }
     }
 
     console.log(`  + worker ${w.email}`);
@@ -887,6 +945,9 @@ async function seedRecruiters(client, passwordHash) {
   const industryMap = Object.fromEntries(
     (await client.query(`SELECT id, name FROM industries`)).rows.map((r) => [r.name, r.id]),
   );
+
+  /** @type {Record<string, { recruiterId: string, companyName: string, email: string }>} */
+  const recruiterByDomain = {};
 
   for (let i = 0; i < COMPANY_DOMAINS.length; i += 1) {
     const company = COMPANY_DOMAINS[i];
@@ -938,8 +999,138 @@ async function seedRecruiters(client, passwordHash) {
       ],
     );
 
+    recruiterByDomain[company.domain] = {
+      recruiterId,
+      companyName: company.company_name,
+      email,
+    };
+
     console.log(`  + recruiter ${email} | logo ${logoUrl}`);
   }
+
+  return recruiterByDomain;
+}
+
+async function seedJobPosts(client, recruiterByDomain, currencyId) {
+  console.log("→ Seeding job posts (3 per recruiter: 1 hot + 2 regular)...");
+
+  const categoryRows = (await client.query(`SELECT id, name FROM categories`)).rows;
+  const categoryByName = Object.fromEntries(categoryRows.map((r) => [r.name, r.id]));
+  const skillRows = (await client.query(`SELECT id, skill_name FROM skills`)).rows;
+  const skillByName = Object.fromEntries(skillRows.map((s) => [s.skill_name, s.id]));
+
+  const fallbackCategoryId =
+    categoryByName["Teknologi Informasi"] || categoryRows[0]?.id || 1;
+
+  let hotCount = 0;
+  let regularCount = 0;
+
+  for (const [domain, jobs] of Object.entries(JOB_SEEDS_BY_DOMAIN)) {
+    const recruiter = recruiterByDomain[domain];
+    if (!recruiter) {
+      console.warn(`  ! Skipping jobs for ${domain}: recruiter not seeded`);
+      continue;
+    }
+    if (!Array.isArray(jobs) || jobs.length !== 3) {
+      console.warn(`  ! Expected 3 jobs for ${domain}, got ${jobs?.length ?? 0}`);
+    }
+
+    for (let i = 0; i < jobs.length; i += 1) {
+      const job = jobs[i];
+      const jobId = uuidv4();
+      const isHot = Boolean(job.isHot) || i === 0;
+      const categoryId = categoryByName[job.category] || fallbackCategoryId;
+
+      await client.query(
+        `INSERT INTO job_posts (
+            id, recruiter_id, title, description,
+            location, province, city,
+            employment_type_id, experience_level_id,
+            salary_min, salary_max, salary_type_id, currency_id,
+            status_id, category_id, is_remote, deadline,
+            published_at, boost_type, boost_expires_at, is_hot,
+            deleted_at, created_at, updated_at
+         ) VALUES (
+            $1,$2,$3,$4,
+            $5,$6,$7,
+            $8,$9,
+            $10,$11,3,$12,
+            1,$13,$14,$15::date,
+            NOW(),
+            $16::varchar,
+            $17::timestamptz,
+            $18::boolean,
+            NULL, NOW(), NOW()
+         )`,
+        [
+          jobId,
+          recruiter.recruiterId,
+          job.title,
+          job.description,
+          job.location,
+          job.province,
+          job.city,
+          job.employment_type_id,
+          job.experience_level_id,
+          job.salary_min,
+          job.salary_max,
+          currencyId,
+          categoryId,
+          Boolean(job.is_remote),
+          "2026-12-31",
+          isHot ? "hot" : null,
+          isHot ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : null,
+          isHot,
+        ],
+      );
+
+      for (const skillName of job.skills || []) {
+        const skillId = await ensureSkillId(client, skillByName, skillName);
+        await client.query(
+          `INSERT INTO job_post_skills (job_post_id, skill_id, created_at)
+           VALUES ($1,$2,NOW())
+           ON CONFLICT DO NOTHING`,
+          [jobId, skillId],
+        );
+      }
+
+      for (let r = 0; r < (job.requirements || []).length; r += 1) {
+        await tryBestEffortQuery(
+          client,
+          `INSERT INTO job_post_requirements (id, job_post_id, requirement, order_index)
+           VALUES ($1,$2,$3,$4)`,
+          [uuidv4(), jobId, job.requirements[r], r + 1],
+        );
+      }
+
+      for (let b = 0; b < (job.benefits || []).length; b += 1) {
+        await tryBestEffortQuery(
+          client,
+          `INSERT INTO job_post_benefits (id, job_post_id, benefit, order_index)
+           VALUES ($1,$2,$3,$4)`,
+          [uuidv4(), jobId, job.benefits[b], b + 1],
+        );
+      }
+
+      for (let p = 0; p < (job.responsibilities || []).length; p += 1) {
+        await tryBestEffortQuery(
+          client,
+          `INSERT INTO job_post_responsibilities (id, job_post_id, responsibility, order_index)
+           VALUES ($1,$2,$3,$4)`,
+          [uuidv4(), jobId, job.responsibilities[p], p + 1],
+        );
+      }
+
+      if (isHot) hotCount += 1;
+      else regularCount += 1;
+
+      console.log(
+        `  + [${isHot ? "HOT" : "REG"}] ${recruiter.companyName}: ${job.title}`,
+      );
+    }
+  }
+
+  console.log(`  Seeded ${hotCount} hot + ${regularCount} regular job post(s).`);
 }
 
 async function main() {
@@ -962,18 +1153,23 @@ async function main() {
       )) || 1;
 
     await client.query("BEGIN");
+    await clearAllJobPosts(client);
     await clearWorkersAndRecruiters(client);
     await seedWorkers(client, passwordHash, idrCurrencyId, nationalityId);
-    await seedRecruiters(client, passwordHash);
+    const recruiterByDomain = await seedRecruiters(client, passwordHash);
+    await seedJobPosts(client, recruiterByDomain, idrCurrencyId);
     await client.query("COMMIT");
 
     console.log("\n✅ Seed completed.");
     console.log(`   Password for all seeded accounts: ${PASSWORD_PLAIN}`);
     console.log("   Example worker login : andika.prasetyo@gmail.com");
     console.log("   Example recruiter    : hr@mecca-hotel.com");
+    console.log("   Job posts            : 3 per recruiter (1 hot + 2 regular)");
   } catch (err) {
-    await client.query("ROLLBACK");
+    await client.query("ROLLBACK").catch(() => {});
     console.error("\n❌ Seed failed:", err.message || err);
+    if (err.code) console.error(`   code: ${err.code}`);
+    if (err.detail) console.error(`   detail: ${err.detail}`);
     process.exitCode = 1;
   } finally {
     client.release();

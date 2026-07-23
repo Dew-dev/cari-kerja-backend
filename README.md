@@ -48,11 +48,14 @@ FRONTEND_URL=http://localhost:5173
 
 ## Seed workers & recruiters (dummy data)
 
-Script: `scripts/seed_workers_recruiters.js`
+Script: `scripts/seed_workers_recruiters.js`  
+Job copy: `scripts/data/dummy_job_posts.js`
 
-1. **Menghapus** semua user role worker (`role_id=1`) dan recruiter (`role_id=2`) beserta data terkait (cascade), setelah membersihkan FK blocker (`saved_jobs`, `application_stage_history`).
-2. **Menyisipkan** 8 worker profesional (foto dari `randomuser.me`) + education/experience/skills/dll.
-3. **Menyisipkan** 7 recruiter dari domain wajib, logo via `https://logo.clearbit.com/{domain}`.
+1. **Menghapus** semua `job_posts` lama (hindari listing yang 404 di detail).
+2. **Menghapus** semua user role worker (`role_id=1`) dan recruiter (`role_id=2`) beserta data terkait (cascade), setelah membersihkan FK blocker (`saved_jobs`, `application_stage_history`).
+3. **Menyisipkan** 8 worker profesional (foto dari `randomuser.me`) + education/experience/skills/dll.
+4. **Menyisipkan** 7 recruiter dari domain wajib, logo via `https://logo.clearbit.com/{domain}`.
+5. **Menyisipkan** 3 lowongan OPEN per recruiter (1 Hot Job `boost_type='hot'` + 2 regular) sesuai bidang perusahaan, lengkap skill/requirement/benefit/responsibility.
 
 ```bash
 # 1) Widen encrypted recruiter columns (required before seed)
@@ -64,4 +67,5 @@ npm run seed:workers-recruiters
 
 Password semua akun seed: `Password123!` (sudah `email_verified_at` = NOW, bisa login langsung)  
 Contoh login worker: `andika.prasetyo@gmail.com`  
-Contoh login recruiter: `hr@mecca-hotel.com`
+Contoh login recruiter: `hr@mecca-hotel.com`  
+Total lowongan seed: 21 (7 perusahaan × 3)
