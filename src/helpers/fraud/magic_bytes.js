@@ -10,12 +10,15 @@ const SIGNATURES = {
   pdf: [Buffer.from("%PDF")],
   // ZIP container (also DOCX / some portfolios)
   zip: [Buffer.from([0x50, 0x4b, 0x03, 0x04]), Buffer.from([0x50, 0x4b, 0x05, 0x06])],
+  // WebP: RIFF....WEBP
+  webp: [Buffer.from("RIFF")],
 };
 
 const MIME_TO_KINDS = {
   "image/jpeg": ["jpeg"],
   "image/jpg": ["jpeg"],
   "image/png": ["png"],
+  "image/webp": ["webp"],
   "application/pdf": ["pdf"],
   "application/zip": ["zip"],
   "application/x-zip-compressed": ["zip"],
@@ -38,6 +41,14 @@ const validateFileMagicBytes = (filePath, kinds = []) => {
     fs.closeSync(fd);
 
     for (const kind of kinds) {
+      if (kind === "webp") {
+        const isWebp =
+          buf.length >= 12 &&
+          buf.subarray(0, 4).equals(Buffer.from("RIFF")) &&
+          buf.subarray(8, 12).equals(Buffer.from("WEBP"));
+        if (isWebp) return { ok: true };
+        continue;
+      }
       const sigs = SIGNATURES[kind];
       if (sigs && matchesAny(buf, sigs)) return { ok: true };
     }
@@ -60,6 +71,7 @@ const kindsForMime = (mimetype, originalname = "") => {
   const ext = path.extname(originalname || "").toLowerCase();
   if (ext === ".jpg" || ext === ".jpeg") return ["jpeg"];
   if (ext === ".png") return ["png"];
+  if (ext === ".webp") return ["webp"];
   if (ext === ".pdf") return ["pdf"];
   if (ext === ".docx" || ext === ".zip") return ["zip"];
   if (ext === ".doc") return ["ole", "zip"];

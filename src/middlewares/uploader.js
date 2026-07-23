@@ -108,10 +108,19 @@ const uploadCV = createUploader(
   5
 );
 
+// News cover → JPG/PNG/WebP, max 5MB
+const uploadNewsCover = createUploader(
+  "news/covers",
+  "news-cover",
+  ["image/jpeg", "image/jpg", "image/png", "image/webp"],
+  5
+);
+
 module.exports = {
   uploadAvatarRecruiter,
   uploadAvatarWorker,
   uploadResume,
   uploadPortfolio,
   uploadCV,
+  uploadNewsCover,
 };
