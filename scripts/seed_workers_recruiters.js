@@ -7,9 +7,11 @@
  *  2. Deletes ALL existing worker (role_id=1) and recruiter (role_id=2) users.
  *     Cascades remove workers/recruiters and related rows.
  *     Admin / super_admin / moderator accounts are preserved.
- *  3. Inserts professional dummy workers (real portrait URLs) + profile children.
- *  4. Inserts professional dummy recruiters for the approved company domain list,
- *     with Clearbit logos: https://logo.clearbit.com/{domain}
+ *  3. Downloads free portraits (randomuser.me) into uploads/avatars/worker and
+ *     inserts workers with relative avatar_url paths (FE-compatible).
+ *  4. Downloads company logos into uploads/avatars/recruiter (Clearbit → Google
+ *     favicon → ui-avatars fallback) and inserts recruiters with clean About text
+ *     (no "Contact photo" junk) + relative avatar_url.
  *  5. Inserts 3 OPEN job posts per recruiter (1 Hot Job via boost_type='hot' + 2 regular),
  *     aligned to each company field, with skills / requirements / benefits / responsibilities.
  *
@@ -20,6 +22,7 @@
  *  - Run migration 026_widen_encrypted_recruiter_columns.sql before seeding
  *    (encrypted contact_phone / company_name exceed old VARCHAR lengths)
  *  - Migration 020 (email_verified_at) should already be applied for login
+ *  - Network access to download portraits/logos (or fallbacks write a local PNG)
  *
  * Usage:
  *   # 1) apply migration 026 (psql / your migration runner)
@@ -32,11 +35,99 @@
  */
 
 require("dotenv").config();
+const fs = require("fs");
+const path = require("path");
 const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
+const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 const { encrypt } = require("../src/helpers/utils/crypto_helper");
 const JOB_SEEDS_BY_DOMAIN = require("./data/dummy_job_posts");
+
+/** 1x1 PNG used only if every remote logo/portrait source fails */
+const PLACEHOLDER_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+function getUploadsRoot() {
+  return process.env.UPLOADS_PATH
+    ? path.resolve(process.env.UPLOADS_PATH)
+    : path.join(__dirname, "../src/uploads");
+}
+
+async function downloadToFile(url, destPath) {
+  const res = await axios.get(url, {
+    responseType: "arraybuffer",
+    timeout: 20000,
+    maxRedirects: 5,
+    validateStatus: (status) => status >= 200 && status < 300,
+    headers: { "User-Agent": "cari-kerja-seed/1.0" },
+  });
+  const buf = Buffer.from(res.data);
+  if (buf.length < 32) {
+    throw new Error(`download too small (${buf.length} bytes): ${url}`);
+  }
+  fs.mkdirSync(path.dirname(destPath), { recursive: true });
+  fs.writeFileSync(destPath, buf);
+  return destPath;
+}
+
+function writePlaceholder(destPath) {
+  fs.mkdirSync(path.dirname(destPath), { recursive: true });
+  fs.writeFileSync(destPath, PLACEHOLDER_PNG);
+  return destPath;
+}
+
+/**
+ * Download remote image into uploads and return public relative path
+ * e.g. /uploads/avatars/worker/seed-andika.jpg
+ */
+async function materializeAvatar({ subDir, fileName, urls, label }) {
+  const absPath = path.join(getUploadsRoot(), subDir, fileName);
+  const publicPath = `/uploads/${subDir.replace(/\\/g, "/")}/${fileName}`;
+
+  for (const url of urls) {
+    try {
+      await downloadToFile(url, absPath);
+      console.log(`    ↓ ${label}: ${url}`);
+      return publicPath;
+    } catch (err) {
+      console.warn(`    ! ${label} failed (${url}): ${err.message}`);
+    }
+  }
+
+  writePlaceholder(absPath);
+  console.warn(`    ! ${label}: using local placeholder PNG`);
+  return publicPath;
+}
+
+async function resolveWorkerAvatar(worker) {
+  const ext = ".jpg";
+  return materializeAvatar({
+    subDir: path.join("avatars", "worker"),
+    fileName: `seed-${worker.key}${ext}`,
+    urls: [worker.portrait],
+    label: `worker ${worker.key}`,
+  });
+}
+
+async function resolveCompanyLogo(company) {
+  const domain = company.domain;
+  const nameParam = encodeURIComponent(company.company_name);
+  return materializeAvatar({
+    subDir: path.join("avatars", "recruiter"),
+    fileName: `seed-${domain.replace(/\./g, "-")}.png`,
+    urls: [
+      `https://logo.clearbit.com/${domain}`,
+      `https://www.google.com/s2/favicons?domain=${domain}&sz=128`,
+      `https://icons.duckduckgo.com/ip3/${domain}.ico`,
+      `https://${domain}/favicon.ico`,
+      `https://ui-avatars.com/api/?name=${nameParam}&size=256&background=0D8ABC&color=fff&format=png`,
+    ],
+    label: `logo ${domain}`,
+  });
+}
 
 const PASSWORD_PLAIN = "Password123!";
 const WORKER_ROLE_ID = 1;
@@ -790,6 +881,7 @@ async function seedWorkers(client, passwordHash, idrCurrencyId, nationalityId) {
   for (const w of WORKER_SEEDS) {
     const userId = uuidv4();
     const workerId = uuidv4();
+    const avatarUrl = await resolveWorkerAvatar(w);
 
     await client.query(
       `INSERT INTO users (
@@ -819,7 +911,7 @@ async function seedWorkers(client, passwordHash, idrCurrencyId, nationalityId) {
         workerId,
         userId,
         enc(w.name),
-        w.portrait,
+        avatarUrl,
         enc(w.telephone),
         w.date_of_birth,
         genderMap[w.gender],
@@ -940,7 +1032,7 @@ async function seedWorkers(client, passwordHash, idrCurrencyId, nationalityId) {
 }
 
 async function seedRecruiters(client, passwordHash) {
-  console.log("→ Seeding recruiters (approved company domains + Clearbit logos)...");
+  console.log("→ Seeding recruiters (approved company domains + local logo files)...");
 
   const industryMap = Object.fromEntries(
     (await client.query(`SELECT id, name FROM industries`)).rows.map((r) => [r.name, r.id]),
@@ -956,8 +1048,7 @@ async function seedRecruiters(client, passwordHash) {
     const recruiterId = uuidv4();
     const email = `hr@${company.domain}`;
     const website = `https://${company.domain}`;
-    const logoUrl = `https://logo.clearbit.com/${company.domain}`;
-    const contactAvatar = `https://randomuser.me/api/portraits/${contact.gender}/${contact.portraitIdx}.jpg`;
+    const logoUrl = await resolveCompanyLogo(company);
 
     await client.query(
       `INSERT INTO users (
@@ -969,7 +1060,7 @@ async function seedRecruiters(client, passwordHash) {
 
     const industryId = industryMap[company.industry] || industryMap["Information Technology"];
 
-    // avatar_url = company logo (Clearbit); personal portrait kept in description metadata via contact
+    // avatar_url = relative /uploads/... path so FE storage prefix works
     await client.query(
       `INSERT INTO recruiters (
           id, user_id, company_name, avatar_url, company_website,
@@ -992,7 +1083,7 @@ async function seedRecruiters(client, passwordHash) {
         enc(company.contact_phone || contact.phone),
         enc(company.address),
         industryId,
-        `${company.description}\n\nContact photo: ${contactAvatar}`,
+        company.description,
         company.employee_count,
         `https://instagram.com/${company.domain.split(".")[0]}`,
         null,
