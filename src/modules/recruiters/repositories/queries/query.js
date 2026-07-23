@@ -59,7 +59,9 @@ class Query {
                     LEFT JOIN employment_types ON employment_types.id = job_posts.employment_type_id
                     LEFT JOIN currencies ON currencies.id = job_posts.currency_id
                     LEFT JOIN job_post_statuses ON job_post_statuses.id = job_posts.status_id
-                    WHERE job_posts.recruiter_id = $1;
+                    WHERE job_posts.recruiter_id = $1
+                      AND job_posts.archived_at IS NULL
+                      AND UPPER(COALESCE(job_post_statuses.name, '')) = 'OPEN';
             `;
 
       const recruiterResult = await this.db.executeQuery(recruiterQuery, [

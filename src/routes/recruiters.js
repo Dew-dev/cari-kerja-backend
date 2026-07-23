@@ -24,10 +24,10 @@ module.exports = (server) => {
     recruiterHandler.getAllRecruitersByIndustry
   );
 
+  // Public company profile (guest + worker + recruiter + admin).
+  // Mutations below remain auth-gated.
   server.get(
     "/api/v1/users/:user_id/recruiters",
-    verifyToken,
-    verifyRole(recruiterRoles),
     recruiterHandler.getRecruiterByUserId
   );
   server.put(
