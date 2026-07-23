@@ -1,0 +1,12 @@
+# Optional Python deps for CV_USE_PYTHON_RESUME_PARSER=true
+# Install: python -m pip install -r requirements-cv-parser.txt
+# Then:    python -m spacy download en_core_web_sm
+
+pdfplumber>=0.11.0
+docx2txt>=0.8
+spacy>=3.7.0
+phonenumbers>=8.13.0
+
+# Optional — often broken on spaCy 3.x / Python 3.12+ (custom models lack config.cfg).
+# The bridge falls back automatically when this package fails to import.
+# resume-parser==0.8.4

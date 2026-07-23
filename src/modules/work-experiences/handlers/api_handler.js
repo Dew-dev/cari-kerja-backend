@@ -29,8 +29,8 @@ const getAllWorkExperiences = async (req, res) => {
 // command
 const insertWorkExperience = async (req, res) => {
     const payload = {...req.body, worker_id: req.userMeta.worker_id};
-    const { created_at, updated_at, ...payloadWithoutTimestamps } = payload;
-    const validatePayload = validator.isValidPayload(payloadWithoutTimestamps, commandModel.addWorkExperienceParamType);
+    const { created_at, updated_at, _pending, ...payloadWithoutUiFields } = payload;
+    const validatePayload = validator.isValidPayload(payloadWithoutUiFields, commandModel.addWorkExperienceParamType);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);
     }
@@ -40,8 +40,8 @@ const insertWorkExperience = async (req, res) => {
 
 const updateWorkExperience = async (req, res) => {
     const payload = {...req.body, worker_id: req.userMeta.worker_id, ...req.params};
-    const { created_at, updated_at, ...payloadWithoutTimestamps } = payload;
-    const validatePayload = validator.isValidPayload(payloadWithoutTimestamps, commandModel.updateWorkExperienceParamType);
+    const { created_at, updated_at, _pending, ...payloadWithoutUiFields } = payload;
+    const validatePayload = validator.isValidPayload(payloadWithoutUiFields, commandModel.updateWorkExperienceParamType);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);
     }
