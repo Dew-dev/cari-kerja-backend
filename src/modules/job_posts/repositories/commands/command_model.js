@@ -125,6 +125,8 @@ const jobPostQuestionUpdateParamType = joi.object({
 const jobPostStatusUpdateParamType = joi.object({
   id: joi.string().uuid().required(),
   status_id: joi.number().required(),
+  // Injected from auth (req.userMeta), not from client body.
+  recruiter_id: joi.string().uuid().required(),
 });
 
 const createJobPostAnswerParamType = joi.object({

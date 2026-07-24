@@ -415,26 +415,25 @@ class Jobpost {
   async updateJobPostStatus(payload, id, ctx) {
     try {
       if (!payload || typeof payload !== "object") {
-        throw new Error("Payload harus berupa object");
+        return wrapper.error(new BadRequestError("Payload harus berupa object"));
       }
       payload = { ...payload, id: id };
-      ////console.log("payload status: ", payload);
       const validateItem = validator.isValidPayload(
         payload,
         commandModel.jobPostStatusUpdateParamType,
       );
 
       if (validateItem.err) {
-        throw new Error(`Validation error: ${validateItem.err.message}`);
+        return wrapper.error(validateItem.err);
       }
 
       const value = validateItem.data;
 
       if (!value.id) {
-        throw new Error("Field 'id' wajib ada untuk update");
+        return wrapper.error(new BadRequestError("Field 'id' wajib ada untuk update"));
       }
 
-      const recruiterId = payload.recruiter_id;
+      const recruiterId = value.recruiter_id || payload.recruiter_id;
       if (!recruiterId) {
         return wrapper.error(
           new ForbiddenError("Recruiter context required to update job status"),
