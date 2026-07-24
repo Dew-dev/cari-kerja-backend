@@ -155,64 +155,44 @@ class CandidateMatchingCommand {
       }
     }
 
-    if (isInsufficientText(jobText, workerText)) {
-      const saved = await this.command.upsertMatchScore({
-        application_id,
-        job_post_id,
-        worker_id,
-        match_score: 0,
-        match_status: "insufficient_data",
-        match_breakdown: {
-          semantic: 0,
-          skills: 0,
-          experience: 0,
-          education: 0,
-        },
-        match_reasons: [
-          {
-            type: "data",
-            label: "Job or candidate profile text is too short to score reliably",
-            score: 0,
-          },
-        ],
-        model_version,
-        job_text_hash,
-        candidate_text_hash,
-      });
-      if (saved.err) {
-        return wrapper.error(new InternalServerError("Failed to save match score"));
-      }
-      return wrapper.data(saved.data);
-    }
+    // Always score structured signals (skills, position, salary, location, experience).
+    // Short profile text only disables semantic embedding — never force a flat 0%.
+    const textTooShort = isInsufficientText(jobText, workerText);
 
     try {
-      const [jobEmb, workerEmb] = await Promise.all([
-        this._getOrCreateEmbedding({
-          entity_type: "job",
-          entity_id: job_post_id,
-          text: jobText,
-          text_hash: job_text_hash,
-          model_version,
-        }),
-        this._getOrCreateEmbedding({
-          entity_type: "worker",
-          entity_id: worker_id,
-          text: workerText,
-          text_hash: candidate_text_hash,
-          model_version,
-        }),
-      ]);
+      let jobEmb = { embedding: [], provider: "skipped" };
+      let workerEmb = { embedding: [], provider: "skipped" };
+      let semanticProvider = "skipped_short_text";
+      let semanticPctOverride = textTooShort ? 0 : undefined;
 
-      let semanticProvider = "local_cosine";
-      let semanticPctOverride;
-      if (isEsEnabled()) {
-        const knnSim = await knnSemanticSimilarity({
-          jobEmbedding: jobEmb.embedding,
-          worker_id,
-        });
-        if (knnSim != null) {
-          semanticPctOverride = knnSim * 100;
-          semanticProvider = "elasticsearch_knn";
+      if (!textTooShort) {
+        [jobEmb, workerEmb] = await Promise.all([
+          this._getOrCreateEmbedding({
+            entity_type: "job",
+            entity_id: job_post_id,
+            text: jobText,
+            text_hash: job_text_hash,
+            model_version,
+          }),
+          this._getOrCreateEmbedding({
+            entity_type: "worker",
+            entity_id: worker_id,
+            text: workerText,
+            text_hash: candidate_text_hash,
+            model_version,
+          }),
+        ]);
+
+        semanticProvider = "local_cosine";
+        if (isEsEnabled()) {
+          const knnSim = await knnSemanticSimilarity({
+            jobEmbedding: jobEmb.embedding,
+            worker_id,
+          });
+          if (knnSim != null) {
+            semanticPctOverride = knnSim * 100;
+            semanticProvider = "elasticsearch_knn";
+          }
         }
       }
 
@@ -221,6 +201,8 @@ class CandidateMatchingCommand {
         workerEmbedding: workerEmb.embedding,
         jobSkillIds: jobSrc.data.skill_ids || [],
         workerSkillIds: workerSrc.data.skill_ids || [],
+        jobSkillNames: jobSrc.data.skill_names || [],
+        workerSkillNames: workerSrc.data.skill_names || [],
         experienceLevelName: jobSrc.data.experience_level_name,
         totalYears: totalYearsFromExperiences(workerSrc.data.work_experiences),
         jobText,
@@ -237,6 +219,15 @@ class CandidateMatchingCommand {
         semanticPctOverride,
       });
 
+      const reasons = [...(scored.match_reasons || [])];
+      if (textTooShort) {
+        reasons.push({
+          type: "data",
+          label: "Profile/job text is short; score uses skills, role, salary, and location",
+          score: scored.match_score,
+        });
+      }
+
       const saved = await this.command.upsertMatchScore({
         application_id,
         job_post_id,
@@ -250,8 +241,9 @@ class CandidateMatchingCommand {
             worker: workerEmb.provider,
           },
           semantic_provider: semanticProvider,
+          text_too_short: textTooShort,
         },
-        match_reasons: scored.match_reasons,
+        match_reasons: reasons.slice(0, 4),
         model_version,
         job_text_hash,
         candidate_text_hash,
@@ -265,6 +257,57 @@ class CandidateMatchingCommand {
       return wrapper.data(saved.data);
     } catch (err) {
       logger.error(ctx, "computeApplicationMatch", "scoring failed", err);
+      // Even on embedding failure, persist rule-based score so UI is not stuck at 0%/Calculating
+      try {
+        const scored = computeHybridScore({
+          jobEmbedding: [],
+          workerEmbedding: [],
+          jobSkillIds: jobSrc.data.skill_ids || [],
+          workerSkillIds: workerSrc.data.skill_ids || [],
+          jobSkillNames: jobSrc.data.skill_names || [],
+          workerSkillNames: workerSrc.data.skill_names || [],
+          experienceLevelName: jobSrc.data.experience_level_name,
+          totalYears: totalYearsFromExperiences(workerSrc.data.work_experiences),
+          jobText,
+          educations: workerSrc.data.educations || [],
+          jobTitle: jobSrc.data.title,
+          workExperiences: workerSrc.data.work_experiences || [],
+          expectedSalary: workerSrc.data.expected_salary,
+          salaryMin: jobSrc.data.salary_min,
+          salaryMax: jobSrc.data.salary_max,
+          jobLocation: jobSrc.data.location,
+          jobCity: jobSrc.data.city,
+          jobProvince: jobSrc.data.province,
+          workerAddress: workerSrc.data.address,
+          semanticPctOverride: 0,
+        });
+        const failed = await this.command.upsertMatchScore({
+          application_id,
+          job_post_id,
+          worker_id,
+          match_score: scored.match_score,
+          match_status: "ready",
+          match_breakdown: {
+            ...scored.match_breakdown,
+            error: "embedding_or_scoring_partial",
+            semantic_provider: "skipped_error",
+          },
+          match_reasons: [
+            ...(scored.match_reasons || []),
+            {
+              type: "error",
+              label: "Partial score (semantic unavailable); rules still applied",
+              score: scored.match_score,
+            },
+          ].slice(0, 4),
+          model_version,
+          job_text_hash,
+          candidate_text_hash,
+        });
+        if (!failed.err) return wrapper.data(failed.data);
+      } catch (inner) {
+        logger.error(ctx, "computeApplicationMatch", "partial score failed", inner);
+      }
       const failed = await this.command.upsertMatchScore({
         application_id,
         job_post_id,

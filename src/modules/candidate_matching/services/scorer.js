@@ -26,19 +26,48 @@ const cosineSimilarity = (a, b) => {
 };
 
 /**
- * Skill overlap percentage: |intersection| / |job skills| * 100.
+ * Skill overlap percentage.
+ * Prefers name intersection (case-insensitive); falls back to skill UUID overlap.
  * If job has no skills, returns 50 (neutral).
  */
-const skillOverlapPct = ({ jobSkillIds = [], workerSkillIds = [] }) => {
-  const jobSet = new Set(jobSkillIds.filter(Boolean).map(String));
-  const workerSet = new Set(workerSkillIds.filter(Boolean).map(String));
-  if (jobSet.size === 0) return 50;
+const skillOverlapPct = ({
+  jobSkillIds = [],
+  workerSkillIds = [],
+  jobSkillNames = [],
+  workerSkillNames = [],
+}) => {
+  const jobNames = [
+    ...new Set(
+      [...jobSkillNames]
+        .filter(Boolean)
+        .map((n) => String(n).trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  ];
+  const workerNames = new Set(
+    [...workerSkillNames]
+      .filter(Boolean)
+      .map((n) => String(n).trim().toLowerCase())
+      .filter(Boolean),
+  );
+
+  if (jobNames.length > 0) {
+    let overlap = 0;
+    for (const name of jobNames) {
+      if (workerNames.has(name)) overlap += 1;
+    }
+    return Math.round((overlap / jobNames.length) * 100);
+  }
+
+  const jobIds = new Set(jobSkillIds.filter(Boolean).map(String));
+  const workerIds = new Set(workerSkillIds.filter(Boolean).map(String));
+  if (jobIds.size === 0) return 50;
 
   let overlap = 0;
-  for (const id of jobSet) {
-    if (workerSet.has(id)) overlap += 1;
+  for (const id of jobIds) {
+    if (workerIds.has(id)) overlap += 1;
   }
-  return Math.round((overlap / jobSet.size) * 100);
+  return Math.round((overlap / jobIds.size) * 100);
 };
 
 /**
@@ -227,6 +256,8 @@ const computeHybridScore = ({
   workerEmbedding,
   jobSkillIds,
   workerSkillIds,
+  jobSkillNames,
+  workerSkillNames,
   experienceLevelName,
   totalYears,
   jobText,
@@ -258,7 +289,12 @@ const computeHybridScore = ({
     semanticPctOverride != null && Number.isFinite(Number(semanticPctOverride))
       ? Math.max(0, Math.min(100, Number(semanticPctOverride)))
       : cosineSimilarity(jobEmbedding, workerEmbedding) * 100;
-  const skillsPct = skillOverlapPct({ jobSkillIds, workerSkillIds });
+  const skillsPct = skillOverlapPct({
+    jobSkillIds,
+    workerSkillIds,
+    jobSkillNames,
+    workerSkillNames,
+  });
   const positionPct = positionFitPct({
     jobTitle: jobTitle || jobText,
     workExperiences: workExperiences || [],
