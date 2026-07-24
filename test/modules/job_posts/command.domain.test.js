@@ -273,4 +273,76 @@ describe("Job Posts Command Domain", () => {
       expect(mockCommand.insertOne).not.toHaveBeenCalled();
     });
   });
+
+  describe("duplicateJobPost", () => {
+    const originalJob = {
+      id: jobPostId,
+      title: "Lead Cloud Solutions Architect",
+      description: "Build clouds",
+      employment_type_id: 1,
+      experience_level_id: 4,
+      salary_type_id: 1,
+      salary_min: 28000000,
+      salary_max: 42000000,
+      currency_id: 61,
+      location: "Jakarta Selatan",
+      deadline: "2026-12-31",
+      category_id: 3,
+      province: "DKI Jakarta",
+      city: "Jakarta Selatan",
+      is_remote: false,
+      tags: [{ id: 1, name: "Cloud" }],
+    };
+
+    beforeEach(() => {
+      mockCommand.insertJobPostTag = jest.fn().mockResolvedValue({ err: null });
+      mockQuery.findJobWithTags = jest.fn().mockResolvedValue({
+        err: null,
+        data: originalJob,
+      });
+      mockQuery.getJobPostRequirements = jest.fn().mockResolvedValue({ err: null, data: [] });
+      mockQuery.getJobPostBenefits = jest.fn().mockResolvedValue({ err: null, data: [] });
+      mockQuery.getJobPostResponsibilities = jest.fn().mockResolvedValue({
+        err: null,
+        data: [],
+      });
+      mockQuery.findAllByJobPostId = jest.fn().mockResolvedValue({ err: null, data: [] });
+    });
+
+    it("copies location fields and is_remote so NOT NULL constraints pass", async () => {
+      const newId = "550e8400-e29b-41d4-a716-446655440099";
+      mockCommand.insertJobPost.mockResolvedValue({ id: newId });
+
+      const result = await domain.duplicateJobPost({
+        id: jobPostId,
+        recruiter_id: recruiterId,
+      });
+
+      expect(result.err).toBeNull();
+      expect(result.data.id).toBe(newId);
+      expect(mockCommand.insertJobPost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Lead Cloud Solutions Architect (Copy)",
+          status_id: 3,
+          province: "DKI Jakarta",
+          city: "Jakarta Selatan",
+          is_remote: false,
+        })
+      );
+    });
+
+    it("defaults is_remote to false when original value is null", async () => {
+      mockQuery.findJobWithTags.mockResolvedValue({
+        err: null,
+        data: { ...originalJob, is_remote: null, province: null, city: null },
+      });
+      mockCommand.insertJobPost.mockResolvedValue({ id: "new-job-id" });
+
+      await domain.duplicateJobPost({ id: jobPostId, recruiter_id: recruiterId });
+
+      expect(mockCommand.insertJobPost).toHaveBeenCalledWith(
+        expect.objectContaining({ is_remote: false })
+      );
+    });
+  });
 });
