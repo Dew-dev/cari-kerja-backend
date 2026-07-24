@@ -3,4 +3,8 @@ node_modules
 uploads
 __pycache__/
 *.py[cod]
+.venv/
+.venv-cv/
+logs/
+services/cv-parser/.env
 
