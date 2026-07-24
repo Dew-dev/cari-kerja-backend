@@ -1,11 +1,7 @@
 const fs = require("fs");
 const path = require("path");
-const { spawn } = require("child_process");
 const axios = require("axios");
-const {
-  resolvePythonBin,
-  resolvePythonScriptPath,
-} = require("./cv_python_parser");
+const { renderPdfPagesWithPython } = require("./cv_python_parser");
 
 function ocrEnabledFlag() {
   return process.env.CV_OCR_ENABLED !== "false";
@@ -108,85 +104,11 @@ async function createCanvas(width, height) {
 }
 
 /**
- * Render PDF pages with Python/pdfplumber (safe on Windows).
+ * Render PDF pages via CV parser sidecar or local Python (safe on Windows).
  * @returns {Promise<Buffer[]>}
  */
 async function renderPdfPagesToPngViaPython(filePath, maxPages = ocrMaxPages()) {
-  const scriptPath = resolvePythonScriptPath();
-  const pythonBin = resolvePythonBin();
-  const dpi = ocrDpi();
-
-  if (!fs.existsSync(scriptPath)) {
-    throw new Error(`Python CV parser script not found: ${scriptPath}`);
-  }
-
-  const payload = await new Promise((resolve, reject) => {
-    const child = spawn(
-      pythonBin,
-      [
-        scriptPath,
-        "--render-pages",
-        path.resolve(filePath),
-        "--max-pages",
-        String(Math.max(1, maxPages)),
-        "--dpi",
-        String(dpi),
-      ],
-      { windowsHide: true, env: process.env }
-    );
-
-    let stdout = "";
-    let stderr = "";
-    const timer = setTimeout(() => {
-      child.kill("SIGTERM");
-      reject(new Error("Python PDF render timed out"));
-    }, Number(process.env.CV_PYTHON_PARSER_TIMEOUT_MS || 60000));
-
-    child.stdout.on("data", (chunk) => {
-      stdout += chunk.toString("utf8");
-    });
-    child.stderr.on("data", (chunk) => {
-      stderr += chunk.toString("utf8");
-    });
-    child.on("error", (err) => {
-      clearTimeout(timer);
-      reject(new Error(`Failed to start Python (${pythonBin}): ${err.message}`));
-    });
-    child.on("close", (code) => {
-      clearTimeout(timer);
-      const line = stdout
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter(Boolean)
-        .pop();
-      if (!line) {
-        reject(new Error(stderr.trim() || `Python PDF render exited with ${code}`));
-        return;
-      }
-      let parsed;
-      try {
-        parsed = JSON.parse(line);
-      } catch (err) {
-        reject(new Error(`Python PDF render returned invalid JSON: ${err.message}`));
-        return;
-      }
-      if (code !== 0 || parsed.error) {
-        reject(new Error(parsed.error || stderr.trim() || `Python PDF render exited with ${code}`));
-        return;
-      }
-      resolve(parsed);
-    });
-  });
-
-  const images = [];
-  for (const imagePath of payload.images || []) {
-    try {
-      images.push(fs.readFileSync(imagePath));
-    } finally {
-      fs.unlink(imagePath, () => {});
-    }
-  }
-  return images;
+  return renderPdfPagesWithPython(filePath, { maxPages, dpi: ocrDpi() });
 }
 
 /**

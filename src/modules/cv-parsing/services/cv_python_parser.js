@@ -2,6 +2,7 @@ const { spawn } = require("child_process");
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+const axios = require("axios");
 
 const DEFAULT_SCRIPT = path.join(__dirname, "..", "..", "..", "..", "scripts", "cv_parse_python.py");
 
@@ -27,6 +28,20 @@ function resolvePythonScriptPath() {
 
 function isPythonStrict() {
   return process.env.CV_PYTHON_STRICT === "true";
+}
+
+/** Prefer remote sidecar so the Node Docker image needs no Python runtime. */
+function resolveParserServiceUrl() {
+  const url = (process.env.CV_PARSER_SERVICE_URL || "").trim().replace(/\/+$/, "");
+  return url || null;
+}
+
+function resolveParserServiceToken() {
+  return (process.env.CV_PARSER_SERVICE_TOKEN || "").trim();
+}
+
+function isRemoteParserEnabled() {
+  return Boolean(resolveParserServiceUrl());
 }
 
 function pythonErrorFromPayload(payload, stderr, code) {
@@ -55,6 +70,58 @@ function serializePythonError(err) {
     hint: err.hint || null,
     missing_module: err.missing_module || null,
     package_error: err.package_error || null,
+  };
+}
+
+function serviceErrorFromAxios(err, fallbackMessage) {
+  const payload = err?.response?.data;
+  if (payload && typeof payload === "object" && payload.error) {
+    return pythonErrorFromPayload(payload, null, err.response?.status || 1);
+  }
+  const wrapped = new Error(
+    payload?.message || err.message || fallbackMessage || "CV parser service request failed"
+  );
+  wrapped.code = "PYTHON_CV_PARSER";
+  wrapped.error_type = err.code === "ECONNREFUSED" ? "ServiceUnavailable" : "ServiceError";
+  wrapped.hint =
+    "Start services/cv-parser (sidecar) and set CV_PARSER_SERVICE_URL to its base URL from the Node container.";
+  return wrapped;
+}
+
+function serviceHeaders() {
+  const headers = { "Content-Type": "application/json" };
+  const token = resolveParserServiceToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
+async function postParserService(pathname, body) {
+  const base = resolveParserServiceUrl();
+  if (!base) {
+    throw new Error("CV_PARSER_SERVICE_URL is not configured");
+  }
+  try {
+    const response = await axios.post(`${base}${pathname}`, body, {
+      headers: serviceHeaders(),
+      timeout: resolvePythonTimeoutMs(),
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+    });
+    const payload = response.data;
+    if (payload?.error) {
+      throw pythonErrorFromPayload(payload, null, response.status);
+    }
+    return payload;
+  } catch (err) {
+    if (err.code === "PYTHON_CV_PARSER") throw err;
+    throw serviceErrorFromAxios(err, `CV parser service ${pathname} failed`);
+  }
+}
+
+function fileToBase64Payload(filePath) {
+  return {
+    filename: path.basename(filePath),
+    file_base64: fs.readFileSync(filePath).toString("base64"),
   };
 }
 
@@ -99,7 +166,7 @@ function runPythonParserArgs(args) {
       wrapped.code = "PYTHON_CV_PARSER";
       wrapped.error_type = "SpawnError";
       wrapped.hint =
-        "Set CV_PYTHON_BIN to your venv python, e.g. /app/.venv/bin/python";
+        "Prefer CV_PARSER_SERVICE_URL (sidecar). Or set CV_PYTHON_BIN to a local venv python for non-Docker dev.";
       reject(wrapped);
     });
 
@@ -150,14 +217,21 @@ function runPythonParserArgs(args) {
 }
 
 /**
- * Spawn scripts/cv_parse_python.py and map JSON stdout to the CV schema.
+ * Parse via remote sidecar when CV_PARSER_SERVICE_URL is set; else local spawn.
  * @param {string} filePath
- * @param {{ text?: string }} [options] When `text` is provided (e.g. OCR output),
- *   parse that text instead of re-extracting from the file.
+ * @param {{ text?: string }} [options]
  * @returns {Promise<object>}
  */
 async function parseWithPythonResumeParser(filePath, options = {}) {
   const suppliedText = typeof options.text === "string" ? options.text.trim() : "";
+
+  if (isRemoteParserEnabled()) {
+    const body = suppliedText
+      ? { text: suppliedText }
+      : fileToBase64Payload(filePath);
+    const payload = await postParserService("/v1/parse", body);
+    return stripInternalMeta(payload);
+  }
 
   if (suppliedText) {
     const tmpPath = path.join(
@@ -192,14 +266,18 @@ function stripInternalMeta(payload) {
 }
 
 /**
- * Extract plain text via Python (pdfplumber/docx2txt).
- * Prefer this over Node pdf-parse for multi-column resume PDFs.
+ * Extract plain text via sidecar or local Python (pdfplumber/docx2txt).
  * @param {string} filePath
  * @returns {Promise<string>}
  */
-function extractTextWithPython(filePath) {
+async function extractTextWithPython(filePath) {
   if (!fs.existsSync(filePath)) {
     return Promise.reject(new Error(`CV file not found: ${filePath}`));
+  }
+
+  if (isRemoteParserEnabled()) {
+    const payload = await postParserService("/v1/extract-text", fileToBase64Payload(filePath));
+    return String(payload.text || "");
   }
 
   const scriptPath = resolvePythonScriptPath();
@@ -238,7 +316,12 @@ function extractTextWithPython(filePath) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      reject(new Error(`Failed to start Python (${pythonBin}): ${err.message}`));
+      const wrapped = new Error(`Failed to start Python (${pythonBin}): ${err.message}`);
+      wrapped.code = "PYTHON_CV_PARSER";
+      wrapped.error_type = "SpawnError";
+      wrapped.hint =
+        "Prefer CV_PARSER_SERVICE_URL (sidecar). Or set CV_PYTHON_BIN for local spawn.";
+      reject(wrapped);
     });
     child.on("close", (code) => {
       if (settled) return;
@@ -252,7 +335,7 @@ function extractTextWithPython(filePath) {
         .pop();
 
       if (!line) {
-        reject(new Error(stderr.trim() || `Python text extract exited with ${code}`));
+        reject(pythonErrorFromPayload(null, stderr.trim() || `Python text extract exited with ${code}`, code));
         return;
       }
 
@@ -274,12 +357,116 @@ function extractTextWithPython(filePath) {
   });
 }
 
+/**
+ * Render PDF pages to PNG buffers via sidecar or local Python.
+ * @param {string} filePath
+ * @param {{ maxPages?: number, dpi?: number }} [options]
+ * @returns {Promise<Buffer[]>}
+ */
+async function renderPdfPagesWithPython(filePath, options = {}) {
+  const maxPages = Number(options.maxPages || process.env.CV_OCR_MAX_PAGES || 3);
+  const dpi =
+    Number(options.dpi) ||
+    Number(process.env.CV_OCR_RENDER_DPI) ||
+    Math.max(120, Math.round(72 * Number(process.env.CV_OCR_RENDER_SCALE || 2)));
+
+  if (isRemoteParserEnabled()) {
+    const payload = await postParserService("/v1/render-pages", {
+      ...fileToBase64Payload(filePath),
+      max_pages: maxPages,
+      dpi,
+    });
+    return (payload.images_base64 || []).map((b64) => Buffer.from(b64, "base64"));
+  }
+
+  // Local spawn fallback (dev machines with Python installed).
+  const scriptPath = resolvePythonScriptPath();
+  const pythonBin = resolvePythonBin();
+  if (!fs.existsSync(scriptPath)) {
+    throw new Error(`Python CV parser script not found: ${scriptPath}`);
+  }
+
+  const parsed = await new Promise((resolve, reject) => {
+    const child = spawn(
+      pythonBin,
+      [
+        scriptPath,
+        "--render-pages",
+        path.resolve(filePath),
+        "--max-pages",
+        String(Math.max(1, maxPages)),
+        "--dpi",
+        String(dpi),
+      ],
+      { windowsHide: true, env: process.env }
+    );
+    let stdout = "";
+    let stderr = "";
+    const timer = setTimeout(() => {
+      child.kill("SIGTERM");
+      reject(new Error("Python PDF render timed out"));
+    }, resolvePythonTimeoutMs());
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString("utf8");
+    });
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString("utf8");
+    });
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      const wrapped = new Error(`Failed to start Python (${pythonBin}): ${err.message}`);
+      wrapped.code = "PYTHON_CV_PARSER";
+      wrapped.error_type = "SpawnError";
+      wrapped.hint =
+        "Prefer CV_PARSER_SERVICE_URL (sidecar). Or set CV_PYTHON_BIN for local spawn.";
+      reject(wrapped);
+    });
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      const line = stdout
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean)
+        .pop();
+      if (!line) {
+        reject(new Error(stderr.trim() || `Python PDF render exited with ${code}`));
+        return;
+      }
+      let data;
+      try {
+        data = JSON.parse(line);
+      } catch (err) {
+        reject(new Error(`Python PDF render returned invalid JSON: ${err.message}`));
+        return;
+      }
+      if (code !== 0 || data.error) {
+        reject(pythonErrorFromPayload(data, stderr, code));
+        return;
+      }
+      resolve(data);
+    });
+  });
+
+  const images = [];
+  for (const imagePath of parsed.images || []) {
+    try {
+      images.push(fs.readFileSync(imagePath));
+    } finally {
+      fs.unlink(imagePath, () => {});
+    }
+  }
+  return images;
+}
+
 module.exports = {
   isPythonResumeParserEnabled,
   isPythonStrict,
+  isRemoteParserEnabled,
   parseWithPythonResumeParser,
   extractTextWithPython,
+  renderPdfPagesWithPython,
   serializePythonError,
   resolvePythonScriptPath,
   resolvePythonBin,
+  resolveParserServiceUrl,
 };

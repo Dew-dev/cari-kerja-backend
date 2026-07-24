@@ -33,7 +33,9 @@ const parseCVHandler = async (req, res) => {
       err.error_type === "ModuleNotFoundError" ||
       err.error_type === "ImportError" ||
       err.error_type === "SpawnError" ||
-      /Failed to start Python|Missing Python|pdfplumber|docx2txt|CV_PYTHON_BIN/i.test(
+      err.error_type === "ServiceUnavailable" ||
+      err.error_type === "ServiceError" ||
+      /Failed to start Python|Missing Python|pdfplumber|docx2txt|CV_PYTHON_BIN|CV_PARSER_SERVICE_URL|CV parser service/i.test(
         err.message || ""
       )
     ) {
