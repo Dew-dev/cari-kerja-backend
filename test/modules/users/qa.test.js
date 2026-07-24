@@ -453,6 +453,43 @@ describe("[QA] users module", () => {
         `http://localhost:5173/auth/callback?token=${encodeURIComponent(token)}&refreshToken=${encodeURIComponent(refreshToken)}`
       );
     });
+
+    it("google callback redirects provider conflict to FE login (not JSON)", async () => {
+      const req = createMockRequest({
+        headers: { "user-agent": "jest" },
+        user: {
+          id: "google-sub",
+          email: "local-user@example.com",
+          name: "Local User",
+          role_id: 1,
+          origin: "https://fe-stage.cari-kerja.co.id",
+        },
+      });
+      const res = createMockResponse();
+      res.redirect = jest.fn();
+
+      commandHandler.loginWithGoogle = jest.fn().mockResolvedValue(
+        wrapper.error(
+          new ConflictError(
+            "This email is already registered with local login. Please sign in with that method."
+          )
+        )
+      );
+
+      await apiHandler.loginWithGoogle(req, res);
+
+      expect(res.send).not.toHaveBeenCalled();
+      expect(res.redirect).toHaveBeenCalledTimes(1);
+      const redirectUrl = res.redirect.mock.calls[0][0];
+      const parsed = new URL(redirectUrl);
+      expect(parsed.origin).toBe("https://fe-stage.cari-kerja.co.id");
+      expect(parsed.pathname).toBe("/login");
+      expect(parsed.searchParams.get("error")).toBe("provider_conflict");
+      expect(parsed.searchParams.get("provider")).toBe("local");
+      expect(parsed.searchParams.get("message")).toContain(
+        "already registered with local login"
+      );
+    });
   });
 
   describe("Security — getUserById has no ownership check (IDOR)", () => {

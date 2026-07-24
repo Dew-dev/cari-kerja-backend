@@ -47,8 +47,14 @@ module.exports = (server) => {
     const { role_id, origin } = req.query;
     const safeRole = sanitizeOauthRoleId(role_id);
     if (role_id !== undefined && role_id !== null && role_id !== "" && safeRole === null) {
-      const feUrl = config.get("/frontendUrl");
-      return res.redirect(`${origin || feUrl}/error`);
+      const { buildOauthLoginErrorRedirect } = require("../helpers/auth/oauth_redirect");
+      return res.redirect(
+        buildOauthLoginErrorRedirect({
+          origin,
+          roleId: 1,
+          err: { message: "Invalid OAuth role" },
+        })
+      );
     }
     const state = JSON.stringify({
       role_id: safeRole ?? 1,
