@@ -8,6 +8,7 @@ process.env.CV_USE_PYTHON_RESUME_PARSER = "true";
 process.env.CV_OCR_ENABLED = "true";
 delete process.env.CV_PARSER_AI_URL;
 delete process.env.CV_PARSER_AI_KEY;
+delete process.env.CV_PARSER_SERVICE_URL; // force local spawn in fixture tests
 
 const fs = require("fs");
 const path = require("path");

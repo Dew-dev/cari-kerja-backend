@@ -1,6 +1,10 @@
-# Optional Python deps for CV_USE_PYTHON_RESUME_PARSER=true
+# Optional Python deps for local spawn (CV_USE_PYTHON_RESUME_PARSER=true without sidecar).
+# Prefer the sidecar for Docker/VPS: services/cv-parser (set CV_PARSER_SERVICE_URL).
+#
 # Install: python -m pip install -r requirements-cv-parser.txt
 # Then:    python -m spacy download en_core_web_sm
+#
+# Sidecar-only install (lighter): pip install -r services/cv-parser/requirements.txt
 
 pdfplumber>=0.11.0
 docx2txt>=0.8

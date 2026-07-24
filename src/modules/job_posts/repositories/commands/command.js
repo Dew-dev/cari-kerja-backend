@@ -224,9 +224,10 @@ class Command {
       deadline,
       status_id,
       category_id,
-      province,
-      city,
-      is_remote,
+      province ?? null,
+      city ?? null,
+      // Column is NOT NULL; binding undefined becomes NULL and rejects DEFAULT.
+      is_remote ?? false,
     ];
 
     const result = await this.db.executeQuery(query, values);

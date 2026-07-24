@@ -59,7 +59,9 @@ class Query {
                     LEFT JOIN employment_types ON employment_types.id = job_posts.employment_type_id
                     LEFT JOIN currencies ON currencies.id = job_posts.currency_id
                     LEFT JOIN job_post_statuses ON job_post_statuses.id = job_posts.status_id
-                    WHERE job_posts.recruiter_id = $1;
+                    WHERE job_posts.recruiter_id = $1
+                      AND job_posts.archived_at IS NULL
+                      AND UPPER(COALESCE(job_post_statuses.name, '')) = 'OPEN';
             `;
 
       const recruiterResult = await this.db.executeQuery(recruiterQuery, [
@@ -128,9 +130,11 @@ class Query {
           r.created_at,
           r.updated_at
         FROM recruiters r
+        INNER JOIN users u ON u.id = r.user_id AND u.role_id = 2
         LEFT JOIN industries i ON i.id = r.industry_id
         LEFT JOIN job_posts jp ON jp.recruiter_id = r.id
         LEFT JOIN job_post_statuses jps_count ON jps_count.id = jp.status_id
+        WHERE r.deleted_at IS NULL
         GROUP BY
           r.id,
           r.user_id,
@@ -214,10 +218,12 @@ class Query {
           r.created_at,
           r.updated_at
         FROM recruiters r
+        INNER JOIN users u ON u.id = r.user_id AND u.role_id = 2
         LEFT JOIN industries i ON i.id = r.industry_id
         LEFT JOIN job_posts jp ON jp.recruiter_id = r.id
         LEFT JOIN job_post_statuses jps_count ON jps_count.id = jp.status_id
-        WHERE 1=1 ${conditions.join("\n")}
+        WHERE r.deleted_at IS NULL
+        ${conditions.join("\n")}
         GROUP BY
           r.id,
           r.user_id,
@@ -278,8 +284,10 @@ class Query {
       const query = `
         SELECT COUNT(DISTINCT r.id)::int AS total
         FROM recruiters r
+        INNER JOIN users u ON u.id = r.user_id AND u.role_id = 2
         LEFT JOIN industries i ON i.id = r.industry_id
-        WHERE 1=1 ${conditions.join("\n")};
+        WHERE r.deleted_at IS NULL
+        ${conditions.join("\n")};
       `;
 
       const result = await this.db.executeQuery(query, values);

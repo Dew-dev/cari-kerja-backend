@@ -181,6 +181,34 @@ def _emit(payload: dict[str, Any], code: int = 0) -> None:
     sys.exit(code)
 
 
+def _error_payload(err: BaseException, *, prefix: str | None = None) -> dict[str, Any]:
+    """Structured error object for the Node bridge / VPS debugging."""
+    message = str(err).strip() or err.__class__.__name__
+    if prefix:
+        message = f"{prefix}: {message}"
+    payload: dict[str, Any] = {
+        "error": message,
+        "error_type": err.__class__.__name__,
+    }
+    missing = getattr(err, "name", None)
+    if isinstance(err, ModuleNotFoundError):
+        if not missing:
+            match = re.search(r"No module named ['\"]([^'\"]+)['\"]", message)
+            missing = match.group(1) if match else None
+        if missing:
+            payload["missing_module"] = missing
+        payload["hint"] = (
+            f"Install deps in a venv, then point CV_PYTHON_BIN at that interpreter. "
+            f"Example: python -m venv .venv && .venv/bin/pip install -r requirements-cv-parser.txt"
+        )
+    elif isinstance(err, ImportError):
+        payload["hint"] = (
+            "A required Python package failed to import. "
+            "Use a venv and: pip install -r requirements-cv-parser.txt"
+        )
+    return payload
+
+
 def _extract_text(path: str) -> str:
     lower = path.lower()
     if lower.endswith(".pdf"):
@@ -1192,35 +1220,35 @@ def main() -> None:
         try:
             _emit(_render_pdf_pages(path, max_pages=max_pages, resolution=dpi), 0)
         except Exception as err:
-            _emit({"error": f"Failed to render PDF pages: {err}"}, 1)
+            _emit(_error_payload(err, prefix="Failed to render PDF pages"), 1)
 
     if sys.argv[1] == "--from-text":
         if len(sys.argv) < 3:
-            _emit({"error": "Usage: cv_parse_python.py --from-text <text_file>"}, 1)
+            _emit({"error": "Usage: cv_parse_python.py --from-text <text_file>", "error_type": "UsageError"}, 1)
         text_path = os.path.abspath(sys.argv[2])
         if not os.path.isfile(text_path):
-            _emit({"error": f"File not found: {text_path}"}, 1)
+            _emit({"error": f"File not found: {text_path}", "error_type": "FileNotFoundError"}, 1)
         try:
             with open(text_path, "r", encoding="utf-8", errors="replace") as handle:
                 text = handle.read()
             _emit(_parse_from_text(text, source=os.path.basename(text_path)), 0)
         except Exception as err:
-            _emit({"error": str(err)}, 1)
+            _emit(_error_payload(err), 1)
 
     if sys.argv[1] == "--extract-text":
         if len(sys.argv) < 3:
-            _emit({"error": "Usage: cv_parse_python.py --extract-text <file_path>"}, 1)
+            _emit({"error": "Usage: cv_parse_python.py --extract-text <file_path>", "error_type": "UsageError"}, 1)
         path = os.path.abspath(sys.argv[2])
         if not os.path.isfile(path):
-            _emit({"error": f"File not found: {path}"}, 1)
+            _emit({"error": f"File not found: {path}", "error_type": "FileNotFoundError"}, 1)
         try:
             _emit({"text": _extract_text(path)}, 0)
         except Exception as err:
-            _emit({"error": f"Failed to extract text: {err}"}, 1)
+            _emit(_error_payload(err, prefix="Failed to extract text"), 1)
 
     path = os.path.abspath(sys.argv[1])
     if not os.path.isfile(path):
-        _emit({"error": f"File not found: {path}"}, 1)
+        _emit({"error": f"File not found: {path}", "error_type": "FileNotFoundError"}, 1)
 
     # Structured pdfplumber heuristics are more reliable than the broken spaCy-2 package
     # on modern Python. Try package only if heuristics are thin.
@@ -1244,14 +1272,18 @@ def main() -> None:
         if result is not None:
             result.setdefault("_meta", {})["package_error"] = str(package_err)
             _emit(result, 0)
-        _emit(
-            {
-                "error": str(fallback_err or package_err),
-                "package_error": str(package_err),
-            },
-            1,
-        )
+        payload = _error_payload(fallback_err or package_err)
+        payload["package_error"] = str(package_err)
+        if fallback_err is not None and package_err is not fallback_err:
+            payload["fallback_error"] = str(fallback_err)
+            payload["fallback_error_type"] = fallback_err.__class__.__name__
+        _emit(payload, 1)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SystemExit:
+        raise
+    except Exception as err:
+        _emit(_error_payload(err, prefix="Unhandled Python CV parser error"), 1)

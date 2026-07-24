@@ -44,16 +44,21 @@ describe("[QA] recruiters module", () => {
   });
 
   describe("Security — recruiter profile by user_id", () => {
-    it("[BUG-RC-002] GET /users/:user_id/recruiters should require authentication", () => {
-      let middlewares = [];
+    it("[BUG-RC-002] GET /users/:user_id/recruiters is public (guest/worker may view company profile)", () => {
+      let getMiddlewares = [];
+      let putMiddlewares = [];
 
       const mockServer = {
         get: jest.fn((path, ...handlers) => {
           if (path === "/api/v1/users/:user_id/recruiters") {
-            middlewares = handlers.slice(0, -1);
+            getMiddlewares = handlers.slice(0, -1);
           }
         }),
-        put: jest.fn(),
+        put: jest.fn((path, ...handlers) => {
+          if (path === "/api/v1/users/:user_id/recruiters/:id") {
+            putMiddlewares = handlers.slice(0, -1);
+          }
+        }),
         patch: jest.fn(),
       };
 
@@ -61,9 +66,11 @@ describe("[QA] recruiters module", () => {
         require("../../../src/routes/recruiters")(mockServer);
       });
 
-      expect(middlewares.length).toBeGreaterThan(0);
-      const middlewareNames = middlewares.map((fn) => fn.name || String(fn));
-      expect(middlewareNames.some((name) => /verify|auth|token/i.test(name))).toBe(true);
+      const getNames = getMiddlewares.map((fn) => fn.name || String(fn));
+      expect(getNames.some((name) => /verify|auth|token/i.test(name))).toBe(false);
+
+      const putNames = putMiddlewares.map((fn) => fn.name || String(fn));
+      expect(putNames.some((name) => /verify|auth|token/i.test(name))).toBe(true);
     });
   });
 

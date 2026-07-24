@@ -1055,25 +1055,34 @@ class Jobpost {
     const original = job.data;
 
     // 2️⃣ create job baru (DRAFT)
-    const newJob = await this.command.insertJobPost({
-      recruiter_id,
-      title: `${original.title} (Copy)`,
-      description: original.description,
-      employment_type_id: original.employment_type_id,
-      experience_level_id: original.experience_level_id,
-      salary_type_id: original.salary_type_id,
-      salary_min: original.salary_min,
-      salary_max: original.salary_max,
-      currency_id: original.currency_id,
-      location: original.location,
-      deadline: original.deadline,
-      status_id: 3, // DRAFT
-      category_id: original.category_id,
-    });
+    // is_remote is NOT NULL — must pass a boolean (explicit NULL bypasses DB default).
+    let newJob;
+    try {
+      newJob = await this.command.insertJobPost({
+        recruiter_id,
+        title: `${original.title} (Copy)`,
+        description: original.description,
+        employment_type_id: original.employment_type_id,
+        experience_level_id: original.experience_level_id,
+        salary_type_id: original.salary_type_id,
+        salary_min: original.salary_min,
+        salary_max: original.salary_max,
+        currency_id: original.currency_id,
+        location: original.location,
+        deadline: original.deadline,
+        status_id: 3, // DRAFT
+        category_id: original.category_id,
+        province: original.province ?? null,
+        city: original.city ?? null,
+        is_remote: original.is_remote ?? false,
+      });
+    } catch (err) {
+      logger.error(ctx, "duplicateJobPost", "Insert job failed", err);
+      return wrapper.error(new InternalServerError("Failed to duplicate job"));
+    }
 
-    if (newJob.err) {
-      //console.log("ini newJob.err", newJob.err);
-      logger.error(ctx, "duplicateJobPost", "Insert job failed", newJob.err);
+    if (!newJob || newJob.err || !newJob.id) {
+      logger.error(ctx, "duplicateJobPost", "Insert job failed", newJob?.err || newJob);
       return wrapper.error(new InternalServerError("Failed to duplicate job"));
     }
 
