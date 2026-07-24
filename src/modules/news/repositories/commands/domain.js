@@ -9,6 +9,11 @@ const {
   InternalServerError,
 } = require("../../../../helpers/errors");
 const { slugify } = require("../../helpers/slugify");
+const {
+  DEFAULT_LOCALE,
+  normalizeTranslationsPayload,
+  normalizeCategoryTranslationsPayload,
+} = require("../../helpers/locale");
 
 class NewsCommand {
   constructor(db) {
@@ -16,20 +21,20 @@ class NewsCommand {
     this.query = new Query(db);
   }
 
-  async _uniqueNewsSlug(base, excludeId = null) {
+  async _uniqueNewsSlug(base, locale, excludeId = null) {
     let candidate = slugify(base);
     let i = 0;
-    while (await this.query.slugExists(candidate, excludeId)) {
+    while (await this.query.slugExists(candidate, locale, excludeId)) {
       i += 1;
       candidate = `${slugify(base).slice(0, 180)}-${i}`;
     }
     return candidate;
   }
 
-  async _uniqueCategorySlug(base, excludeId = null) {
+  async _uniqueCategorySlug(base, locale, excludeId = null) {
     let candidate = slugify(base);
     let i = 0;
-    while (await this.query.categorySlugExists(candidate, excludeId)) {
+    while (await this.query.categorySlugExists(candidate, locale, excludeId)) {
       i += 1;
       candidate = `${slugify(base).slice(0, 140)}-${i}`;
     }
@@ -37,48 +42,103 @@ class NewsCommand {
   }
 
   async createCategory(payload) {
-    const name = String(payload.name || "").trim();
-    if (!name) {
-      return wrapper.error(new BadRequestError("name is required"));
+    const normalized = normalizeCategoryTranslationsPayload(payload);
+    if (!normalized.ok) {
+      return wrapper.error(new BadRequestError(normalized.error));
     }
-    const slug = await this._uniqueCategorySlug(payload.slug || name);
-    const row = await this.command.insertCategory({
-      id: uuidv4(),
-      name,
-      slug,
-    });
+    if (!normalized.translations[DEFAULT_LOCALE]) {
+      return wrapper.error(
+        new BadRequestError(`translations.${DEFAULT_LOCALE} is required`)
+      );
+    }
+
+    const id = uuidv4();
+    const row = await this.command.insertCategory({ id });
     if (!row) {
       return wrapper.error(new InternalServerError("Failed to create category"));
     }
-    return wrapper.data(row);
+
+    for (const [locale, fields] of Object.entries(normalized.translations)) {
+      const name = String(fields.name || "").trim();
+      if (!name) {
+        return wrapper.error(
+          new BadRequestError(`translations.${locale}.name is required`)
+        );
+      }
+      const slug = await this._uniqueCategorySlug(fields.slug || name, locale);
+      await this.command.upsertCategoryTranslation({
+        category_id: id,
+        locale,
+        name,
+        slug,
+      });
+    }
+
+    const full = await this.query.findCategoryById(id, DEFAULT_LOCALE);
+    const translations = await this.query.listCategoryTranslations(id);
+    return wrapper.data({
+      ...full,
+      translations: Object.fromEntries(
+        translations.map((t) => [t.locale, { name: t.name, slug: t.slug }])
+      ),
+    });
   }
 
   async updateCategory(payload) {
-    const existing = await this.query.findCategoryById(payload.id);
+    const existing = await this.query.findCategoryById(payload.id, DEFAULT_LOCALE);
     if (!existing) {
       return wrapper.error(new NotFoundError("Category not found"));
     }
-    const name =
-      payload.name !== undefined ? String(payload.name).trim() : undefined;
-    if (name !== undefined && !name) {
-      return wrapper.error(new BadRequestError("name cannot be empty"));
+
+    const normalized = normalizeCategoryTranslationsPayload(payload);
+    if (!normalized.ok) {
+      // allow partial flat update via name only for id locale
+      if (payload.name === undefined && !payload.translations) {
+        return wrapper.error(new BadRequestError(normalized.error));
+      }
     }
-    let slug;
-    if (payload.slug !== undefined || name !== undefined) {
-      slug = await this._uniqueCategorySlug(
-        payload.slug || name || existing.name,
+
+    const translations =
+      normalized.ok
+        ? normalized.translations
+        : {
+            [DEFAULT_LOCALE]: { name: payload.name, slug: payload.slug },
+          };
+
+    for (const [locale, fields] of Object.entries(translations)) {
+      const currentList = await this.query.listCategoryTranslations(payload.id);
+      const current = currentList.find((t) => t.locale === locale);
+      const name =
+        fields.name !== undefined
+          ? String(fields.name).trim()
+          : current?.name;
+      if (!name) {
+        return wrapper.error(
+          new BadRequestError(`translations.${locale}.name is required`)
+        );
+      }
+      const slug = await this._uniqueCategorySlug(
+        fields.slug || name,
+        locale,
         payload.id
       );
+      await this.command.upsertCategoryTranslation({
+        category_id: payload.id,
+        locale,
+        name,
+        slug,
+      });
     }
-    const row = await this.command.updateCategory({
-      id: payload.id,
-      name,
-      slug,
+
+    await this.command.touchCategory(payload.id);
+    const full = await this.query.findCategoryById(payload.id, DEFAULT_LOCALE);
+    const all = await this.query.listCategoryTranslations(payload.id);
+    return wrapper.data({
+      ...full,
+      translations: Object.fromEntries(
+        all.map((t) => [t.locale, { name: t.name, slug: t.slug }])
+      ),
     });
-    if (!row) {
-      return wrapper.error(new InternalServerError("Failed to update category"));
-    }
-    return wrapper.data(row);
   }
 
   async deleteCategory(payload) {
@@ -90,10 +150,23 @@ class NewsCommand {
   }
 
   async createNews(payload) {
-    const title = String(payload.title || "").trim();
-    const body = String(payload.body || "").trim();
+    const normalized = normalizeTranslationsPayload(payload);
+    if (!normalized.ok) {
+      return wrapper.error(new BadRequestError(normalized.error));
+    }
+    if (!normalized.translations[DEFAULT_LOCALE]) {
+      return wrapper.error(
+        new BadRequestError(`translations.${DEFAULT_LOCALE} is required`)
+      );
+    }
+
+    const idFields = normalized.translations[DEFAULT_LOCALE];
+    const title = String(idFields.title || "").trim();
+    const body = String(idFields.body || "").trim();
     if (!title || !body) {
-      return wrapper.error(new BadRequestError("title and body are required"));
+      return wrapper.error(
+        new BadRequestError("translations.id title and body are required")
+      );
     }
 
     if (payload.category_id) {
@@ -103,82 +176,165 @@ class NewsCommand {
       }
     }
 
-    const slug = await this._uniqueNewsSlug(payload.slug || title);
+    const id = uuidv4();
     const row = await this.command.insertNews({
-      id: uuidv4(),
+      id,
       category_id: payload.category_id || null,
-      title,
-      slug,
-      excerpt: payload.excerpt ?? null,
-      body,
       cover_url: payload.cover_url || null,
       status: "draft",
       is_featured: Boolean(payload.is_featured),
-      meta_title: payload.meta_title ?? null,
-      meta_description: payload.meta_description ?? null,
       author_user_id: payload.author_user_id,
     });
     if (!row) {
       return wrapper.error(new InternalServerError("Failed to create news"));
     }
-    const full = await this.query.findNewsById(row.id);
+
+    for (const [locale, fields] of Object.entries(normalized.translations)) {
+      const locTitle = String(fields.title || "").trim();
+      const locBody = String(fields.body || "").trim();
+      if (!locTitle || !locBody) {
+        return wrapper.error(
+          new BadRequestError(
+            `translations.${locale} title and body are required`
+          )
+        );
+      }
+      const slug = await this._uniqueNewsSlug(fields.slug || locTitle, locale);
+      await this.command.upsertNewsTranslation({
+        news_id: id,
+        locale,
+        title: locTitle,
+        slug,
+        excerpt: fields.excerpt ?? null,
+        body: locBody,
+        meta_title: fields.meta_title ?? null,
+        meta_description: fields.meta_description ?? null,
+      });
+    }
+
+    const full = await this.query.findNewsById(id, {
+      locale: DEFAULT_LOCALE,
+      withAllTranslations: true,
+    });
     return wrapper.data(full || row);
   }
 
   async updateNews(payload) {
-    const existing = await this.query.findNewsById(payload.id);
+    const existing = await this.query.findNewsById(payload.id, {
+      locale: DEFAULT_LOCALE,
+      withAllTranslations: true,
+    });
     if (!existing) {
       return wrapper.error(new NotFoundError("News not found"));
     }
 
-    const fields = {};
-    if (payload.title !== undefined) {
-      const title = String(payload.title).trim();
-      if (!title) return wrapper.error(new BadRequestError("title cannot be empty"));
-      fields.title = title;
-    }
-    if (payload.body !== undefined) {
-      const body = String(payload.body).trim();
-      if (!body) return wrapper.error(new BadRequestError("body cannot be empty"));
-      fields.body = body;
-    }
-    if (payload.excerpt !== undefined) fields.excerpt = payload.excerpt;
-    if (payload.meta_title !== undefined) fields.meta_title = payload.meta_title;
-    if (payload.meta_description !== undefined) {
-      fields.meta_description = payload.meta_description;
-    }
+    const sharedFields = {};
     if (payload.is_featured !== undefined) {
-      fields.is_featured = Boolean(payload.is_featured);
+      sharedFields.is_featured = Boolean(payload.is_featured);
     }
-    if (payload.cover_url !== undefined) fields.cover_url = payload.cover_url;
+    if (payload.cover_url !== undefined) sharedFields.cover_url = payload.cover_url;
     if (payload.category_id !== undefined) {
       if (payload.category_id === null || payload.category_id === "") {
-        fields.category_id = null;
+        sharedFields.category_id = null;
       } else {
         const cat = await this.query.findCategoryById(payload.category_id);
         if (!cat) {
           return wrapper.error(new BadRequestError("category_id is invalid"));
         }
-        fields.category_id = payload.category_id;
+        sharedFields.category_id = payload.category_id;
       }
     }
-    if (payload.slug !== undefined || fields.title) {
-      fields.slug = await this._uniqueNewsSlug(
-        payload.slug || fields.title || existing.title,
-        payload.id
-      );
+    if (Object.keys(sharedFields).length) {
+      await this.command.updateNews(payload.id, sharedFields);
     }
 
-    const row = await this.command.updateNews(payload.id, fields);
-    if (!row) {
-      return wrapper.error(new InternalServerError("Failed to update news"));
+    let translationsMap = null;
+    if (payload.translations) {
+      const normalized = normalizeTranslationsPayload(payload);
+      if (!normalized.ok) {
+        return wrapper.error(new BadRequestError(normalized.error));
+      }
+      translationsMap = normalized.translations;
+    } else if (
+      payload.title !== undefined ||
+      payload.body !== undefined ||
+      payload.slug !== undefined ||
+      payload.excerpt !== undefined ||
+      payload.meta_title !== undefined ||
+      payload.meta_description !== undefined
+    ) {
+      const current = existing.translations?.[DEFAULT_LOCALE] || {};
+      translationsMap = {
+        [DEFAULT_LOCALE]: {
+          title: payload.title !== undefined ? payload.title : current.title,
+          body: payload.body !== undefined ? payload.body : current.body,
+          slug: payload.slug !== undefined ? payload.slug : current.slug,
+          excerpt:
+            payload.excerpt !== undefined ? payload.excerpt : current.excerpt,
+          meta_title:
+            payload.meta_title !== undefined
+              ? payload.meta_title
+              : current.meta_title,
+          meta_description:
+            payload.meta_description !== undefined
+              ? payload.meta_description
+              : current.meta_description,
+        },
+      };
     }
-    const full = await this.query.findNewsById(payload.id);
-    return wrapper.data(full || row);
+
+    if (translationsMap) {
+      for (const [locale, fields] of Object.entries(translationsMap)) {
+        const current = existing.translations?.[locale] || {};
+        const title = String(
+          fields.title !== undefined ? fields.title : current.title || ""
+        ).trim();
+        const body = String(
+          fields.body !== undefined ? fields.body : current.body || ""
+        ).trim();
+        if (!title || !body) {
+          return wrapper.error(
+            new BadRequestError(
+              `translations.${locale} title and body are required`
+            )
+          );
+        }
+        const slug = await this._uniqueNewsSlug(
+          fields.slug || title,
+          locale,
+          payload.id
+        );
+        await this.command.upsertNewsTranslation({
+          news_id: payload.id,
+          locale,
+          title,
+          slug,
+          excerpt:
+            fields.excerpt !== undefined ? fields.excerpt : current.excerpt,
+          body,
+          meta_title:
+            fields.meta_title !== undefined
+              ? fields.meta_title
+              : current.meta_title,
+          meta_description:
+            fields.meta_description !== undefined
+              ? fields.meta_description
+              : current.meta_description,
+        });
+      }
+    }
+
+    const full = await this.query.findNewsById(payload.id, {
+      locale: DEFAULT_LOCALE,
+      withAllTranslations: true,
+    });
+    return wrapper.data(full);
   }
 
   async uploadCover(payload) {
-    const existing = await this.query.findNewsById(payload.id);
+    const existing = await this.query.findNewsById(payload.id, {
+      withAllTranslations: true,
+    });
     if (!existing) {
       return wrapper.error(new NotFoundError("News not found"));
     }
@@ -189,33 +345,43 @@ class NewsCommand {
     if (!row) {
       return wrapper.error(new InternalServerError("Failed to update cover"));
     }
-    const full = await this.query.findNewsById(payload.id);
+    const full = await this.query.findNewsById(payload.id, {
+      withAllTranslations: true,
+    });
     return wrapper.data(full || row);
   }
 
   async publishNews(payload) {
-    const existing = await this.query.findNewsById(payload.id);
+    const existing = await this.query.findNewsById(payload.id, {
+      locale: DEFAULT_LOCALE,
+      withAllTranslations: true,
+    });
     if (!existing) {
       return wrapper.error(new NotFoundError("News not found"));
     }
-    if (!existing.title || !existing.body) {
+    const idTr = existing.translations?.[DEFAULT_LOCALE];
+    if (!idTr?.title || !idTr?.body) {
       return wrapper.error(
-        new BadRequestError("title and body are required before publish")
+        new BadRequestError("translations.id title and body are required before publish")
       );
     }
-    if (await this.query.slugExists(existing.slug, existing.id)) {
+    if (await this.query.slugExists(idTr.slug, DEFAULT_LOCALE, existing.id)) {
       return wrapper.error(new ConflictError("slug is already in use"));
     }
     const row = await this.command.publishNews(payload.id);
     if (!row) {
       return wrapper.error(new InternalServerError("Failed to publish news"));
     }
-    const full = await this.query.findNewsById(payload.id);
+    const full = await this.query.findNewsById(payload.id, {
+      withAllTranslations: true,
+    });
     return wrapper.data(full || row);
   }
 
   async archiveNews(payload) {
-    const existing = await this.query.findNewsById(payload.id);
+    const existing = await this.query.findNewsById(payload.id, {
+      withAllTranslations: true,
+    });
     if (!existing) {
       return wrapper.error(new NotFoundError("News not found"));
     }
@@ -223,7 +389,9 @@ class NewsCommand {
     if (!row) {
       return wrapper.error(new InternalServerError("Failed to archive news"));
     }
-    const full = await this.query.findNewsById(payload.id);
+    const full = await this.query.findNewsById(payload.id, {
+      withAllTranslations: true,
+    });
     return wrapper.data(full || row);
   }
 

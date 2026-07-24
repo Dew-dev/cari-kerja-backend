@@ -8,7 +8,7 @@ const domain = new Domain(db);
 module.exports = {
   listPublic: (payload) => domain.listPublic(payload),
   getPublicBySlug: (payload) => domain.getPublicBySlug(payload),
-  listCategories: () => domain.listCategories(),
+  listCategories: (payload) => domain.listCategories(payload || {}),
   listAdmin: (payload) => domain.listAdmin(payload),
   getAdminById: (payload) => domain.getAdminById(payload),
 };

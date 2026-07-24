@@ -3,25 +3,26 @@ class Command {
     this.db = db;
   }
 
-  async insertCategory({ id, name, slug }) {
+  async insertCategory({ id }) {
     const result = await this.db.executeQuery(
-      `INSERT INTO news_categories (id, name, slug)
-       VALUES ($1, $2, $3)
-       RETURNING id, name, slug, created_at, updated_at`,
-      [id, name, slug]
+      `INSERT INTO news_categories (id)
+       VALUES ($1)
+       RETURNING id, created_at, updated_at`,
+      [id]
     );
     return result?.rows?.[0] || null;
   }
 
-  async updateCategory({ id, name, slug }) {
+  async upsertCategoryTranslation({ category_id, locale, name, slug }) {
     const result = await this.db.executeQuery(
-      `UPDATE news_categories
-       SET name = COALESCE($2, name),
-           slug = COALESCE($3, slug),
-           updated_at = NOW()
-       WHERE id = $1 AND deleted_at IS NULL
-       RETURNING id, name, slug, created_at, updated_at`,
-      [id, name, slug]
+      `INSERT INTO news_category_translations (category_id, locale, name, slug)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (category_id, locale) DO UPDATE
+         SET name = EXCLUDED.name,
+             slug = EXCLUDED.slug,
+             updated_at = NOW()
+       RETURNING category_id, locale, name, slug, created_at, updated_at`,
+      [category_id, locale, name, slug]
     );
     return result?.rows?.[0] || null;
   }
@@ -37,50 +38,77 @@ class Command {
     return result?.rows?.[0] || null;
   }
 
+  async touchCategory(id) {
+    await this.db.executeQuery(
+      `UPDATE news_categories SET updated_at = NOW() WHERE id = $1 AND deleted_at IS NULL`,
+      [id]
+    );
+  }
+
   async insertNews(row) {
     const result = await this.db.executeQuery(
       `INSERT INTO news (
-         id, category_id, title, slug, excerpt, body, cover_url,
-         status, is_featured, meta_title, meta_description, author_user_id
-       ) VALUES (
-         $1, $2, $3, $4, $5, $6, $7,
-         $8, $9, $10, $11, $12
-       )
+         id, category_id, cover_url, status, is_featured, author_user_id
+       ) VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
       [
         row.id,
         row.category_id || null,
-        row.title,
-        row.slug,
-        row.excerpt || null,
-        row.body,
         row.cover_url || null,
         row.status || "draft",
         Boolean(row.is_featured),
-        row.meta_title || null,
-        row.meta_description || null,
         row.author_user_id,
       ]
     );
     return result?.rows?.[0] || null;
   }
 
+  async upsertNewsTranslation({
+    news_id,
+    locale,
+    title,
+    slug,
+    excerpt,
+    body,
+    meta_title,
+    meta_description,
+  }) {
+    const result = await this.db.executeQuery(
+      `INSERT INTO news_translations (
+         news_id, locale, title, slug, excerpt, body, meta_title, meta_description
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       ON CONFLICT (news_id, locale) DO UPDATE
+         SET title = EXCLUDED.title,
+             slug = EXCLUDED.slug,
+             excerpt = EXCLUDED.excerpt,
+             body = EXCLUDED.body,
+             meta_title = EXCLUDED.meta_title,
+             meta_description = EXCLUDED.meta_description,
+             updated_at = NOW()
+       RETURNING *`,
+      [
+        news_id,
+        locale,
+        title,
+        slug,
+        excerpt || null,
+        body,
+        meta_title || null,
+        meta_description || null,
+      ]
+    );
+    return result?.rows?.[0] || null;
+  }
+
   async updateNews(id, fields) {
-    const allowed = [
-      "category_id",
-      "title",
-      "slug",
-      "excerpt",
-      "body",
-      "cover_url",
-      "is_featured",
-      "meta_title",
-      "meta_description",
-    ];
+    const allowed = ["category_id", "cover_url", "is_featured"];
     const sets = [];
     const params = [id];
     for (const key of allowed) {
-      if (Object.prototype.hasOwnProperty.call(fields, key) && fields[key] !== undefined) {
+      if (
+        Object.prototype.hasOwnProperty.call(fields, key) &&
+        fields[key] !== undefined
+      ) {
         params.push(fields[key]);
         sets.push(`${key} = $${params.length}`);
       }
