@@ -27,6 +27,20 @@ const parseCVHandler = async (req, res) => {
     if (err.message && /empty|no content/i.test(err.message)) {
       return sendResponse(wrapper.error(new BadRequestError("CV has no extractable content")), res);
     }
+    // Surface Python/venv/dependency failures so VPS setup issues are visible.
+    if (
+      err.code === "PYTHON_CV_PARSER" ||
+      err.error_type === "ModuleNotFoundError" ||
+      err.error_type === "ImportError" ||
+      err.error_type === "SpawnError" ||
+      /Failed to start Python|Missing Python|pdfplumber|docx2txt|CV_PYTHON_BIN/i.test(
+        err.message || ""
+      )
+    ) {
+      const detail = [err.message, err.hint].filter(Boolean).join(" | ");
+      console.error("CV Python parser failed:", detail);
+      return sendResponse(wrapper.error(new BadRequestError(detail)), res);
+    }
     console.error("CV parse failed:", err.message);
     return sendResponse(wrapper.error(new InternalServerError("Failed to parse CV")), res);
   } finally {

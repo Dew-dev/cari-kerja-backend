@@ -12,8 +12,10 @@ const {
 } = require("./cv_ocr");
 const {
   isPythonResumeParserEnabled,
+  isPythonStrict,
   parseWithPythonResumeParser,
   extractTextWithPython,
+  serializePythonError,
 } = require("./cv_python_parser");
 
 const AI_PARSER_MODEL_DEFAULT = "gpt-4o-mini";
@@ -49,11 +51,12 @@ function scrubExtractedText(text) {
 }
 
 /**
- * @returns {Promise<{ text: string, method: string }>}
+ * @returns {Promise<{ text: string, method: string, warnings?: object[] }>}
  */
 async function extractText(filePath, mimetype) {
   let text = "";
   let method = "digital";
+  const warnings = [];
 
   if (mimetype === "application/pdf") {
     let digital = "";
@@ -63,6 +66,13 @@ async function extractText(filePath, mimetype) {
       digital = scrubExtractedText(await extractTextWithPython(filePath));
     } catch (err) {
       console.warn("Python PDF text extract failed; falling back to pdf-parse:", err.message);
+      warnings.push({
+        stage: "python_extract_text",
+        ...serializePythonError(err),
+      });
+      if (isPythonStrict()) {
+        throw err;
+      }
       const buffer = fs.readFileSync(filePath);
       const parser = new PDFParse({ data: buffer });
       const data = await parser.getText();
@@ -88,7 +98,7 @@ async function extractText(filePath, mimetype) {
     }
     throw new Error("CV has no extractable content (empty text)");
   }
-  return { text: trimmed, method };
+  return { text: trimmed, method, warnings };
 }
 
 function isDocxMimetype(mimetype) {
@@ -1748,12 +1758,19 @@ function parseWithNlpFallback(rawText) {
 
 async function parseCV(filePath, mimetype) {
   const resolvedMime = resolveCvMimetype(filePath, mimetype);
-  const { text: rawText, method: extractionMethod } = await extractText(filePath, resolvedMime);
+  const {
+    text: rawText,
+    method: extractionMethod,
+    warnings: extractWarnings = [],
+  } = await extractText(filePath, resolvedMime);
   const extractionMeta = {
     extraction_method: extractionMethod,
     raw_char_count: rawText.length,
     mimetype: resolvedMime,
   };
+  if (extractWarnings.length) {
+    extractionMeta.python_warnings = extractWarnings;
+  }
 
   // Prefer local Python parser when enabled (more accurate + avoids Gemini 429).
   // Only inject extracted text for OCR scans — digital PDFs/DOCX are richer when
@@ -1776,8 +1793,13 @@ async function parseCV(filePath, mimetype) {
       if (pythonMeta.document_type === "cover_letter") return normalized;
       if (!isThinParsedResult(normalized)) return normalized;
       console.warn("Python resume parser returned thin result; continuing fallbacks");
+      extractionMeta.python_thin_result = true;
     } catch (err) {
       console.warn("Python resume parser failed; continuing fallbacks:", err.message);
+      extractionMeta.python_error = serializePythonError(err);
+      if (isPythonStrict()) {
+        throw err;
+      }
     }
   }
 

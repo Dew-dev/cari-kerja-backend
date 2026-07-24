@@ -25,6 +25,39 @@ function resolvePythonScriptPath() {
   return path.resolve(DEFAULT_SCRIPT);
 }
 
+function isPythonStrict() {
+  return process.env.CV_PYTHON_STRICT === "true";
+}
+
+function pythonErrorFromPayload(payload, stderr, code) {
+  const message =
+    (payload && payload.error) ||
+    (stderr && String(stderr).trim()) ||
+    `Python CV parser exited with ${code}`;
+  const err = new Error(message);
+  err.code = "PYTHON_CV_PARSER";
+  if (payload) {
+    if (payload.error_type) err.error_type = payload.error_type;
+    if (payload.hint) err.hint = payload.hint;
+    if (payload.missing_module) err.missing_module = payload.missing_module;
+    if (payload.package_error) err.package_error = payload.package_error;
+    if (payload.fallback_error) err.fallback_error = payload.fallback_error;
+  }
+  if (stderr && String(stderr).trim()) err.stderr = String(stderr).trim();
+  return err;
+}
+
+function serializePythonError(err) {
+  if (!err) return null;
+  return {
+    message: err.message || String(err),
+    error_type: err.error_type || err.code || null,
+    hint: err.hint || null,
+    missing_module: err.missing_module || null,
+    package_error: err.package_error || null,
+  };
+}
+
 function runPythonParserArgs(args) {
   const scriptPath = resolvePythonScriptPath();
   const pythonBin = resolvePythonBin();
@@ -62,7 +95,12 @@ function runPythonParserArgs(args) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      reject(new Error(`Failed to start Python (${pythonBin}): ${err.message}`));
+      const wrapped = new Error(`Failed to start Python (${pythonBin}): ${err.message}`);
+      wrapped.code = "PYTHON_CV_PARSER";
+      wrapped.error_type = "SpawnError";
+      wrapped.hint =
+        "Set CV_PYTHON_BIN to your venv python, e.g. /app/.venv/bin/python";
+      reject(wrapped);
     });
 
     child.on("close", (code) => {
@@ -78,8 +116,10 @@ function runPythonParserArgs(args) {
 
       if (!line) {
         reject(
-          new Error(
-            `Python CV parser produced no JSON (exit ${code}): ${stderr.trim() || "empty output"}`
+          pythonErrorFromPayload(
+            null,
+            stderr.trim() || `Python CV parser produced no JSON (exit ${code})`,
+            code
           )
         );
         return;
@@ -89,12 +129,18 @@ function runPythonParserArgs(args) {
       try {
         payload = JSON.parse(line);
       } catch (err) {
-        reject(new Error(`Python CV parser returned invalid JSON: ${err.message}`));
+        const wrapped = new Error(
+          `Python CV parser returned invalid JSON: ${err.message}`
+        );
+        wrapped.code = "PYTHON_CV_PARSER";
+        wrapped.error_type = "InvalidJSON";
+        wrapped.stderr = stderr.trim() || null;
+        reject(wrapped);
         return;
       }
 
       if (code !== 0 || payload.error) {
-        reject(new Error(payload.error || stderr.trim() || `Python CV parser exited with ${code}`));
+        reject(pythonErrorFromPayload(payload, stderr, code));
         return;
       }
 
@@ -219,7 +265,7 @@ function extractTextWithPython(filePath) {
       }
 
       if (code !== 0 || payload.error) {
-        reject(new Error(payload.error || stderr.trim() || `Python text extract exited with ${code}`));
+        reject(pythonErrorFromPayload(payload, stderr, code));
         return;
       }
 
@@ -230,8 +276,10 @@ function extractTextWithPython(filePath) {
 
 module.exports = {
   isPythonResumeParserEnabled,
+  isPythonStrict,
   parseWithPythonResumeParser,
   extractTextWithPython,
+  serializePythonError,
   resolvePythonScriptPath,
   resolvePythonBin,
 };
