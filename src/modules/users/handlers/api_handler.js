@@ -116,7 +116,7 @@ const loginWithGoogle = async (req, res) => {
   const feUrl = config.get("/frontendUrl");
   const redirectOrigin = origin || feUrl;
   return res.redirect(
-    `${redirectOrigin}/auth/callback?token=${token}&refreshToken=${refreshToken}`
+    `${redirectOrigin}/auth/callback?token=${encodeURIComponent(token)}&refreshToken=${encodeURIComponent(refreshToken)}`
   );
 };
 
@@ -171,7 +171,7 @@ const loginWithTelegram = async (req, res) => {
     const feUrl = config.get("/frontendUrl");
     const redirectOrigin = payload.origin || feUrl;
     return res.redirect(
-      `${redirectOrigin}/auth/callback?token=${token}&refreshToken=${refreshToken}`
+      `${redirectOrigin}/auth/callback?token=${encodeURIComponent(token)}&refreshToken=${encodeURIComponent(refreshToken)}`
     );
   }
 
@@ -276,8 +276,6 @@ const refreshToken = async (req, res) => {
   const payload = {
     token: req.body?.refreshToken || req.cookies.refreshToken,
   };
-  ////console.log("req.cookies.refreshToken \n", req.cookies);
-  ////console.log("payload \n", payload);
   const validatePayload = validator.isValidPayload(
     payload,
     commandModel.refreshTokenParamType
@@ -286,8 +284,15 @@ const refreshToken = async (req, res) => {
     return sendResponse(validatePayload, res);
   }
   const result = await commandHandler.refreshToken(validatePayload.data);
-  ////console.log("result \n", result);
-  storeCookie(res, "refreshToken", result?.data?.refreshToken);
+  // Only set cookie on success. Failed refresh must not clear/overwrite cookies
+  // or invalidate the access token issued at OAuth callback.
+  if (!result.err) {
+    const nextRefreshToken =
+      result?.data?.refreshToken || validatePayload.data.token;
+    if (nextRefreshToken) {
+      storeCookie(res, "refreshToken", nextRefreshToken);
+    }
+  }
   return sendResponse(result, res);
 };
 
