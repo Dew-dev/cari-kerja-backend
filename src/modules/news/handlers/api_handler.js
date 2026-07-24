@@ -22,7 +22,7 @@ const listPublicNews = async (req, res) => {
 };
 
 const getPublicNews = async (req, res) => {
-  const payload = { slug: req.params.slug };
+  const payload = { slug: req.params.slug, locale: req.query.locale };
   const validatePayload = validator.isValidPayload(
     payload,
     queryModel.getPublicNewsParamType
@@ -33,7 +33,13 @@ const getPublicNews = async (req, res) => {
 };
 
 const listNewsCategories = async (req, res) => {
-  const result = await queryHandler.listCategories();
+  const payload = { locale: req.query.locale };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.listCategoriesParamType
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  const result = await queryHandler.listCategories(validatePayload.data);
   return sendResponse(result, res);
 };
 
