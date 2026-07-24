@@ -3,6 +3,7 @@ const Query = require("../queries/query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError, ConflictError, InternalServerError, BadRequestError } = require("../../../../helpers/errors");
+const { enqueueRecomputeWorkerMatches } = require("../../../../helpers/queues/matching.queue");
 const ctx = "Worker-Command-Domain";
 
 class Worker {
@@ -47,6 +48,11 @@ class Worker {
     if (updateResult.err) {
       return wrapper.error(new InternalServerError("Update worker failed"));
     }
+
+    if (updateData.profile_summary !== undefined) {
+      await enqueueRecomputeWorkerMatches(id);
+    }
+
     return wrapper.data({ id });
   }
 }

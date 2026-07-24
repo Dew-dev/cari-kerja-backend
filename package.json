@@ -11,6 +11,8 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "swagger": "node swagger.js && node format-swagger.js",
+    "backfill:matches": "node scripts/backfill_application_matches.js",
+    "reindex:matching-es": "node scripts/reindex_matching_elasticsearch.js",
     "seed:workers-recruiters": "node scripts/seed_workers_recruiters.js",
     "dev:clean": "npx --yes kill-port 5001 && nodemon index.js"
   },
@@ -18,6 +20,7 @@
   "license": "ISC",
   "dependencies": {
     "@elastic/ecs-winston-format": "^1.5.3",
+    "@elastic/elasticsearch": "^8.19.2",
     "aws-sdk": "^2.1693.0",
     "axios": "^1.13.2",
     "bcrypt": "^6.0.0",

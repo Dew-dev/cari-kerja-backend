@@ -8,6 +8,7 @@ const {
   InternalServerError,
   ForbiddenError,
 } = require("../../../../helpers/errors");
+const { enqueueRecomputeWorkerMatches } = require("../../../../helpers/queues/matching.queue");
 const ctx = "Educations-Domain";
 
 class Educations {
@@ -35,6 +36,7 @@ class Educations {
       return wrapper.error(new InternalServerError("Failed to insert education"));
     }
 
+    await enqueueRecomputeWorkerMatches(payload.worker_id);
     return wrapper.data({ id: result.data.id }, "Success insert education", 201);
   }
 
@@ -72,6 +74,7 @@ class Educations {
       return wrapper.error(new InternalServerError("Failed to update education"));
     }
 
+    await enqueueRecomputeWorkerMatches(worker_id);
     return wrapper.data({ id }, "Success update education", 200);
   }
 
@@ -89,6 +92,7 @@ class Educations {
       return wrapper.error(new InternalServerError("Failed to delete education"));
     }
 
+    await enqueueRecomputeWorkerMatches(worker_id);
     return wrapper.data("Successfully deleted", "Success delete education", 200);
   }
 }

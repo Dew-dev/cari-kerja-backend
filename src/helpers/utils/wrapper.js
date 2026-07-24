@@ -63,18 +63,26 @@ const response = (res, type, result, message = "", code = 200) => {
 
 const paginationResponse = (res, type, result, message = "", code = 200) => {
   let status = true;
-  let data = result.data;
+  let data = Array.isArray(result?.data) ? result.data : [];
+  let meta = result?.meta || {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPage: 0,
+  };
   if (type === "fail") {
     status = false;
-    data = "";
-    message = result.err;
+    data = [];
+    message = result?.err?.message || result?.err || message;
+    code = checkErrorCode(result?.err) || code;
   }
+  // Always 200 for successful list responses (including empty lists). Never 204.
   return res.status(code).send({
     success: status,
     data,
-    meta: result.meta,
+    meta,
     code,
-    message,
+    message: message || "Your Request Has Been Processed",
   });
 };
 

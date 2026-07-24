@@ -4,6 +4,7 @@ const SkillQuery = require("../../../skills/repositories/queries/query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError, InternalServerError, BadRequestError, ConflictError } = require("../../../../helpers/errors");
+const { enqueueRecomputeWorkerMatches } = require("../../../../helpers/queues/matching.queue");
 const ctx = "WorkerSkills-Domain";
 
 class WorkerSkills {
@@ -45,6 +46,8 @@ class WorkerSkills {
           return wrapper.error(new InternalServerError("Failed to insert worker skill"));
         }
 
+        await enqueueRecomputeWorkerMatches(worker_id);
+
         return wrapper.data({
           skill_id: result.data.skill_id,
           worker_id: result.data.worker_id,
@@ -65,6 +68,8 @@ class WorkerSkills {
         if (result.err) {
           return wrapper.error(new InternalServerError("Failed to delete worker skill"));
         }
+
+        await enqueueRecomputeWorkerMatches(worker_id);
 
         return wrapper.data("Successfully deleted");
     }

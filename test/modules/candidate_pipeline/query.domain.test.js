@@ -65,8 +65,38 @@ describe("Candidate Pipeline Query Domain", () => {
       const result = await domain.getPipelineCandidates({ recruiter_id: recruiterId, page: 1, limit: 10 });
 
       expect(result.err).toBeNull();
-      expect(result.data).toEqual(items);
+      expect(result.data).toEqual([
+        {
+          application_id: applicationId,
+          name: "Worker",
+          match_score: 0,
+          match_status: "pending",
+          match_reasons: [],
+        },
+      ]);
       expect(result.meta.total).toBe(1);
+    });
+
+    it("should preserve explicit zero match scores", async () => {
+      mockQuery.findPipelineCandidates.mockResolvedValue({
+        err: null,
+        data: [
+          {
+            application_id: applicationId,
+            name: "Worker",
+            match_score: 0,
+            match_status: "ready",
+            match_reasons: [{ type: "skills", label: "No overlap", score: 0 }],
+          },
+        ],
+        meta: { total: 1 },
+      });
+
+      const result = await domain.getPipelineCandidates({ recruiter_id: recruiterId });
+
+      expect(result.err).toBeNull();
+      expect(result.data[0].match_score).toBe(0);
+      expect(result.data[0].match_status).toBe("ready");
     });
 
     it("should return NotFoundError when query fails", async () => {

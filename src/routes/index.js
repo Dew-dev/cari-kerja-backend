@@ -30,6 +30,7 @@ const chat = require('./chat');
 const candidatePipeline = require('./candidate_pipeline');
 const communication = require('./communication');
 const jobAlerts = require('./job_alerts');
+const candidateMatching = require('./candidate_matching');
 const news = require('./news');
 
 
@@ -66,6 +67,7 @@ module.exports = (server) => {
   candidatePipeline(server);
   communication(server);
   jobAlerts(server);
+  candidateMatching(server);
   news(server);
 };
 

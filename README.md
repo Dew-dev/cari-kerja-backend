@@ -46,6 +46,34 @@ MAIL_USER=your_email@domain.com
 MAIL_PASS=your_mail_password
 FRONTEND_URL=http://localhost:5173
 
+## Smart Candidate Matching
+
+Hybrid match scores (0–100) for each `job_application`, exposed on the recruiter pipeline.
+
+1. Apply migration `src/migration/026_application_match_scores.sql`
+2. Configure matching ENV (see `.env-example`): `MATCHING_*`
+3. Start API (`npm run dev`) — starts BullMQ matching worker automatically
+4. Optional backfill for existing applications:
+
+```bash
+node scripts/backfill_application_matches.js
+```
+
+Endpoints:
+- `GET /api/v1/recruiter/pipeline/candidates?sort=match_score&min_match_score=60`
+- `GET /api/v1/job-applications/:id/match`
+- `POST /api/v1/job-posts/:id/rematch`
+
+### Phase B — Elasticsearch dense_vector (optional)
+
+When `MATCHING_ES_ENABLED=true`, embeddings are also indexed into ES (`matching_jobs` / `matching_workers`) with `dense_vector` + cosine knn. Semantic component prefers ES knn when available; scores still persist to `application_match_scores` (FE unchanged).
+
+```bash
+# Ensure ES is up, then:
+MATCHING_ES_ENABLED=true npm run reindex:matching-es
+```
+
+If ES is down or disabled, Phase A local cosine continues to work.
 ## Seed workers & recruiters (dummy data)
 
 Script: `scripts/seed_workers_recruiters.js`  

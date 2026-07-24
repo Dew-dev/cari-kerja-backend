@@ -374,7 +374,26 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
 
   async findJobApplicants({ job_post_id }) {
     try {
-      const query = `
+      const buildQuery = (includeMatchScores) => {
+        const matchJoin = includeMatchScores
+          ? `LEFT JOIN application_match_scores ams ON ams.application_id = ja.id`
+          : "";
+        const matchSelect = includeMatchScores
+          ? `COALESCE(ams.match_score, 0) AS match_score,
+        COALESCE(ams.match_status, 'pending') AS match_status,
+        ams.match_breakdown,
+        COALESCE(ams.match_reasons, '[]'::jsonb) AS match_reasons,
+        ams.computed_at AS match_computed_at`
+          : `0 AS match_score,
+        'pending'::varchar AS match_status,
+        NULL::jsonb AS match_breakdown,
+        '[]'::jsonb AS match_reasons,
+        NULL::timestamptz AS match_computed_at`;
+        const orderBy = includeMatchScores
+          ? `ORDER BY COALESCE(ams.match_score, 0) DESC, ja.applied_at DESC`
+          : `ORDER BY ja.applied_at DESC`;
+
+        return `
       SELECT
         ja.id AS application_id,
         ja.applied_at,
@@ -386,26 +405,50 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
         u.email,
 
         ast.name AS status,
+        ast.id AS stage_id,
+        ast.stage_type,
 
         re.resume_url,
-        re.title AS resume_title
+        re.title AS resume_title,
+
+        ${matchSelect}
 
       FROM job_applications ja
       JOIN workers w ON w.id = ja.worker_id
-      JOIN users u ON u.id = w.user_id
+      LEFT JOIN users u ON u.id = w.user_id
 
       LEFT JOIN application_statuses ast ON ast.id = ja.application_status_id
       LEFT JOIN resumes re ON re.id = ja.resume_id
+      ${matchJoin}
 
       WHERE ja.job_post_id = $1
-      ORDER BY ja.applied_at DESC;
+      ${orderBy};
     `;
-      // console.log("Executing query to find job applicants:", query, [
-      //   job_post_id,
-      // ]);
-      const result = await this.db.executeQuery(query, [job_post_id]);
+      };
 
-      return wrapper.data(result.rows);
+      let result = await this.db.executeQuery(buildQuery(true), [job_post_id]);
+      if (!result) {
+        logger.error(
+          ctx,
+          "findJobApplicants",
+          "match-score query failed; retrying without application_match_scores",
+          "executeQuery returned null",
+        );
+        result = await this.db.executeQuery(buildQuery(false), [job_post_id]);
+      }
+
+      if (!result) {
+        return wrapper.error("Failed to fetch applicants");
+      }
+
+      const rows = (result.rows || []).map((row) => ({
+        ...row,
+        match_score: row.match_score == null ? 0 : Number(row.match_score),
+        match_status: row.match_status || "pending",
+        match_reasons: row.match_reasons || [],
+      }));
+
+      return wrapper.data(rows);
     } catch (error) {
       logger.error(ctx, "findJobApplicants", "Query failed", error);
       return wrapper.error("Failed to fetch applicants");

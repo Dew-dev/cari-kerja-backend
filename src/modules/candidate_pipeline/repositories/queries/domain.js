@@ -50,7 +50,17 @@ class CandidatePipeline {
   }
 
   async getPipelineCandidates(payload) {
-    const { recruiter_id, job_post_id, search, stage_type, page = 1, limit = 10 } = payload;
+    const {
+      recruiter_id,
+      job_post_id,
+      search,
+      stage_type,
+      sort = "updated_at",
+      order = "desc",
+      min_match_score,
+      page = 1,
+      limit = 10,
+    } = payload;
     const jobPostIds = parseJobPostIds(job_post_id);
     const offset = (page - 1) * limit;
 
@@ -59,6 +69,9 @@ class CandidatePipeline {
       jobPostIds,
       search,
       stage_type,
+      sort,
+      order,
+      min_match_score,
       limit,
       offset,
     });
@@ -68,12 +81,42 @@ class CandidatePipeline {
       return wrapper.error(new NotFoundError("Failed to load candidates"));
     }
 
+    const rows = (result.data || []).map((row) => ({
+      ...row,
+      match_score: row.match_score == null ? 0 : Number(row.match_score),
+      match_status: row.match_status || "pending",
+      match_reasons: Array.isArray(row.match_reasons) ? row.match_reasons : row.match_reasons || [],
+    }));
+
+    // Kick off scoring for still-pending applications so cards leave "Calculating…"
+    const pendingApps = rows
+      .filter((row) => {
+        if (!row.application_id) return false;
+        const status = String(row.match_status || "pending");
+        return !["ready", "failed", "insufficient_data"].includes(status);
+      })
+      .slice(0, 10);
+    if (pendingApps.length > 0) {
+      const {
+        enqueueOrComputeApplicationMatch,
+      } = require("../../../../helpers/queues/matching.queue");
+      Promise.allSettled(
+        pendingApps.map((row) =>
+          enqueueOrComputeApplicationMatch(row.application_id),
+        ),
+      ).catch(() => {});
+    }
+
     const total = result.meta?.total ?? 0;
-    return wrapper.paginationData(result.data, {
+    return wrapper.paginationData(rows, {
       page: parseInt(page, 10),
       limit: parseInt(limit, 10),
       total,
       totalPage: limit > 0 ? Math.ceil(total / limit) : 0,
+      // Keep aliases expected by various FE clients
+      total_data: total,
+      total_pages: limit > 0 ? Math.ceil(total / limit) : 0,
+      per_page: parseInt(limit, 10),
     });
   }
 
