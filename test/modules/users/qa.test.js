@@ -398,7 +398,59 @@ describe("[QA] users module", () => {
 
       expect(commandHandler.loginWithTelegram).toHaveBeenCalled();
       expect(res.redirect).toHaveBeenCalledWith(
-        "http://localhost:5173/auth/callback?token=access&refreshToken=refresh"
+        `http://localhost:5173/auth/callback?token=${encodeURIComponent("access")}&refreshToken=${encodeURIComponent("refresh")}`
+      );
+    });
+
+    it("telegram callback URL-encodes OAuth token query params", async () => {
+      const token = "acc.ess+/=token";
+      const refreshToken = "ref.resh+/=token";
+      const state = JSON.stringify({
+        origin: "http://localhost:5173",
+        role_id: 1,
+      });
+      const req = createMockRequest({
+        method: "GET",
+        query: { code: "oauth-code-abc", state },
+      });
+      req.method = "GET";
+      const res = createMockResponse();
+      res.redirect = jest.fn();
+
+      commandHandler.loginWithTelegram = jest.fn().mockResolvedValue(
+        wrapper.data({ token, refreshToken })
+      );
+
+      await apiHandler.loginWithTelegram(req, res);
+
+      expect(res.redirect).toHaveBeenCalledWith(
+        `http://localhost:5173/auth/callback?token=${encodeURIComponent(token)}&refreshToken=${encodeURIComponent(refreshToken)}`
+      );
+    });
+    it("google callback URL-encodes OAuth token query params", async () => {
+      const token = "g.acc+/=token";
+      const refreshToken = "g.ref+/=token";
+      const req = createMockRequest({
+        headers: { "user-agent": "jest" },
+        user: {
+          id: "google-sub",
+          email: "worker@example.com",
+          name: "Worker",
+          role_id: 1,
+          origin: "http://localhost:5173",
+        },
+      });
+      const res = createMockResponse();
+      res.redirect = jest.fn();
+
+      commandHandler.loginWithGoogle = jest.fn().mockResolvedValue(
+        wrapper.data({ token, refreshToken })
+      );
+
+      await apiHandler.loginWithGoogle(req, res);
+
+      expect(res.redirect).toHaveBeenCalledWith(
+        `http://localhost:5173/auth/callback?token=${encodeURIComponent(token)}&refreshToken=${encodeURIComponent(refreshToken)}`
       );
     });
   });
