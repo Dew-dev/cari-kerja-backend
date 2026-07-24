@@ -764,14 +764,14 @@ async function ensureSkillId(client, skillByName, skillName) {
 async function clearWorkersAndRecruiters(client) {
   console.log("→ Clearing FK blockers, then deleting worker & recruiter users...");
 
-  // saved_jobs.worker_id is ON DELETE RESTRICT
+  // saved_jobs.worker_id is ON DELETE RESTRICT — clear for role workers AND orphan workers
   await tryOptionalQuery(
     client,
     `DELETE FROM saved_jobs
      WHERE worker_id IN (
        SELECT w.id FROM workers w
-       JOIN users u ON u.id = w.user_id
-       WHERE u.role_id = $1
+       LEFT JOIN users u ON u.id = w.user_id
+       WHERE u.role_id = $1 OR u.id IS NULL
      )`,
     [WORKER_ROLE_ID],
   );
@@ -783,8 +783,8 @@ async function clearWorkersAndRecruiters(client) {
      SET changed_by_recruiter_id = NULL
      WHERE changed_by_recruiter_id IN (
        SELECT r.id FROM recruiters r
-       JOIN users u ON u.id = r.user_id
-       WHERE u.role_id = $1
+       LEFT JOIN users u ON u.id = r.user_id
+       WHERE u.role_id = $1 OR u.id IS NULL
      )`,
     [RECRUITER_ROLE_ID],
   );
@@ -793,10 +793,41 @@ async function clearWorkersAndRecruiters(client) {
   await tryOptionalQuery(
     client,
     `DELETE FROM job_alerts WHERE worker_id IN (
-       SELECT w.id FROM workers w JOIN users u ON u.id = w.user_id WHERE u.role_id = $1
+       SELECT w.id FROM workers w
+       LEFT JOIN users u ON u.id = w.user_id
+       WHERE u.role_id = $1 OR u.id IS NULL
      )`,
     [WORKER_ROLE_ID],
   );
+
+  // Explicitly remove recruiter/worker rows first.
+  // Some DBs have orphan profile rows (user deleted without CASCADE), which
+  // previously survived seed re-runs and showed up as duplicate companies on FE.
+  const delRecruiters = await client.query(
+    `DELETE FROM recruiters r
+     WHERE EXISTS (
+       SELECT 1 FROM users u WHERE u.id = r.user_id AND u.role_id = $1
+     )
+     OR NOT EXISTS (
+       SELECT 1 FROM users u WHERE u.id = r.user_id
+     )
+     RETURNING id`,
+    [RECRUITER_ROLE_ID],
+  );
+  console.log(`  Removed ${delRecruiters.rowCount} recruiter row(s).`);
+
+  const delWorkers = await client.query(
+    `DELETE FROM workers w
+     WHERE EXISTS (
+       SELECT 1 FROM users u WHERE u.id = w.user_id AND u.role_id = $1
+     )
+     OR NOT EXISTS (
+       SELECT 1 FROM users u WHERE u.id = w.user_id
+     )
+     RETURNING id`,
+    [WORKER_ROLE_ID],
+  );
+  console.log(`  Removed ${delWorkers.rowCount} worker row(s).`);
 
   const del = await client.query(
     `DELETE FROM users
