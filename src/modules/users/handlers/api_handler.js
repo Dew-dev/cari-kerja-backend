@@ -10,6 +10,7 @@ const {
   storeCookie,
   deleteCookie,
 } = require("../../../helpers/auth/cookie_helper");
+const { buildOauthLoginErrorRedirect } = require("../../../helpers/auth/oauth_redirect");
 const { verifyCaptchaToken } = require("../../../helpers/captcha/turnstile");
 const {
   requiresCaptcha,
@@ -89,19 +90,32 @@ const loginWithGoogle = async (req, res) => {
   const payload = { 
     ...userData,
     ip_address: req.ip || req.connection?.remoteAddress,
-    user_agent: req.headers["user-agent"]
+    user_agent: req.headers?.["user-agent"]
   };
   const validatePayload = validator.isValidPayload(
     payload,
     commandModel.loginWithGoogleParamType
   );
   if (validatePayload.err) {
-    return sendResponse(validatePayload, res);
+    return res.redirect(
+      buildOauthLoginErrorRedirect({
+        origin,
+        roleId: payload.role_id,
+        err: validatePayload.err,
+      })
+    );
   }
   const result = await commandHandler.loginWithGoogle(validatePayload.data);
 
   if (result.err) {
-    return sendResponse(result, res);
+    // Browser OAuth callback must redirect to FE login, not raw JSON.
+    return res.redirect(
+      buildOauthLoginErrorRedirect({
+        origin,
+        roleId: validatePayload.data.role_id,
+        err: result.err,
+      })
+    );
   }
 
   const token = result?.data?.token;
@@ -135,6 +149,7 @@ const loginWithTelegram = async (req, res) => {
   const headers = req.headers || {};
   const origin = stateData.origin || body.origin;
   const code = query.code || body.code;
+  const isBrowserCallback = req.method === "GET";
 
   const payload = {
     code,
@@ -150,11 +165,29 @@ const loginWithTelegram = async (req, res) => {
     commandModel.loginWithTelegramParamType
   );
   if (validatePayload.err) {
+    if (isBrowserCallback) {
+      return res.redirect(
+        buildOauthLoginErrorRedirect({
+          origin,
+          roleId: payload.role_id,
+          err: validatePayload.err,
+        })
+      );
+    }
     return sendResponse(validatePayload, res);
   }
 
   const result = await commandHandler.loginWithTelegram(validatePayload.data);
   if (result.err) {
+    if (isBrowserCallback) {
+      return res.redirect(
+        buildOauthLoginErrorRedirect({
+          origin,
+          roleId: validatePayload.data.role_id,
+          err: result.err,
+        })
+      );
+    }
     return sendResponse(result, res);
   }
 
@@ -166,7 +199,7 @@ const loginWithTelegram = async (req, res) => {
   storeCookie(res, "role", "user");
   storeCookie(res, "jp_session", token);
 
-  if (req.method === "GET") {
+  if (isBrowserCallback) {
     const config = require("../../../config/global_config");
     const feUrl = config.get("/frontendUrl");
     const redirectOrigin = payload.origin || feUrl;
