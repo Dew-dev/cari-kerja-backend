@@ -33,17 +33,54 @@ const enqueueComputeApplicationMatch = async (application_id, opts = {}) => {
   if (!application_id) return null;
 
   try {
+    // Avoid sticky jobId so a completed/failed prior job cannot block recompute.
     return await matchingQueue.add(
       "compute_application_match",
-      { application_id },
+      { application_id, force: Boolean(opts.force) },
       {
-        jobId: `compute-app-${application_id}`,
         ...opts,
+        jobId: opts.jobId || `compute-app-${application_id}-${Date.now()}`,
       },
     );
   } catch (err) {
     logger.error(ctx, "enqueueComputeApplicationMatch failed", application_id, err.message || err);
     return null;
+  }
+};
+
+/**
+ * Prefer async queue; if Redis/queue fails, compute synchronously so UI
+ * never stays stuck on "Calculating…".
+ */
+const enqueueOrComputeApplicationMatch = async (application_id, opts = {}) => {
+  if (!isMatchingEnabled()) return { mode: "skipped" };
+  if (!application_id) return { mode: "skipped" };
+
+  const job = await enqueueComputeApplicationMatch(application_id, opts);
+  if (job) return { mode: "queued", job };
+
+  try {
+    const config = require("../../config/global_config");
+    const DB = require("../databases/postgresql/db");
+    const CommandDomain = require("../../modules/candidate_matching/repositories/commands/domain");
+    const domain = new CommandDomain(new DB(config.get("/postgresqlUrl")));
+    const result = await domain.computeApplicationMatch({
+      application_id,
+      force: true,
+    });
+    if (result.err) {
+      logger.error(
+        ctx,
+        "enqueueOrComputeApplicationMatch sync failed",
+        application_id,
+        result.err.message || result.err,
+      );
+      return { mode: "failed", error: result.err };
+    }
+    return { mode: "sync", data: result.data };
+  } catch (err) {
+    logger.error(ctx, "enqueueOrComputeApplicationMatch sync threw", application_id, err.message || err);
+    return { mode: "failed", error: err };
   }
 };
 
@@ -116,6 +153,7 @@ module.exports = {
   matchingQueue,
   MATCHING_QUEUE_NAME,
   enqueueComputeApplicationMatch,
+  enqueueOrComputeApplicationMatch,
   enqueueRecomputeJobMatches,
   enqueueRecomputeWorkerMatches,
   enqueueReindexElasticsearch,

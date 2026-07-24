@@ -88,6 +88,25 @@ class CandidatePipeline {
       match_reasons: Array.isArray(row.match_reasons) ? row.match_reasons : row.match_reasons || [],
     }));
 
+    // Kick off scoring for still-pending applications so cards leave "Calculating…"
+    const pendingApps = rows
+      .filter((row) => {
+        if (!row.application_id) return false;
+        const status = String(row.match_status || "pending");
+        return !["ready", "failed", "insufficient_data"].includes(status);
+      })
+      .slice(0, 10);
+    if (pendingApps.length > 0) {
+      const {
+        enqueueOrComputeApplicationMatch,
+      } = require("../../../../helpers/queues/matching.queue");
+      Promise.allSettled(
+        pendingApps.map((row) =>
+          enqueueOrComputeApplicationMatch(row.application_id),
+        ),
+      ).catch(() => {});
+    }
+
     const total = result.meta?.total ?? 0;
     return wrapper.paginationData(rows, {
       page: parseInt(page, 10),

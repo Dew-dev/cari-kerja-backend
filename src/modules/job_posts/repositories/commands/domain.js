@@ -37,6 +37,7 @@ const {
 const { upsertOpenFraudEvent } = require("../../../../helpers/fraud/fraud_events");
 const {
   enqueueComputeApplicationMatch,
+  enqueueOrComputeApplicationMatch,
   enqueueRecomputeJobMatches,
 } = require("../../../../helpers/queues/matching.queue");
 
@@ -681,7 +682,7 @@ class Jobpost {
 
       // await client.query("COMMIT");
 
-      await enqueueComputeApplicationMatch(data.id);
+      await enqueueOrComputeApplicationMatch(data.id);
 
       return wrapper.data({
         job_application: data,
