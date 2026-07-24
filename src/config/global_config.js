@@ -50,15 +50,18 @@ const config = {
   },
   matching: {
     enabled: process.env.MATCHING_ENABLED !== "false",
-    modelVersion: process.env.MATCHING_MODEL_VERSION || "hybrid-v1",
+    modelVersion: process.env.MATCHING_MODEL_VERSION || "hybrid-v2",
     embeddingUrl: process.env.MATCHING_EMBEDDING_URL || "",
     embeddingApiKey: process.env.MATCHING_EMBEDDING_API_KEY || "",
     embeddingDims: Number(process.env.MATCHING_EMBEDDING_DIMS || 256),
     weights: {
-      semantic: Number(process.env.MATCHING_W_SEMANTIC || 0.5),
+      semantic: Number(process.env.MATCHING_W_SEMANTIC || 0.25),
       skills: Number(process.env.MATCHING_W_SKILLS || 0.25),
+      position: Number(process.env.MATCHING_W_POSITION || 0.15),
       experience: Number(process.env.MATCHING_W_EXPERIENCE || 0.15),
-      education: Number(process.env.MATCHING_W_EDUCATION || 0.1),
+      salary: Number(process.env.MATCHING_W_SALARY || 0.1),
+      location: Number(process.env.MATCHING_W_LOCATION || 0.1),
+      education: Number(process.env.MATCHING_W_EDUCATION || 0),
     },
     elasticsearch: {
       enabled: process.env.MATCHING_ES_ENABLED === "true",

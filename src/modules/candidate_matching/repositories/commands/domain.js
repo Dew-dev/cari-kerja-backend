@@ -225,6 +225,15 @@ class CandidateMatchingCommand {
         totalYears: totalYearsFromExperiences(workerSrc.data.work_experiences),
         jobText,
         educations: workerSrc.data.educations || [],
+        jobTitle: jobSrc.data.title,
+        workExperiences: workerSrc.data.work_experiences || [],
+        expectedSalary: workerSrc.data.expected_salary,
+        salaryMin: jobSrc.data.salary_min,
+        salaryMax: jobSrc.data.salary_max,
+        jobLocation: jobSrc.data.location,
+        jobCity: jobSrc.data.city,
+        jobProvince: jobSrc.data.province,
+        workerAddress: workerSrc.data.address,
         semanticPctOverride,
       });
 

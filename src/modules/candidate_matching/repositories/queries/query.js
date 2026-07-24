@@ -67,6 +67,11 @@ class Query {
             jp.id,
             jp.title,
             jp.description,
+            jp.location,
+            jp.city,
+            jp.province,
+            jp.salary_min,
+            jp.salary_max,
             el.name AS experience_level_name,
             COALESCE(
               (
@@ -128,6 +133,8 @@ class Query {
         `SELECT
             w.id,
             w.profile_summary,
+            w.address,
+            w.expected_salary,
             COALESCE(
               (
                 SELECT array_agg(s.skill_name ORDER BY s.skill_name)

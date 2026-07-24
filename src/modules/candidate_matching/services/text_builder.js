@@ -39,6 +39,11 @@ const buildJobText = (job = {}) => {
     job.title,
     job.description,
     job.experience_level_name,
+    job.location,
+    job.city,
+    job.province,
+    job.salary_min != null ? `salary_min:${job.salary_min}` : null,
+    job.salary_max != null ? `salary_max:${job.salary_max}` : null,
     skillNames,
     requirements,
     responsibilities,
@@ -83,6 +88,8 @@ const buildWorkerText = (worker = {}) => {
 
   return joinLines([
     worker.profile_summary,
+    worker.address,
+    worker.expected_salary != null ? `expected_salary:${worker.expected_salary}` : null,
     skillNames,
     experiences,
     educations,

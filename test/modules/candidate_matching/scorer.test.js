@@ -3,6 +3,9 @@ const {
   skillOverlapPct,
   experienceFitPct,
   educationFitPct,
+  positionFitPct,
+  salaryFitPct,
+  locationFitPct,
   cosineSimilarity,
 } = require("../../../src/modules/candidate_matching/services/scorer");
 
@@ -21,11 +24,26 @@ describe("Candidate Matching Scorer", () => {
       totalYears: 2,
       jobText: "Need S1 Computer Science",
       educations: [{ degree: "S1", major: "Computer Science" }],
-      weights: { semantic: 0.5, skills: 0.25, experience: 0.15, education: 0.1 },
+      jobTitle: "Backend Engineer",
+      workExperiences: [{ job_title: "Backend Engineer" }],
+      expectedSalary: 15000000,
+      salaryMin: 10000000,
+      salaryMax: 20000000,
+      jobLocation: "Jakarta Selatan",
+      workerAddress: "Jakarta Selatan",
+      weights: {
+        semantic: 0.25,
+        skills: 0.25,
+        position: 0.15,
+        experience: 0.15,
+        salary: 0.1,
+        location: 0.1,
+      },
     });
 
     expect(result.match_score).toBeGreaterThanOrEqual(85);
     expect(result.match_breakdown.skills).toBe(100);
+    expect(result.match_breakdown.position).toBe(100);
     expect(result.match_reasons.length).toBeGreaterThan(0);
   });
 
@@ -45,7 +63,14 @@ describe("Candidate Matching Scorer", () => {
       totalYears: 0,
       jobText: "Senior engineer S1 required",
       educations: [],
-      weights: { semantic: 0.5, skills: 0.25, experience: 0.15, education: 0.1 },
+      weights: {
+        semantic: 0.25,
+        skills: 0.25,
+        position: 0.15,
+        experience: 0.15,
+        salary: 0.1,
+        location: 0.1,
+      },
     });
 
     expect(result.match_score).toBeLessThan(50);
@@ -71,6 +96,35 @@ describe("Candidate Matching Scorer", () => {
     ).toBe(100);
   });
 
+  it("scores position fit from work history titles", () => {
+    expect(
+      positionFitPct({
+        jobTitle: "Frontend Developer",
+        workExperiences: [{ job_title: "Frontend Developer React" }],
+      }),
+    ).toBeGreaterThanOrEqual(80);
+  });
+
+  it("scores salary fit inside job range", () => {
+    expect(
+      salaryFitPct({
+        expectedSalary: 12000000,
+        salaryMin: 10000000,
+        salaryMax: 15000000,
+      }),
+    ).toBe(100);
+  });
+
+  it("scores location fit when address contains city", () => {
+    expect(
+      locationFitPct({
+        jobCity: "Bandung",
+        jobProvince: "Jawa Barat",
+        workerAddress: "Jl. Asia Afrika, Bandung 40111",
+      }),
+    ).toBeGreaterThanOrEqual(50);
+  });
+
   it("accepts semanticPctOverride from ES knn", () => {
     const result = computeHybridScore({
       jobEmbedding: perfectVec,
@@ -81,7 +135,15 @@ describe("Candidate Matching Scorer", () => {
       totalYears: 2,
       jobText: "",
       educations: [],
-      weights: { semantic: 1, skills: 0, experience: 0, education: 0 },
+      weights: {
+        semantic: 1,
+        skills: 0,
+        position: 0,
+        experience: 0,
+        salary: 0,
+        location: 0,
+        education: 0,
+      },
       semanticPctOverride: 88,
     });
 
