@@ -24,7 +24,10 @@ function ocrScale() {
 }
 
 function ocrDpi() {
-  const explicit = Number(process.env.CV_OCR_RENDER_DPI || 0);
+  // Prefer CV_PDF_RENDER_DPI (GPT image path) over legacy CV_OCR_RENDER_DPI.
+  const explicit = Number(
+    process.env.CV_PDF_RENDER_DPI || process.env.CV_OCR_RENDER_DPI || 0
+  );
   if (explicit > 0) return explicit;
   // ~144 DPI is a good balance for tesseract on this CV; higher DPI can worsen dates.
   return Math.max(120, Math.round(72 * (ocrScale() || 2)));

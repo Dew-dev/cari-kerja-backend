@@ -1758,135 +1758,62 @@ function parseWithNlpFallback(rawText) {
 
 async function parseCV(filePath, mimetype) {
   const resolvedMime = resolveCvMimetype(filePath, mimetype);
-  const {
-    text: rawText,
-    method: extractionMethod,
-    warnings: extractWarnings = [],
-  } = await extractText(filePath, resolvedMime);
-  const extractionMeta = {
-    extraction_method: extractionMethod,
-    raw_char_count: rawText.length,
-    mimetype: resolvedMime,
-  };
-  if (extractWarnings.length) {
-    extractionMeta.python_warnings = extractWarnings;
+
+  // Phase 2 routing: the GPT-5 mini path replaces the legacy Python / axios-AI /
+  // resume-parser / OpenResume / OCR chain for parseCV. Those functions remain
+  // defined below (dead code, pending architect approval to remove) but are no
+  // longer invoked here. Lazy-require avoids circular-require timing issues.
+  const { parseWithGpt5Mini, extractDigitalCvText } = require("./cv_gpt_parser");
+
+  // Digital-only extraction (no OCR chain). Empty text is tolerated so
+  // image-only PDFs can still fall through to the GPT image path.
+  let digitalText = "";
+  let digitalMethod = "digital";
+  try {
+    const extracted = await extractDigitalCvText(filePath, resolvedMime);
+    digitalText = extracted.text || "";
+    digitalMethod = extracted.method || "digital";
+  } catch (err) {
+    if (err && /Unsupported file type/i.test(err.message || "")) throw err;
+    console.warn("CV digital text extraction failed; continuing to GPT path:", err.message);
   }
 
-  // Prefer local Python parser when enabled (more accurate + avoids Gemini 429).
-  // Only inject extracted text for OCR scans — digital PDFs/DOCX are richer when
-  // Python reads the original file (pdfplumber/docx2txt) itself.
-  if (isPythonResumeParserEnabled()) {
-    try {
-      const pythonOptions =
-        extractionMethod === "digital" ? {} : { text: rawText };
-      const parsed = await parseWithPythonResumeParser(filePath, pythonOptions);
-      const pythonMeta = parsed._python_meta || {};
-      delete parsed._python_meta;
-      const normalized = normalizeParsedResult(parsed, {
-        parser: pythonMeta.parser || "python_resume_parser",
-        python_engine: pythonMeta.engine || null,
-        python_package_error: pythonMeta.package_error || null,
-        document_type: pythonMeta.document_type || null,
-        ...extractionMeta,
-      });
-      // Cover letters are intentionally thin (contact only) — do not fall through to NLP.
-      if (pythonMeta.document_type === "cover_letter") return normalized;
-      if (!isThinParsedResult(normalized)) return normalized;
-      console.warn("Python resume parser returned thin result; continuing fallbacks");
-      extractionMeta.python_thin_result = true;
-    } catch (err) {
-      console.warn("Python resume parser failed; continuing fallbacks:", err.message);
-      extractionMeta.python_error = serializePythonError(err);
-      if (isPythonStrict()) {
-        throw err;
-      }
-    }
-  }
+  try {
+    return await parseWithGpt5Mini({
+      filePath,
+      mimetype: resolvedMime,
+      digitalText,
+      extractionMethod: digitalMethod,
+    });
+  } catch (err) {
+    const hasText = Boolean(digitalText && digitalText.trim());
 
-  if (isAIParsingEnabled()) {
-    try {
-      const parsed = normalizeParsedResult(await parseWithAI(rawText), {
-        parser: "ai",
-        ...extractionMeta,
-      });
-      // Don't trust empty/near-empty AI payloads (rate-limit soft failures, truncated JSON, etc.)
-      if (!isThinParsedResult(parsed)) return parsed;
-      console.warn("CV AI parsing returned thin result; using heuristic fallback");
-    } catch (err) {
-      // A provider failure must not prevent the user from reviewing local output.
-      const status = err?.response?.status;
-      if (status === 429) {
-        console.warn("CV AI rate-limited (429); using heuristic fallback");
-      } else {
-        console.warn("CV AI parsing failed; using heuristic fallback:", err.message);
-      }
-    }
-  }
-
-  if (isResumeParserEnabled()) {
-    try {
-      const parsed = await parseWithResumeParser(filePath);
-      const normalized = normalizeParsedResult(parsed, {
-        parser: "resume_parser_fallback",
-        ...extractionMeta,
-      });
-      if (!isThinParsedResult(normalized)) return normalized;
-    } catch (err) {
-      // resume-parser depends on host binaries (e.g. pdftotext/catdoc), so fallback is expected on some hosts.
-      console.warn("resume-parser failed; using NLP fallback:", err.message);
-    }
-  }
-
-  let structuredResult = null;
-  // Layout parsers need a real digital text layer; skip for OCR-only scans.
-  const tryStructured =
-    extractionMethod === "digital" &&
-    ((resolvedMime === "application/pdf" && isOpenResumeStyleEnabled()) ||
-      (isDocxMimetype(resolvedMime) && isOpenResumeStyleEnabled()));
-
-  if (tryStructured) {
-    try {
-      if (resolvedMime === "application/pdf") {
-        structuredResult = normalizeParsedResult(await parseWithOpenResumeStyle(filePath), extractionMeta);
-      } else {
-        structuredResult = normalizeParsedResult(await parseWithDocxStyle(filePath), extractionMeta);
-      }
-      if (!isThinParsedResult(structuredResult)) return structuredResult;
-      console.warn(
-        `${structuredResult._meta?.parser || "structured"} parser produced thin result; trying NLP fallback`
-      );
-    } catch (err) {
-      console.warn("Structured parser failed; using NLP fallback:", err.message);
-    }
-  }
-
-  const nlpResult = parseWithNlpFallback(rawText);
-  nlpResult._meta = { ...nlpResult._meta, ...extractionMeta };
-
-  if (structuredResult && scoreParsedResult(structuredResult) > scoreParsedResult(nlpResult)) {
-    return {
-      ...structuredResult,
-      _meta: {
-        ...structuredResult._meta,
-        fallback_compared: "nlp_fallback",
-        ...extractionMeta,
-      },
-    };
-  }
-
-  if (structuredResult) {
-    return {
-      ...nlpResult,
-      _meta: {
+    if (hasText) {
+      // Safe, short failure note — never a stack trace or CV content.
+      const aiFailed = err && err.code
+        ? String(err.code)
+        : err && err.message
+          ? String(err.message).slice(0, 160)
+          : "ai_error";
+      console.warn("GPT-5 mini CV parsing failed; using NLP fallback:", err.message);
+      const nlpResult = parseWithNlpFallback(digitalText);
+      nlpResult._meta = {
         ...nlpResult._meta,
-        structured_score: scoreParsedResult(structuredResult),
-        preferred_over: structuredResult._meta?.parser || "structured",
-        ...extractionMeta,
-      },
-    };
-  }
+        extraction_method: digitalMethod,
+        raw_char_count: digitalText.length,
+        mimetype: resolvedMime,
+        ai_failed: aiFailed,
+      };
+      return nlpResult;
+    }
 
-  return nlpResult;
+    // Image-only / no digital text: surface a clean no-content error that
+    // api_handler maps to a 400.
+    if (err && (err.code === "CV_NO_CONTENT" || err.code === "CV_PARSED_THIN")) {
+      throw new Error("CV has no extractable content (empty text)");
+    }
+    throw err;
+  }
 }
 
 module.exports = {
@@ -1907,4 +1834,8 @@ module.exports = {
   normalizeParsedResult,
   htmlToStructuredLines,
   htmlToPlainText,
+  // Exported (Phase 2) as small reusable helpers for the GPT-5 mini path.
+  resolveCvMimetype,
+  extractDocxText,
+  scrubExtractedText,
 };

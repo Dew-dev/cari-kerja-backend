@@ -8,3 +8,6 @@ __pycache__/
 logs/
 services/cv-parser/.env
 
+# Local CV parser test fixtures & generated results (contain real PII — do not commit)
+CV-Test/
+
