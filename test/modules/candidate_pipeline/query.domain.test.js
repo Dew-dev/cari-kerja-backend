@@ -109,30 +109,17 @@ describe("Candidate Pipeline Query Domain", () => {
   });
 
   describe("getPipelineAnalytics", () => {
-    it("should build conversion_rates from reached counts", async () => {
+    it("returns stage counts and empty conversion_rates (feature removed)", async () => {
       mockQuery.findStageCounts.mockResolvedValue({
         err: null,
         data: [{ stage_id: 1, stage_type: "applied", name: "Applied", count: 10 }],
-      });
-      mockQuery.countTotalApplications.mockResolvedValue({ err: null, data: 10 });
-      mockQuery.findReachedCounts.mockResolvedValue({
-        err: null,
-        data: [
-          { stage_type: "screening", count: 5 },
-          { stage_type: "interview", count: 2 },
-        ],
       });
 
       const result = await domain.getPipelineAnalytics({ recruiter_id: recruiterId });
 
       expect(result.err).toBeNull();
       expect(result.data.stage_counts).toHaveLength(1);
-      expect(result.data.conversion_rates).toHaveLength(4);
-      expect(result.data.conversion_rates[0]).toMatchObject({
-        from_stage_type: "applied",
-        to_stage_type: "screening",
-        rate: 0.5,
-      });
+      expect(result.data.conversion_rates).toEqual([]);
     });
   });
 

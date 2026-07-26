@@ -49,13 +49,12 @@ class CandidateMatchingQuery {
             computed.data.match_score != null
           ) {
             match = { err: null, data: computed.data };
+          } else if (computed.data.skipped && computed.data.match) {
+            match = { err: null, data: computed.data.match };
           }
         }
-        if (!match.data || match.data.match_status === "pending") {
-          const {
-            enqueueComputeApplicationMatch,
-          } = require("../../../../helpers/queues/matching.queue");
-          await enqueueComputeApplicationMatch(application_id);
+        // Re-read from DB after sync compute so we return persisted terminal status.
+        if (!match.data || match.data.match_status === "pending" || match.data.match_score == null) {
           match = await this.query.findMatchByApplication(application_id);
         }
       } catch (err) {
@@ -63,30 +62,41 @@ class CandidateMatchingQuery {
         const {
           enqueueOrComputeApplicationMatch,
         } = require("../../../../helpers/queues/matching.queue");
-        await enqueueOrComputeApplicationMatch(application_id);
+        await enqueueOrComputeApplicationMatch(application_id, { preferSync: true });
         match = await this.query.findMatchByApplication(application_id);
       }
     }
 
+    // Never leave drawer on invented "pending" after a finished compute attempt.
     if (!match.data) {
       return wrapper.data({
         application_id,
         job_post_id: app.data.job_post_id,
         worker_id: app.data.worker_id,
-        match_score: null,
-        match_status: "pending",
-        match_breakdown: null,
-        match_reasons: [],
+        match_score: 0,
+        match_status: "failed",
+        match_breakdown: { error: "match_unavailable" },
+        match_reasons: [
+          {
+            type: "error",
+            label: "Match score unavailable; try rematch",
+            score: 0,
+          },
+        ],
         match_computed_at: null,
       });
     }
+
+    const status = match.data.match_status || "ready";
+    const score =
+      match.data.match_score == null ? (status === "failed" ? 0 : null) : Number(match.data.match_score);
 
     return wrapper.data({
       application_id: match.data.application_id,
       job_post_id: match.data.job_post_id,
       worker_id: match.data.worker_id,
-      match_score: match.data.match_score,
-      match_status: match.data.match_status,
+      match_score: score,
+      match_status: status === "pending" && score != null ? "ready" : status,
       match_breakdown: match.data.match_breakdown,
       match_reasons: match.data.match_reasons,
       model_version: match.data.model_version,

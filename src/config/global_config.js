@@ -59,7 +59,7 @@ const config = {
   },
   matching: {
     enabled: process.env.MATCHING_ENABLED !== "false",
-    modelVersion: process.env.MATCHING_MODEL_VERSION || "hybrid-v2",
+    modelVersion: process.env.MATCHING_MODEL_VERSION || "hybrid-v2.1",
     embeddingUrl: process.env.MATCHING_EMBEDDING_URL || "",
     embeddingApiKey: process.env.MATCHING_EMBEDDING_API_KEY || "",
     embeddingDims: Number(process.env.MATCHING_EMBEDDING_DIMS || 256),

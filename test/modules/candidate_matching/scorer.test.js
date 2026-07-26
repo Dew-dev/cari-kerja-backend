@@ -125,6 +125,54 @@ describe("Candidate Matching Scorer", () => {
     ).toBeGreaterThanOrEqual(50);
   });
 
+  it("matches skills with aliases and punctuation", () => {
+    expect(
+      skillOverlapPct({
+        jobSkillNames: ["React.js", "Node.js"],
+        workerSkillNames: ["React", "NodeJS"],
+      }),
+    ).toBe(100);
+  });
+
+  it("drops unavailable signals instead of injecting neutral 50", () => {
+    const result = computeHybridScore({
+      jobEmbedding: [],
+      workerEmbedding: [],
+      jobSkillNames: ["Python"],
+      workerSkillNames: ["Python"],
+      jobTitle: "Python Developer",
+      workExperiences: [{ job_title: "Python Developer" }],
+      experienceLevelName: "Junior",
+      totalYears: 2,
+      // salary + location missing → weights dropped
+      expectedSalary: null,
+      salaryMin: null,
+      salaryMax: null,
+      jobCity: "",
+      workerAddress: "",
+      skipSemantic: true,
+      weights: {
+        semantic: 0.25,
+        skills: 0.25,
+        position: 0.15,
+        experience: 0.15,
+        salary: 0.1,
+        location: 0.1,
+      },
+    });
+
+    expect(result.match_breakdown.salary).toBeNull();
+    expect(result.match_breakdown.location).toBeNull();
+    expect(result.match_breakdown.semantic).toBeNull();
+    expect(result.match_breakdown.weights.salary).toBe(0);
+    expect(result.match_breakdown.weights.location).toBe(0);
+    expect(result.match_score).toBeGreaterThanOrEqual(85);
+  });
+
+  it("returns null skill score when job lists no skills", () => {
+    expect(skillOverlapPct({ jobSkillNames: [], jobSkillIds: [] })).toBeNull();
+  });
+
   it("accepts semanticPctOverride from ES knn", () => {
     const result = computeHybridScore({
       jobEmbedding: perfectVec,
@@ -135,6 +183,8 @@ describe("Candidate Matching Scorer", () => {
       totalYears: 2,
       jobText: "",
       educations: [],
+      jobTitle: "Junior Engineer",
+      workExperiences: [{ job_title: "Junior Engineer" }],
       weights: {
         semantic: 1,
         skills: 0,

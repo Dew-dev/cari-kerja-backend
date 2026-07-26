@@ -24,25 +24,47 @@ const isMatchingEnabled = () => {
   return matching.enabled !== false;
 };
 
+const syncCompute = async (application_id) => {
+  const DB = require("../databases/postgresql/db");
+  const CommandDomain = require("../../modules/candidate_matching/repositories/commands/domain");
+  const domain = new CommandDomain(new DB(config.get("/postgresqlUrl")));
+  return domain.computeApplicationMatch({
+    application_id,
+    force: true,
+  });
+};
+
 /**
  * @param {string} application_id
- * @param {import("bullmq").JobsOptions} [opts]
+ * @param {import("bullmq").JobsOptions & { force?: boolean }} [opts]
  */
 const enqueueComputeApplicationMatch = async (application_id, opts = {}) => {
   if (!isMatchingEnabled()) return null;
   if (!application_id) return null;
 
   try {
-    // Avoid sticky jobId so a completed/failed prior job cannot block recompute.
+    // Sticky jobId for auto kickoff prevents poll storms; rematch/force gets unique id.
+    const force = Boolean(opts.force);
+    const jobId =
+      opts.jobId ||
+      (force
+        ? `compute-app-${application_id}-${Date.now()}`
+        : `compute-app-${application_id}`);
+
     return await matchingQueue.add(
       "compute_application_match",
-      { application_id, force: Boolean(opts.force) },
+      { application_id, force },
       {
         ...opts,
-        jobId: opts.jobId || `compute-app-${application_id}-${Date.now()}`,
+        jobId,
       },
     );
   } catch (err) {
+    // BullMQ throws when sticky jobId already waiting/active — treat as already queued.
+    if (/already exists|Job.*exists/i.test(String(err.message || ""))) {
+      logger.info(ctx, "enqueueComputeApplicationMatch already queued", application_id);
+      return { id: `existing-${application_id}`, alreadyQueued: true };
+    }
     logger.error(ctx, "enqueueComputeApplicationMatch failed", application_id, err.message || err);
     return null;
   }
@@ -51,23 +73,36 @@ const enqueueComputeApplicationMatch = async (application_id, opts = {}) => {
 /**
  * Prefer async queue; if Redis/queue fails, compute synchronously so UI
  * never stays stuck on "Calculating…".
+ * Pass { preferSync: true } for drawer/pipeline paths that need a terminal score now.
  */
 const enqueueOrComputeApplicationMatch = async (application_id, opts = {}) => {
   if (!isMatchingEnabled()) return { mode: "skipped" };
   if (!application_id) return { mode: "skipped" };
 
+  if (opts.preferSync) {
+    try {
+      const result = await syncCompute(application_id);
+      if (result.err) {
+        logger.error(
+          ctx,
+          "preferSync compute failed",
+          application_id,
+          result.err.message || result.err,
+        );
+        return { mode: "failed", error: result.err };
+      }
+      return { mode: "sync", data: result.data };
+    } catch (err) {
+      logger.error(ctx, "preferSync threw", application_id, err.message || err);
+      // Fall through to queue as last resort
+    }
+  }
+
   const job = await enqueueComputeApplicationMatch(application_id, opts);
   if (job) return { mode: "queued", job };
 
   try {
-    const config = require("../../config/global_config");
-    const DB = require("../databases/postgresql/db");
-    const CommandDomain = require("../../modules/candidate_matching/repositories/commands/domain");
-    const domain = new CommandDomain(new DB(config.get("/postgresqlUrl")));
-    const result = await domain.computeApplicationMatch({
-      application_id,
-      force: true,
-    });
+    const result = await syncCompute(application_id);
     if (result.err) {
       logger.error(
         ctx,

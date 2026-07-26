@@ -25,10 +25,69 @@ const cosineSimilarity = (a, b) => {
   return Math.max(0, Math.min(1, (sim + 1) / 2));
 };
 
+const SKILL_ALIASES = {
+  js: "javascript",
+  "node.js": "nodejs",
+  "node js": "nodejs",
+  nodejs: "nodejs",
+  node: "nodejs",
+  "react.js": "react",
+  "react js": "react",
+  reactjs: "react",
+  "vue.js": "vue",
+  "vue js": "vue",
+  "next.js": "nextjs",
+  "next js": "nextjs",
+  nextjs: "nextjs",
+  ts: "typescript",
+  "c#": "csharp",
+  "c++": "cpp",
+  postgres: "postgresql",
+  k8s: "kubernetes",
+  aws: "amazon web services",
+  gcp: "google cloud",
+  ml: "machine learning",
+  ai: "artificial intelligence",
+  cyber: "cybersecurity",
+  "info sec": "information security",
+  infosec: "information security",
+};
+
+const normalizeSkillLabel = (value) => {
+  let s = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (!s) return "";
+  if (SKILL_ALIASES[s]) return SKILL_ALIASES[s];
+  s = s
+    .replace(/[#.+]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (SKILL_ALIASES[s]) return SKILL_ALIASES[s];
+  const compact = s.replace(/\s+/g, "");
+  if (SKILL_ALIASES[compact]) return SKILL_ALIASES[compact];
+  return s;
+};
+
+const skillMatches = (jobSkill, workerSet) => {
+  if (workerSet.has(jobSkill)) return true;
+  for (const w of workerSet) {
+    if (w.includes(jobSkill) || jobSkill.includes(w)) return true;
+    const jt = new Set(jobSkill.split(" ").filter((t) => t.length >= 2));
+    const wt = new Set(w.split(" ").filter((t) => t.length >= 2));
+    let hits = 0;
+    for (const t of jt) {
+      if (wt.has(t)) hits += 1;
+    }
+    if (jt.size > 0 && hits / jt.size >= 0.6) return true;
+  }
+  return false;
+};
+
 /**
  * Skill overlap percentage.
- * Prefers name intersection (case-insensitive); falls back to skill UUID overlap.
- * If job has no skills, returns 50 (neutral).
+ * Prefers fuzzy name intersection; falls back to skill UUID overlap.
+ * Returns null when job has no skills (weight should be dropped).
  */
 const skillOverlapPct = ({
   jobSkillIds = [],
@@ -39,29 +98,27 @@ const skillOverlapPct = ({
   const jobNames = [
     ...new Set(
       [...jobSkillNames]
-        .filter(Boolean)
-        .map((n) => String(n).trim().toLowerCase())
+        .map((n) => normalizeSkillLabel(n))
         .filter(Boolean),
     ),
   ];
   const workerNames = new Set(
     [...workerSkillNames]
-      .filter(Boolean)
-      .map((n) => String(n).trim().toLowerCase())
+      .map((n) => normalizeSkillLabel(n))
       .filter(Boolean),
   );
 
   if (jobNames.length > 0) {
     let overlap = 0;
     for (const name of jobNames) {
-      if (workerNames.has(name)) overlap += 1;
+      if (skillMatches(name, workerNames)) overlap += 1;
     }
     return Math.round((overlap / jobNames.length) * 100);
   }
 
   const jobIds = new Set(jobSkillIds.filter(Boolean).map(String));
   const workerIds = new Set(workerSkillIds.filter(Boolean).map(String));
-  if (jobIds.size === 0) return 50;
+  if (jobIds.size === 0) return null;
 
   let overlap = 0;
   for (const id of jobIds) {
@@ -72,7 +129,7 @@ const skillOverlapPct = ({
 
 /**
  * Experience fit vs job experience level name / expected years.
- * Levels: Fresh Graduate ~0-1, Junior ~1-3, Middle ~3-5, Senior 5+.
+ * Returns null when level unknown (weight dropped).
  */
 const EXPERIENCE_BANDS = {
   fresh: { min: 0, max: 1 },
@@ -95,7 +152,7 @@ const resolveBand = (experienceLevelName) => {
 
 const experienceFitPct = ({ experienceLevelName, totalYears = 0 }) => {
   const band = resolveBand(experienceLevelName);
-  if (!band) return 50;
+  if (!band) return null;
 
   const years = Math.max(0, Number(totalYears) || 0);
   if (years >= band.min && years <= band.max) return 100;
@@ -138,11 +195,37 @@ const educationFitPct = ({ jobText = "", educations = [] }) => {
   }, 0);
 
   if (required === 0) {
-    return educations.length > 0 ? 80 : 50;
+    return educations.length > 0 ? 80 : null;
   }
   if (workerBest >= required) return 100;
   if (workerBest === 0) return 20;
   return Math.max(30, Math.round((workerBest / required) * 100));
+};
+
+const TITLE_STOPWORDS = new Set([
+  "and",
+  "or",
+  "the",
+  "a",
+  "an",
+  "of",
+  "for",
+  "to",
+  "in",
+  "at",
+  "dengan",
+  "dan",
+  "untuk",
+  "sebagai",
+]);
+
+const TITLE_SYNONYMS = {
+  engineer: ["developer", "programmer", "software"],
+  developer: ["engineer", "programmer"],
+  consultant: ["advisor", "specialist"],
+  cybersecurity: ["security", "infosec", "cyber"],
+  security: ["cybersecurity", "infosec", "cyber"],
+  analyst: ["specialist"],
 };
 
 const normalizeTokens = (text) =>
@@ -150,37 +233,48 @@ const normalizeTokens = (text) =>
     .toLowerCase()
     .replace(/[^a-z0-9\u00c0-\u024f\s]/gi, " ")
     .split(/\s+/)
-    .filter((t) => t.length >= 2);
+    .filter((t) => t.length >= 2 && !TITLE_STOPWORDS.has(t));
+
+const expandTitleTokens = (tokens) => {
+  const out = new Set(tokens);
+  for (const t of tokens) {
+    const syns = TITLE_SYNONYMS[t];
+    if (syns) syns.forEach((s) => out.add(s));
+  }
+  return out;
+};
 
 /**
- * Position / job-title fit: how well worker titles align with the job title.
+ * Position / job-title fit: worker titles vs job title only (never full JD text).
+ * Returns null when job title empty (weight dropped).
  */
 const positionFitPct = ({ jobTitle = "", workExperiences = [] }) => {
-  const jobTokens = new Set(normalizeTokens(jobTitle));
-  if (jobTokens.size === 0) return 50;
+  const titleOnly = String(jobTitle || "").trim();
+  const jobTokens = expandTitleTokens(normalizeTokens(titleOnly));
+  if (jobTokens.size === 0) return null;
 
   const titles = (workExperiences || [])
     .map((e) => e.job_title || e.title || "")
     .filter(Boolean);
-  if (titles.length === 0) return 25;
+  if (titles.length === 0) return 20;
 
   let best = 0;
   for (const title of titles) {
-    const tokens = normalizeTokens(title);
-    if (tokens.length === 0) continue;
+    const tokens = expandTitleTokens(normalizeTokens(title));
+    if (tokens.size === 0) continue;
     let overlap = 0;
     for (const t of tokens) {
       if (jobTokens.has(t)) overlap += 1;
     }
-    const ratio = overlap / jobTokens.size;
-    best = Math.max(best, ratio);
+    const ratio = overlap / Math.max(jobTokens.size, 1);
+    best = Math.max(best, Math.min(1, ratio));
   }
   return Math.round(best * 100);
 };
 
 /**
  * Expected salary vs job salary range.
- * Inside range → 100; near range → scaled; missing data → neutral 50.
+ * Returns null when either side missing (weight dropped).
  */
 const salaryFitPct = ({
   expectedSalary,
@@ -191,12 +285,12 @@ const salaryFitPct = ({
   const min = Number(salaryMin);
   const max = Number(salaryMax);
 
-  if (!Number.isFinite(expected) || expected <= 0) return 50;
-  if (!Number.isFinite(min) && !Number.isFinite(max)) return 50;
+  if (!Number.isFinite(expected) || expected <= 0) return null;
+  if (!Number.isFinite(min) && !Number.isFinite(max)) return null;
 
   const lo = Number.isFinite(min) && min > 0 ? min : max;
   const hi = Number.isFinite(max) && max > 0 ? max : min;
-  if (!Number.isFinite(lo) || !Number.isFinite(hi) || lo <= 0 || hi <= 0) return 50;
+  if (!Number.isFinite(lo) || !Number.isFinite(hi) || lo <= 0 || hi <= 0) return null;
 
   if (expected >= lo && expected <= hi) return 100;
 
@@ -209,8 +303,34 @@ const salaryFitPct = ({
   return Math.max(0, Math.round(100 - gap * 100));
 };
 
+const LOCATION_ALIASES = {
+  jkt: "jakarta",
+  "dki jakarta": "jakarta",
+  "jakarta pusat": "jakarta",
+  "jakarta selatan": "jakarta selatan",
+  "jakarta barat": "jakarta barat",
+  "jakarta timur": "jakarta timur",
+  "jakarta utara": "jakarta utara",
+  jogja: "yogyakarta",
+  jogjakarta: "yogyakarta",
+  "di yogyakarta": "yogyakarta",
+  bandung: "bandung",
+  surabaya: "surabaya",
+};
+
+const normalizeLocationPart = (value) => {
+  let s = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+  if (!s) return "";
+  if (LOCATION_ALIASES[s]) s = LOCATION_ALIASES[s];
+  return s;
+};
+
 /**
  * Location fit between job location fields and worker address.
+ * Returns null when either side missing (weight dropped).
  */
 const locationFitPct = ({
   jobLocation = "",
@@ -219,25 +339,26 @@ const locationFitPct = ({
   workerAddress = "",
 }) => {
   const jobParts = [jobLocation, jobCity, jobProvince]
-    .map((p) => String(p || "").trim().toLowerCase())
+    .map((p) => normalizeLocationPart(p))
     .filter(Boolean);
-  const address = String(workerAddress || "").trim().toLowerCase();
+  const address = normalizeLocationPart(workerAddress);
 
-  if (jobParts.length === 0 || !address) return 50;
+  if (jobParts.length === 0 || !address) return null;
 
   let hits = 0;
   for (const part of jobParts) {
-    if (part.length >= 3 && address.includes(part)) hits += 1;
+    if (part.length >= 3 && (address.includes(part) || part.includes(address))) hits += 1;
   }
   if (hits === 0) {
-    // Token-level fallback (e.g. "Jakarta Selatan" vs "jakarta")
     const addrTokens = new Set(normalizeTokens(address));
     const jobTokens = normalizeTokens(jobParts.join(" "));
     let tokenHits = 0;
     for (const t of jobTokens) {
-      if (addrTokens.has(t)) tokenHits += 1;
+      if (addrTokens.has(t) || LOCATION_ALIASES[t] && addrTokens.has(LOCATION_ALIASES[t])) {
+        tokenHits += 1;
+      }
     }
-    if (tokenHits === 0) return 20;
+    if (tokenHits === 0) return 15;
     return Math.min(90, Math.round((tokenHits / Math.max(jobTokens.length, 1)) * 100));
   }
   return Math.min(100, Math.round((hits / jobParts.length) * 100));
@@ -245,11 +366,14 @@ const locationFitPct = ({
 
 const clampScore = (value) => Math.max(0, Math.min(100, Math.round(value)));
 
+const isUsablePct = (value) => value != null && Number.isFinite(Number(value));
+
 /**
  * Hybrid match score 0–100.
- * Components: semantic, skills, position, experience (work history), salary, location.
+ * Missing signals drop their weight and remaining weights renormalize (fairer than neutral 50).
  * @param {object} opts
- * @param {number} [opts.semanticPctOverride] - optional 0–100 from ES knn
+ * @param {number} [opts.semanticPctOverride]
+ * @param {boolean} [opts.skipSemantic] - drop semantic weight (short text / unavailable)
  */
 const computeHybridScore = ({
   jobEmbedding,
@@ -273,30 +397,33 @@ const computeHybridScore = ({
   workerAddress,
   weights: weightsOverride,
   semanticPctOverride,
+  skipSemantic = false,
 }) => {
   const cfg = config.get("/matching") || {};
   const weights = weightsOverride || cfg.weights || {};
-  const wSemantic = Number(weights.semantic ?? 0.25);
-  const wSkills = Number(weights.skills ?? 0.25);
-  const wPosition = Number(weights.position ?? 0.15);
-  const wExperience = Number(weights.experience ?? 0.15);
-  const wSalary = Number(weights.salary ?? 0.1);
-  const wLocation = Number(weights.location ?? 0.1);
-  // Keep education as soft bonus folded into remaining weight if explicitly provided
-  const wEducation = Number(weights.education ?? 0);
+  let wSemantic = Number(weights.semantic ?? 0.25);
+  let wSkills = Number(weights.skills ?? 0.25);
+  let wPosition = Number(weights.position ?? 0.15);
+  let wExperience = Number(weights.experience ?? 0.15);
+  let wSalary = Number(weights.salary ?? 0.1);
+  let wLocation = Number(weights.location ?? 0.1);
+  let wEducation = Number(weights.education ?? 0);
 
-  const semanticPct =
-    semanticPctOverride != null && Number.isFinite(Number(semanticPctOverride))
+  const semanticPct = skipSemantic
+    ? null
+    : semanticPctOverride != null && Number.isFinite(Number(semanticPctOverride))
       ? Math.max(0, Math.min(100, Number(semanticPctOverride)))
       : cosineSimilarity(jobEmbedding, workerEmbedding) * 100;
+
   const skillsPct = skillOverlapPct({
     jobSkillIds,
     workerSkillIds,
     jobSkillNames,
     workerSkillNames,
   });
+  // Title only — never fall back to full job description text.
   const positionPct = positionFitPct({
-    jobTitle: jobTitle || jobText,
+    jobTitle: jobTitle || "",
     workExperiences: workExperiences || [],
   });
   const experiencePct = experienceFitPct({ experienceLevelName, totalYears });
@@ -309,28 +436,36 @@ const computeHybridScore = ({
   });
   const educationPct = educationFitPct({ jobText, educations });
 
+  if (!isUsablePct(semanticPct)) wSemantic = 0;
+  if (!isUsablePct(skillsPct)) wSkills = 0;
+  if (!isUsablePct(positionPct)) wPosition = 0;
+  if (!isUsablePct(experiencePct)) wExperience = 0;
+  if (!isUsablePct(salaryPct)) wSalary = 0;
+  if (!isUsablePct(locationPct)) wLocation = 0;
+  if (!isUsablePct(educationPct)) wEducation = 0;
+
   const weightSum =
     wSemantic + wSkills + wPosition + wExperience + wSalary + wLocation + wEducation || 1;
 
   const match_score = clampScore(
-    (wSemantic * semanticPct +
-      wSkills * skillsPct +
-      wPosition * positionPct +
-      wExperience * experiencePct +
-      wSalary * salaryPct +
-      wLocation * locationPct +
-      wEducation * educationPct) /
+    (wSemantic * (semanticPct || 0) +
+      wSkills * (skillsPct || 0) +
+      wPosition * (positionPct || 0) +
+      wExperience * (experiencePct || 0) +
+      wSalary * (salaryPct || 0) +
+      wLocation * (locationPct || 0) +
+      wEducation * (educationPct || 0)) /
       weightSum,
   );
 
   const match_breakdown = {
-    semantic: clampScore(semanticPct),
-    skills: clampScore(skillsPct),
-    position: clampScore(positionPct),
-    experience: clampScore(experiencePct),
-    salary: clampScore(salaryPct),
-    location: clampScore(locationPct),
-    education: clampScore(educationPct),
+    semantic: isUsablePct(semanticPct) ? clampScore(semanticPct) : null,
+    skills: isUsablePct(skillsPct) ? clampScore(skillsPct) : null,
+    position: isUsablePct(positionPct) ? clampScore(positionPct) : null,
+    experience: isUsablePct(experiencePct) ? clampScore(experiencePct) : null,
+    salary: isUsablePct(salaryPct) ? clampScore(salaryPct) : null,
+    location: isUsablePct(locationPct) ? clampScore(locationPct) : null,
+    education: isUsablePct(educationPct) ? clampScore(educationPct) : null,
     weights: {
       semantic: wSemantic,
       skills: wSkills,
@@ -349,7 +484,9 @@ const computeHybridScore = ({
     { type: "salary", label: "Expected salary vs job range", score: match_breakdown.salary },
     { type: "location", label: "Location fit", score: match_breakdown.location },
     { type: "semantic", label: "Profile similarity to job description", score: match_breakdown.semantic },
-  ].sort((a, b) => b.score - a.score);
+  ]
+    .filter((r) => r.score != null)
+    .sort((a, b) => b.score - a.score);
 
   const match_reasons = reasonCandidates.slice(0, 3).map((r) => ({
     type: r.type,
@@ -370,4 +507,5 @@ module.exports = {
   locationFitPct,
   computeHybridScore,
   clampScore,
+  normalizeSkillLabel,
 };
