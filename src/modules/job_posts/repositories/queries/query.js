@@ -705,6 +705,7 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       u.email,
       u.login_provider,
       u.telegram_chat_id,
+      w.name AS worker_name,
       w.name AS user_name,
       j.title AS job_title,
       j.id AS job_post_id,
