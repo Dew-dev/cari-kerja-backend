@@ -28,9 +28,12 @@ const decrypt = (ciphertext) => {
     return ciphertext;
   }
   try {
+    // Email clients / copy-paste may insert whitespace into base64 payloads.
+    const raw = typeof ciphertext === "string" ? ciphertext.replace(/\s+/g, "") : ciphertext;
+
     // Determine if it is a CryptoJS string (Base64 for "Salted__")
-    if (typeof ciphertext === "string" && ciphertext.startsWith("U2FsdGVkX1")) {
-      const bytes = CryptoJS.AES.decrypt(ciphertext, rawKey);
+    if (typeof raw === "string" && raw.startsWith("U2FsdGVkX1")) {
+      const bytes = CryptoJS.AES.decrypt(raw, rawKey);
       const decryptedString = bytes.toString(CryptoJS.enc.Utf8);
       // If decryption fails, it may return empty string
       if (decryptedString) {
@@ -39,13 +42,14 @@ const decrypt = (ciphertext) => {
     }
 
     const decipher = crypto.createDecipheriv(algorithm, ENCRYPTION_KEY, DET_IV);
-    let decrypted = decipher.update(String(ciphertext), "base64", "utf8");
+    let decrypted = decipher.update(String(raw), "base64", "utf8");
     decrypted += decipher.final("utf8");
     return decrypted;
   } catch (error) {
     try {
+      const raw = typeof ciphertext === "string" ? ciphertext.replace(/\s+/g, "") : ciphertext;
       const decipherFallback = crypto.createDecipheriv(algorithm, DEFAULT_ENCRYPTION_KEY, DET_IV);
-      let decryptedFallback = decipherFallback.update(String(ciphertext), "base64", "utf8");
+      let decryptedFallback = decipherFallback.update(String(raw), "base64", "utf8");
       decryptedFallback += decipherFallback.final("utf8");
       return decryptedFallback;
     } catch (fallbackError) {
@@ -58,6 +62,7 @@ const decrypt = (ciphertext) => {
 const sensitiveKeys = [
   "email", "username", "telephone", "name", "address",
   "worker_name", "worker_telephone", "user_email", "user_username",
+  "user_name", "candidate_name",
   "company_name", "contact_name", "contact_phone", "company_email", "company_address",
   "sender_name"
 ];

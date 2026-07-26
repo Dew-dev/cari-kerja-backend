@@ -856,7 +856,7 @@ class Jobpost {
             to: app.data.email,
             subject: `Update lamaran — ${app.data.job_title}`,
             html: statusEmailTemplate({
-              name: app.data.user_name,
+              name: app.data.worker_name || app.data.user_name,
               jobTitle: app.data.job_title,
               status: app.data.status_name,
               stageName: app.data.status_name,
@@ -872,11 +872,11 @@ class Jobpost {
           email: app.data.email,
           login_provider: app.data.login_provider,
           telegram_chat_id: app.data.telegram_chat_id,
-          name: app.data.user_name,
+          name: app.data.worker_name || app.data.user_name,
         },
         type: notifyType,
         data: {
-          name: app.data.user_name,
+          name: app.data.worker_name || app.data.user_name,
           jobTitle: app.data.job_title,
           status: app.data.status_name,
           stageName: app.data.status_name,
