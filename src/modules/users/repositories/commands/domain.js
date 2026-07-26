@@ -354,7 +354,12 @@ class User {
       return wrapper.error(new ForbiddenError(`Invalid Telegram ID Token: ${error.message}`));
     }
 
-    const provider_id = oidcClaims.sub; // unique telegram user id (string)
+    // OIDC `sub` = opaque stable id (login key). Claim `id` = numeric Telegram user id (= Bot API chat.id).
+    const provider_id = String(oidcClaims.sub);
+    const telegramUserId =
+      oidcClaims.id != null && String(oidcClaims.id).trim() !== ""
+        ? String(oidcClaims.id)
+        : null;
     const name = oidcClaims.name || oidcClaims.preferred_username || `Telegram User ${provider_id}`;
     const username = oidcClaims.preferred_username ? oidcClaims.preferred_username.toLowerCase() : `telegram_${provider_id}`;
 
@@ -384,6 +389,7 @@ class User {
         hashed_password: null,
         login_provider: "telegram",
         provider_id,
+        telegram_user_id: telegramUserId,
         role_id,
       };
       const result = await this.command.insertOne(data);
@@ -427,14 +433,19 @@ class User {
       const suspended = rejectIfSuspended(data);
       if (suspended) return suspended;
 
+      const refreshFields = {};
       // Refresh Telegram @username on subsequent logins when OIDC provides it.
       if (oidcClaims.preferred_username) {
-        const nextUsername = oidcClaims.preferred_username.toLowerCase();
-        await this.command.updateOneNew(
-          { id: data.id },
-          { username: nextUsername }
-        );
-        data.username = nextUsername;
+        refreshFields.username = oidcClaims.preferred_username.toLowerCase();
+        data.username = refreshFields.username;
+      }
+      // Persist numeric Telegram id for Bot API chat linking.
+      if (telegramUserId) {
+        refreshFields.telegram_user_id = telegramUserId;
+        data.telegram_user_id = telegramUserId;
+      }
+      if (Object.keys(refreshFields).length > 0) {
+        await this.command.updateOneNew({ id: data.id }, refreshFields);
       }
 
       if (data.role_id === 1) {

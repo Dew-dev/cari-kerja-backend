@@ -21,8 +21,8 @@ class Command {
   }
 
   /**
-   * Private-chat fallback: Telegram user id (OIDC sub / provider_id) == chat.id
-   * Safe without start payload when deep-link param is dropped by the mobile client.
+   * Private-chat fallback: Bot API chat.id === OIDC claim `id` (users.telegram_user_id).
+   * Note: OIDC `sub` (provider_id) is opaque and usually NOT equal to chat.id.
    */
   async linkTelegramBotByProviderId({ providerId, chatId, username }) {
     return this.db.executeQuery(
@@ -32,8 +32,11 @@ class Command {
            telegram_bot_linked_at = NOW(),
            updated_at = NOW()
        WHERE login_provider = 'telegram'
-         AND provider_id = $1
          AND deleted_at IS NULL
+         AND (
+           telegram_user_id = $1
+           OR provider_id = $1
+         )
        RETURNING id`,
       [String(providerId), String(chatId), username || null]
     );

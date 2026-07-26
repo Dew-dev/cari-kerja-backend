@@ -150,14 +150,19 @@ npm test -- --testPathPatterns="telegram_profile|NotificationService|telegram_te
 
 ### A.5 Aktivasi notifikasi oleh user
 
-1. User login dengan Telegram (`login_provider = telegram`).
+1. User **login ulang dengan Telegram** (setelah deploy yang menyimpan OIDC claim `id` → `users.telegram_user_id`).
 2. FE baca `GET /api/v1/users/workers/me`:
    - `telegram_connected: true`
    - `telegram_available: false` (belum Start)
    - `telegram_bot_start_url: https://t.me/<BOT>?start=<signed_payload>`
-3. User buka URL itu → tekan **Start**.
-4. Webhook menyimpan `telegram_chat_id` → `telegram_available: true`.
-5. User bisa `/stop` di chat bot untuk mematikan link.
+3. User buka URL itu → tekan **START**.
+4. Webhook menyimpan `telegram_chat_id`:
+   - Prefer: signed deep-link payload
+   - Fallback: chat private — match `users.telegram_user_id` (= OIDC claim `id`) dengan `chat.id`  
+     (**bukan** OIDC `sub` / `provider_id`; keduanya berbeda)
+5. `telegram_available: true`. User bisa `/stop` untuk memutus link.
+
+Scope OAuth login: `openid profile telegram:bot_access` (bot_access agar bot boleh DM setelah login).
 
 Payload `start` di-sign HMAC (expiry ~1 jam), **maks. 64 karakter** (batas Telegram deep-link); regenerate dari `/me`. Jangan Start bot tanpa membuka tombol dari aplikasi.
 

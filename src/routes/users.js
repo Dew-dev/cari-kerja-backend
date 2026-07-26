@@ -61,7 +61,7 @@ module.exports = (server) => {
       origin,
       purpose: "login",
     });
-    const authUrl = `https://oauth.telegram.org/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid+profile&state=${encodeURIComponent(state)}`;
+    const authUrl = `https://oauth.telegram.org/auth?response_type=code&client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent("openid profile telegram:bot_access")}&state=${encodeURIComponent(state)}`;
     return res.redirect(authUrl);
   });
   server.get("/api/v1/users/telegram/callback", userHandler.loginWithTelegram);
