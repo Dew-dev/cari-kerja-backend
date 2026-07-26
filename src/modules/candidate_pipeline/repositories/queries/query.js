@@ -248,6 +248,7 @@ class Query {
         failed: false,
         data: Array.isArray(dataRes.rows) ? dataRes.rows : [],
         total,
+        matchScoresIncluded: includeMatchScores,
       };
     };
 
@@ -267,7 +268,10 @@ class Query {
         return wrapper.error(errorQueryMessage);
       }
 
-      return wrapper.paginationData(result.data, { total: result.total });
+      return wrapper.paginationData(result.data, {
+        total: result.total,
+        match_scores_available: Boolean(result.matchScoresIncluded),
+      });
     } catch (error) {
       logger.error(ctx, errorQueryMessage, "findPipelineCandidates", error);
       return wrapper.error(errorQueryMessage);

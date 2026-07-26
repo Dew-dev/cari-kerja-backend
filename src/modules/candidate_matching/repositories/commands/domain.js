@@ -217,6 +217,7 @@ class CandidateMatchingCommand {
         jobProvince: jobSrc.data.province,
         workerAddress: workerSrc.data.address,
         semanticPctOverride,
+        skipSemantic: textTooShort,
       });
 
       const reasons = [...(scored.match_reasons || [])];
@@ -280,6 +281,7 @@ class CandidateMatchingCommand {
           jobProvince: jobSrc.data.province,
           workerAddress: workerSrc.data.address,
           semanticPctOverride: 0,
+          skipSemantic: true,
         });
         const failed = await this.command.upsertMatchScore({
           application_id,

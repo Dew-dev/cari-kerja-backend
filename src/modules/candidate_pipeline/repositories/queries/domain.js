@@ -4,11 +4,6 @@ const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError, ForbiddenError } = require("../../../../helpers/errors");
 const ctx = "CandidatePipeline-Query-Domain";
 
-const FUNNEL_ORDER = ["applied", "screening", "interview", "offer", "hired"];
-
-const toTitleCase = (value) =>
-  value ? value.charAt(0).toUpperCase() + value.slice(1).toLowerCase() : value;
-
 const parseJobPostIds = (job_post_id) => {
   if (!job_post_id) return [];
   if (Array.isArray(job_post_id)) return job_post_id;
@@ -88,23 +83,31 @@ class CandidatePipeline {
       match_reasons: Array.isArray(row.match_reasons) ? row.match_reasons : row.match_reasons || [],
     }));
 
-    // Kick off scoring for still-pending applications so cards leave "Calculating…"
-    const pendingApps = rows
-      .filter((row) => {
-        if (!row.application_id) return false;
-        const status = String(row.match_status || "pending");
-        return !["ready", "failed", "insufficient_data"].includes(status);
-      })
-      .slice(0, 10);
-    if (pendingApps.length > 0) {
-      const {
-        enqueueOrComputeApplicationMatch,
-      } = require("../../../../helpers/queues/matching.queue");
-      Promise.allSettled(
-        pendingApps.map((row) =>
-          enqueueOrComputeApplicationMatch(row.application_id),
-        ),
-      ).catch(() => {});
+    const matchScoresAvailable = result.meta?.match_scores_available !== false;
+
+    // Kick off scoring for still-pending applications without blocking the list response.
+    // Blocking preferSync here starved other drawer APIs (worker detail / timeline) and
+    // left the FE spinner under the match card spinning indefinitely.
+    if (matchScoresAvailable) {
+      const pendingApps = rows
+        .filter((row) => {
+          if (!row.application_id) return false;
+          const status = String(row.match_status || "pending");
+          return !["ready", "failed", "insufficient_data"].includes(status);
+        })
+        .slice(0, 10);
+      if (pendingApps.length > 0) {
+        const {
+          enqueueOrComputeApplicationMatch,
+        } = require("../../../../helpers/queues/matching.queue");
+        Promise.allSettled(
+          pendingApps.map((row) =>
+            enqueueOrComputeApplicationMatch(row.application_id),
+          ),
+        ).catch((err) => {
+          logger.error(ctx, "getPipelineCandidates", "pending match kickoff failed", err.message || err);
+        });
+      }
     }
 
     const total = result.meta?.total ?? 0;
@@ -130,54 +133,10 @@ class CandidatePipeline {
       return wrapper.error(new NotFoundError("Failed to load pipeline analytics"));
     }
 
-    const totalResult = await this.query.countTotalApplications({ recruiter_id, jobPostIds });
-    const total = totalResult.err ? 0 : totalResult.data;
-
-    const reachedResult = await this.query.findReachedCounts({ recruiter_id, jobPostIds });
-    const reachedRows = reachedResult.err ? [] : reachedResult.data;
-
-    const reached = { applied: total };
-    for (const row of reachedRows) {
-      reached[row.stage_type] = row.count;
-    }
-    for (const type of FUNNEL_ORDER) {
-      if (reached[type] === undefined) reached[type] = 0;
-    }
-
-    // Jika hanya 1 job post yang difilter, resolusikan stage_id & label aktual
-    let stageLookup = null;
-    if (jobPostIds.length === 1) {
-      const stagesResult = await this.query.findStagesForSingleJobPost(jobPostIds[0]);
-      if (!stagesResult.err) {
-        stageLookup = {};
-        for (const stage of stagesResult.data) {
-          stageLookup[stage.stage_type] = stage;
-        }
-      }
-    }
-
-    const conversion_rates = [];
-    for (let i = 0; i < FUNNEL_ORDER.length - 1; i += 1) {
-      const from = FUNNEL_ORDER[i];
-      const to = FUNNEL_ORDER[i + 1];
-      const fromReached = reached[from] ?? 0;
-      const toReached = reached[to] ?? 0;
-      const rate = fromReached > 0 ? Math.round((toReached / fromReached) * 10000) / 10000 : 0;
-
-      conversion_rates.push({
-        from_stage_type: from,
-        to_stage_type: to,
-        from_stage_id: stageLookup?.[from]?.id ?? null,
-        to_stage_id: stageLookup?.[to]?.id ?? null,
-        from_label: stageLookup?.[from]?.name ?? toTitleCase(from),
-        to_label: stageLookup?.[to]?.name ?? toTitleCase(to),
-        rate,
-      });
-    }
-
+    // Conversion Rate removed from product — keep empty array for backward-compatible clients.
     return wrapper.data({
       stage_counts: stageCountsResult.data,
-      conversion_rates,
+      conversion_rates: [],
     });
   }
 
