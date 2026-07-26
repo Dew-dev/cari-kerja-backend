@@ -3,6 +3,10 @@ const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError } = require("../../../../helpers/errors");
 const { buildAuthStatus } = require("../../../../helpers/auth/login_status");
+const {
+  buildTelegramProfileFields,
+  omitSensitiveTelegramFields,
+} = require("../../../../helpers/auth/telegram_profile");
 const ctx = "Worker-Query-Domain";
 
 class Worker {
@@ -19,9 +23,31 @@ class Worker {
       return wrapper.error(new NotFoundError("Can not find worker"));
     }
 
+    const row = worker.data;
+    const telegramUser = {
+      id: row.user_id,
+      user_id: row.user_id,
+      login_provider: row.login_provider,
+      username: row.user_username,
+      telegram_chat_id: row.telegram_chat_id,
+      telegram_notify_username: row.telegram_notify_username,
+      name: row.name,
+    };
+
+    const clean = omitSensitiveTelegramFields({
+      ...row,
+      user_username: undefined,
+    });
+    delete clean.user_username;
+    delete clean.telegram_notify_username;
+
     return wrapper.data({
-      ...worker.data,
-      ...buildAuthStatus(worker.data),
+      ...clean,
+      ...buildAuthStatus(row),
+      ...buildTelegramProfileFields(telegramUser, {
+        forSelf: true,
+        displayName: row.name,
+      }),
     });
   }
 
@@ -34,7 +60,27 @@ class Worker {
       return wrapper.error(new NotFoundError("Can not find worker"));
     }
 
-    return wrapper.data(worker.data);
+    const row = worker.data;
+    const telegramUser = {
+      login_provider: row.login_provider,
+      username: row.user_username,
+      telegram_chat_id: row.telegram_chat_id,
+      telegram_notify_username: row.telegram_notify_username,
+      name: row.name,
+    };
+
+    const clean = omitSensitiveTelegramFields({ ...row });
+    delete clean.user_username;
+    delete clean.telegram_notify_username;
+    delete clean.login_provider;
+
+    return wrapper.data({
+      ...clean,
+      ...buildTelegramProfileFields(telegramUser, {
+        forSelf: false,
+        displayName: row.name,
+      }),
+    });
   }
 
   async getWorkers(payload) {
