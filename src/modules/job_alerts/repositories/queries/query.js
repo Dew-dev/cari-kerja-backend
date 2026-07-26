@@ -11,7 +11,8 @@ class Query {
   async findWorkerJobAlertsPreference(worker_id) {
     try {
       const res = await this.db.executeQuery(
-        `SELECT w.id, w.job_alerts_enabled, w.job_alerts_last_sent_at, u.email, u.login_provider
+        `SELECT w.id, w.job_alerts_enabled, w.job_alerts_last_sent_at,
+                u.email, u.login_provider, u.telegram_chat_id
          FROM workers w
          JOIN users u ON u.id = w.user_id
          WHERE w.id = $1 AND w.deleted_at IS NULL
@@ -27,9 +28,8 @@ class Query {
 
   /**
    * Workers eligible for today's digest:
-   * - local/google login only (email channel; never telegram login)
-   * - has email
    * - job_alerts_enabled
+   * - local/google with email OR telegram login with bot linked (telegram_chat_id)
    * - not soft-deleted
    * - not already sent today (Asia/Jakarta calendar day)
    */
@@ -40,14 +40,25 @@ class Query {
             w.id AS worker_id,
             w.name AS worker_name,
             w.expected_salary,
-            u.email
+            u.id AS user_id,
+            u.email,
+            u.login_provider,
+            u.telegram_chat_id
          FROM workers w
          JOIN users u ON u.id = w.user_id
          WHERE w.deleted_at IS NULL
            AND w.job_alerts_enabled = TRUE
-           AND u.login_provider IN ('local', 'google')
-           AND u.email IS NOT NULL
-           AND TRIM(u.email) <> ''
+           AND (
+             (
+               u.login_provider IN ('local', 'google')
+               AND u.email IS NOT NULL
+               AND TRIM(u.email) <> ''
+             )
+             OR (
+               u.login_provider = 'telegram'
+               AND u.telegram_chat_id IS NOT NULL
+             )
+           )
            AND (
              w.job_alerts_last_sent_at IS NULL
              OR (w.job_alerts_last_sent_at AT TIME ZONE 'Asia/Jakarta')::date

@@ -32,10 +32,12 @@ const communication = require('./communication');
 const jobAlerts = require('./job_alerts');
 const candidateMatching = require('./candidate_matching');
 const news = require('./news');
+const telegram = require('./telegram');
 
 
 module.exports = (server) => {
   users(server);
+  telegram(server);
   recruiters(server);
   jobposts(server);
   resume(server);

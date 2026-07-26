@@ -54,8 +54,10 @@ class Query {
             w.name AS worker_name,
             w.email_opt_out,
             w.unsubscribe_token,
+            u.id AS user_id,
             u.email,
             u.login_provider,
+            u.telegram_chat_id,
             ast.name AS stage_name,
             ast.stage_type
          FROM job_applications ja

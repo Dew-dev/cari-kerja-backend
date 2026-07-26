@@ -5,6 +5,7 @@ const {
   markRecipientSent,
   markRecipientFailed,
 } = require("./communicationRecipientStatus");
+const { logNotification } = require("../notifications/logging/notificationLogger");
 const logger = require("../utils/logger");
 
 const ctx = "EmailWorker";
@@ -17,16 +18,41 @@ const start = () => {
   emailWorker = new Worker(
     "email",
     async (job) => {
-      const { to, subject, html, recipient_id } = job.data;
+      const {
+        to,
+        subject,
+        html,
+        recipient_id,
+        userId = null,
+        notificationType = "email",
+      } = job.data;
       logger.info(ctx, `Processing job ${job.id}`, `Sending email to ${to}`);
+      const started = Date.now();
 
       try {
         await sendMail({ to, subject, html });
+        await logNotification({
+          userId,
+          channel: "email",
+          notificationType,
+          receiver: to,
+          status: "sent",
+          durationMs: Date.now() - started,
+        });
         if (recipient_id) {
           await markRecipientSent(recipient_id);
         }
         logger.info(ctx, `Job ${job.id} completed`, `Email sent to ${to}`);
       } catch (err) {
+        await logNotification({
+          userId,
+          channel: "email",
+          notificationType,
+          receiver: to,
+          status: "failed",
+          durationMs: Date.now() - started,
+          error: err.message,
+        });
         if (recipient_id) {
           await markRecipientFailed(recipient_id, err.message);
         }

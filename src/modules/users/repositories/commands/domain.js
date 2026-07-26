@@ -426,6 +426,17 @@ class User {
       data = user.data;
       const suspended = rejectIfSuspended(data);
       if (suspended) return suspended;
+
+      // Refresh Telegram @username on subsequent logins when OIDC provides it.
+      if (oidcClaims.preferred_username) {
+        const nextUsername = oidcClaims.preferred_username.toLowerCase();
+        await this.command.updateOneNew(
+          { id: data.id },
+          { username: nextUsername }
+        );
+        data.username = nextUsername;
+      }
+
       if (data.role_id === 1) {
         const resultWorker = await this.queryWorker.findOne(
           { user_id: data.id },

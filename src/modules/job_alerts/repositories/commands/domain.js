@@ -7,8 +7,9 @@ const {
   BadRequestError,
   InternalServerError,
 } = require("../../../../helpers/errors");
-const { addEmailJob } = require("../../../../helpers/queues/email.queue");
 const jobAlertsEmailTemplate = require("../../../../helpers/utils/jobAlertsEmailTemplate");
+const notificationService = require("../../../../helpers/notifications/NotificationService");
+const config = require("../../../../config/global_config");
 
 const ctx = "JobAlerts-Command-Domain";
 const JOBS_PER_EMAIL = 10;
@@ -31,18 +32,15 @@ class JobAlertsCommand {
       return wrapper.error(new NotFoundError("Worker not found"));
     }
 
-    if (pref.data.login_provider === "telegram") {
-      return wrapper.error(
-        new BadRequestError(
-          "Akun Telegram menerima notifikasi via Telegram, bukan email job alerts.",
-        ),
-      );
-    }
+    const hasEmail = Boolean(pref.data.email && String(pref.data.email).trim());
+    const telegramAvailable =
+      pref.data.login_provider === "telegram" &&
+      Boolean(pref.data.telegram_chat_id);
 
-    if (!pref.data.email) {
+    if (!hasEmail && !telegramAvailable) {
       return wrapper.error(
         new BadRequestError(
-          "Job alerts memerlukan email. Tambahkan email ke akun Anda terlebih dahulu.",
+          "Job alerts memerlukan email atau notifikasi Telegram yang sudah diaktifkan.",
         ),
       );
     }
@@ -58,14 +56,16 @@ class JobAlertsCommand {
 
     return wrapper.data({
       enabled: result.data.job_alerts_enabled,
-      has_email: true,
-      active: result.data.job_alerts_enabled,
+      has_email: hasEmail,
+      telegram_available: telegramAvailable,
+      active: result.data.job_alerts_enabled && (hasEmail || telegramAvailable),
     });
   }
 
   /**
    * Daily digests for all eligible workers. Safe to call repeatedly;
    * skips workers already sent today (Asia/Jakarta).
+   * Uses NotificationService — scheduler must not know Telegram details.
    */
   async runDailyJobAlerts() {
     let processed = 0;
@@ -77,9 +77,8 @@ class JobAlertsCommand {
 
     let guard = 0;
     const maxLoops = 1000;
+    const feUrl = (config.get("/frontendUrl") || "").replace(/\/$/, "");
 
-    // Selalu offset 0: worker yang sudah di-mark sent keluar dari eligible set,
-    // sehingga batch berikutnya mengambil sisa tanpa melewatkan baris.
     // eslint-disable-next-line no-constant-condition
     while (true) {
       guard += 1;
@@ -113,7 +112,6 @@ class JobAlertsCommand {
               worker_id: worker.worker_id,
               err: jobsResult.err,
             });
-            // Tandai agar tidak mengulang worker yang sama tanpa batas di batch berikutnya
             await this.command.markJobAlertsSent(worker.worker_id);
             continue;
           }
@@ -121,18 +119,42 @@ class JobAlertsCommand {
           const jobs = jobsResult.data || [];
           if (jobs.length === 0) {
             skipped += 1;
-            // Tandai juga agar tidak di-query ulang setiap loop hari ini
             await this.command.markJobAlertsSent(worker.worker_id);
             continue;
           }
 
-          await addEmailJob({
-            to: worker.email,
-            subject: `${jobs.length} rekomendasi lowongan untuk Anda hari ini`,
-            html: jobAlertsEmailTemplate({
+          const actionUrl = feUrl ? `${feUrl}/jobs` : undefined;
+          const emailPayload =
+            worker.email && String(worker.email).trim()
+              ? {
+                  to: worker.email,
+                  subject: `${jobs.length} rekomendasi lowongan untuk Anda hari ini`,
+                  html: jobAlertsEmailTemplate({
+                    name: worker.worker_name,
+                    jobs,
+                  }),
+                }
+              : null;
+
+          await notificationService.notify({
+            user: {
+              id: worker.user_id,
+              email: worker.email,
+              login_provider: worker.login_provider,
+              telegram_chat_id: worker.telegram_chat_id,
               name: worker.worker_name,
-              jobs,
-            }),
+            },
+            type: "job_alert",
+            data: {
+              name: worker.worker_name,
+              jobs: jobs.map((j) => ({
+                title: j.title,
+                company: j.company_name,
+                url: j.id && feUrl ? `${feUrl}/jobposts/${j.id}` : undefined,
+              })),
+              actionUrl,
+            },
+            email: emailPayload,
           });
 
           await this.command.markJobAlertsSent(worker.worker_id);

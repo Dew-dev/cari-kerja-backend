@@ -9,10 +9,11 @@ const {
   BadRequestError,
   InternalServerError,
 } = require("../../../../helpers/errors");
-const { addEmailJob } = require("../../../../helpers/queues/email.queue");
 const { renderMergeFields } = require("../../../../helpers/utils/renderMergeFields");
 const communicationEmailTemplate = require("../../../../helpers/utils/communicationEmailTemplate");
 const { buildUnsubscribeUrl } = communicationEmailTemplate;
+const notificationService = require("../../../../helpers/notifications/NotificationService");
+const config = require("../../../../config/global_config");
 
 const ctx = "Communication-Command-Domain";
 
@@ -128,13 +129,19 @@ class CommunicationCommand {
     for (const app of apps) {
       if (app.email_opt_out) {
         skipped.push({ application_id: app.application_id, reason: "opt_out" });
-      } else if (app.login_provider === "telegram") {
+        continue;
+      }
+      const hasEmail = Boolean(app.email && String(app.email).trim());
+      const telegramAvailable =
+        app.login_provider === "telegram" && Boolean(app.telegram_chat_id);
+      if (!hasEmail && !telegramAvailable) {
         skipped.push({
           application_id: app.application_id,
-          reason: "telegram_channel_only",
+          reason:
+            app.login_provider === "telegram"
+              ? "telegram_not_linked"
+              : "no_channel",
         });
-      } else if (!app.email) {
-        skipped.push({ application_id: app.application_id, reason: "no_email" });
       } else {
         toQueue.push(app);
       }
@@ -176,6 +183,8 @@ class CommunicationCommand {
 
     let queued = 0;
 
+    const feUrl = (config.get("/frontendUrl") || "").replace(/\/$/, "");
+
     for (const app of toQueue) {
       const recipientId = uuidv4();
       const recipientResult = await this.command.insertRecipient({
@@ -183,7 +192,7 @@ class CommunicationCommand {
         campaign_id: campaignId,
         application_id: app.application_id,
         worker_id: app.worker_id,
-        email: app.email,
+        email: app.email || "",
         worker_name: app.worker_name,
         status: "queued",
       });
@@ -206,16 +215,39 @@ class CommunicationCommand {
         unsubscribeUrl,
       });
 
+      const hasEmail = Boolean(app.email && String(app.email).trim());
+      const actionUrl = feUrl || undefined;
+
       try {
-        await addEmailJob({
-          to: app.email,
-          subject: renderedSubject,
-          html,
-          recipient_id: recipientId,
+        await notificationService.notify({
+          user: {
+            id: app.user_id,
+            email: app.email,
+            login_provider: app.login_provider,
+            telegram_chat_id: app.telegram_chat_id,
+            name: app.worker_name,
+          },
+          type: "bulk_communication",
+          data: {
+            subject: renderedSubject,
+            body: renderedBody,
+            companyName: app.company_name,
+            name: app.worker_name,
+            actionUrl,
+            recipient_id: recipientId,
+          },
+          email: hasEmail
+            ? {
+                to: app.email,
+                subject: renderedSubject,
+                html,
+                recipient_id: recipientId,
+              }
+            : null,
         });
         queued += 1;
       } catch (err) {
-        logger.error(ctx, "bulkSend", "Failed to enqueue email", err);
+        logger.error(ctx, "bulkSend", "Failed to enqueue notification", err);
         await this.command.updateRecipientStatus({
           id: recipientId,
           status: "failed",

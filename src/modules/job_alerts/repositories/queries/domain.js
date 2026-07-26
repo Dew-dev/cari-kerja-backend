@@ -17,13 +17,17 @@ class JobAlertsQuery {
     }
 
     const hasEmail = Boolean(result.data.email && String(result.data.email).trim());
+    const telegramAvailable =
+      result.data.login_provider === "telegram" &&
+      Boolean(result.data.telegram_chat_id);
     const enabled = Boolean(result.data.job_alerts_enabled);
 
     return wrapper.data({
       enabled,
       has_email: hasEmail,
-      // Fitur hanya aktif jika ada email DAN toggle on
-      active: hasEmail && enabled,
+      telegram_available: telegramAvailable,
+      // Active if toggle on and at least one delivery channel is available
+      active: enabled && (hasEmail || telegramAvailable),
       last_sent_at: result.data.job_alerts_last_sent_at ?? null,
     });
   }
