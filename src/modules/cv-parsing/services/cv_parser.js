@@ -1907,4 +1907,8 @@ module.exports = {
   normalizeParsedResult,
   htmlToStructuredLines,
   htmlToPlainText,
+  // Shared helpers for GPT CV modules / matching CV reader
+  scrubExtractedText,
+  resolveCvMimetype,
+  extractDocxText,
 };
