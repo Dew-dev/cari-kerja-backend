@@ -18,6 +18,10 @@ const {
 const { embedText } = require("../../services/embedding_client");
 const { computeHybridScore } = require("../../services/scorer");
 const {
+  readCvForMatching,
+  enrichWorkerSignals,
+} = require("../../services/matching_cv_gpt");
+const {
   indexEntity,
   knnSemanticSimilarity,
   ensureIndices,
@@ -123,6 +127,7 @@ class CandidateMatchingCommand {
     }
 
     const { job_post_id, worker_id } = app.data;
+    const resumeUrl = app.data.resume_url || app.data.default_resume_url || null;
 
     const [jobSrc, workerSrc] = await Promise.all([
       this.query.findJobTextSources(job_post_id),
@@ -137,9 +142,16 @@ class CandidateMatchingCommand {
     }
 
     const jobText = buildJobText(jobSrc.data);
-    const workerText = buildWorkerText(workerSrc.data);
+    const baseWorkerText = buildWorkerText(workerSrc.data);
     const job_text_hash = hashText(jobText);
-    const candidate_text_hash = hashText(workerText);
+    // Include resume pointer so swapping CV forces recompute under hybrid-v3.
+    const candidate_text_hash = hashText(
+      [
+        baseWorkerText,
+        resumeUrl || "",
+        matching.cvGptEnabled === false ? "cv_gpt:off" : "cv_gpt:on",
+      ].join("\n---\n"),
+    );
 
     if (!force) {
       const existing = await this.query.findMatchByApplication(application_id);
@@ -154,6 +166,28 @@ class CandidateMatchingCommand {
         return wrapper.data({ skipped: true, reason: "unchanged", match: existing.data });
       }
     }
+
+    // GPT reads the CV (when available) and enriches rule-based signals.
+    const cvSignals = await readCvForMatching({
+      resumeUrl,
+      jobSrc: jobSrc.data,
+    });
+    const enriched = enrichWorkerSignals(workerSrc.data, cvSignals);
+    const workerText = buildWorkerText({
+      ...workerSrc.data,
+      skill_names: enriched.skill_names,
+      work_experiences: enriched.work_experiences,
+      address: enriched.address,
+      profile_summary: enriched.profile_summary,
+    });
+
+    const profileYears = totalYearsFromExperiences(workerSrc.data.work_experiences);
+    const totalYears =
+      profileYears > 0
+        ? profileYears
+        : enriched.total_years_override != null
+          ? enriched.total_years_override
+          : profileYears;
 
     // Always score structured signals (skills, position, salary, location, experience).
     // Short profile text only disables semantic embedding — never force a flat 0%.
@@ -178,7 +212,7 @@ class CandidateMatchingCommand {
             entity_type: "worker",
             entity_id: worker_id,
             text: workerText,
-            text_hash: candidate_text_hash,
+            text_hash: hashText(workerText),
             model_version,
           }),
         ]);
@@ -202,30 +236,46 @@ class CandidateMatchingCommand {
         jobSkillIds: jobSrc.data.skill_ids || [],
         workerSkillIds: workerSrc.data.skill_ids || [],
         jobSkillNames: jobSrc.data.skill_names || [],
-        workerSkillNames: workerSrc.data.skill_names || [],
+        workerSkillNames: enriched.skill_names || [],
         experienceLevelName: jobSrc.data.experience_level_name,
-        totalYears: totalYearsFromExperiences(workerSrc.data.work_experiences),
+        totalYears,
         jobText,
-        educations: workerSrc.data.educations || [],
+        educations: enriched.educations || [],
         jobTitle: jobSrc.data.title,
-        workExperiences: workerSrc.data.work_experiences || [],
+        workExperiences: enriched.work_experiences || [],
         expectedSalary: workerSrc.data.expected_salary,
         salaryMin: jobSrc.data.salary_min,
         salaryMax: jobSrc.data.salary_max,
         jobLocation: jobSrc.data.location,
         jobCity: jobSrc.data.city,
         jobProvince: jobSrc.data.province,
-        workerAddress: workerSrc.data.address,
+        workerAddress: enriched.address,
         semanticPctOverride,
+        cvFitPct: cvSignals.skipped ? null : cvSignals.cv_fit_score,
       });
 
       const reasons = [...(scored.match_reasons || [])];
       if (textTooShort) {
         reasons.push({
           type: "data",
-          label: "Profile/job text is short; score uses skills, role, salary, and location",
+          label: "Profile/job text is short; score uses skills, CV, role, salary, and location",
           score: scored.match_score,
         });
+      }
+      if (cvSignals.skipped && cvSignals.reason) {
+        reasons.push({
+          type: "cv_fit",
+          label: `CV GPT skipped (${cvSignals.reason}); rule-based weights renormalized`,
+          score: scored.match_score,
+        });
+      } else if (!cvSignals.skipped && Array.isArray(cvSignals.fit_reasons)) {
+        for (const tip of cvSignals.fit_reasons.slice(0, 2)) {
+          reasons.push({
+            type: "cv_fit",
+            label: String(tip).slice(0, 180),
+            score: scored.match_breakdown.cv_fit,
+          });
+        }
       }
 
       const saved = await this.command.upsertMatchScore({
@@ -242,6 +292,19 @@ class CandidateMatchingCommand {
           },
           semantic_provider: semanticProvider,
           text_too_short: textTooShort,
+          cv_gpt: cvSignals.skipped
+            ? { skipped: true, reason: cvSignals.reason || "skipped" }
+            : {
+                skipped: false,
+                input_mode: cvSignals.input_mode,
+                model: cvSignals.model,
+                skills_from_cv: cvSignals.skills_from_cv,
+                job_titles_from_cv: cvSignals.job_titles_from_cv,
+                years_experience_estimate: cvSignals.years_experience_estimate,
+                location_hints: cvSignals.location_hints,
+                cost: cvSignals.cost,
+                usage: cvSignals.usage,
+              },
         },
         match_reasons: reasons.slice(0, 4),
         model_version,
@@ -257,7 +320,7 @@ class CandidateMatchingCommand {
       return wrapper.data(saved.data);
     } catch (err) {
       logger.error(ctx, "computeApplicationMatch", "scoring failed", err);
-      // Even on embedding failure, persist rule-based score so UI is not stuck at 0%/Calculating
+      // Even on embedding failure, persist rule-based (+ CV) score so UI is not stuck
       try {
         const scored = computeHybridScore({
           jobEmbedding: [],
@@ -265,21 +328,22 @@ class CandidateMatchingCommand {
           jobSkillIds: jobSrc.data.skill_ids || [],
           workerSkillIds: workerSrc.data.skill_ids || [],
           jobSkillNames: jobSrc.data.skill_names || [],
-          workerSkillNames: workerSrc.data.skill_names || [],
+          workerSkillNames: enriched.skill_names || [],
           experienceLevelName: jobSrc.data.experience_level_name,
-          totalYears: totalYearsFromExperiences(workerSrc.data.work_experiences),
+          totalYears,
           jobText,
-          educations: workerSrc.data.educations || [],
+          educations: enriched.educations || [],
           jobTitle: jobSrc.data.title,
-          workExperiences: workerSrc.data.work_experiences || [],
+          workExperiences: enriched.work_experiences || [],
           expectedSalary: workerSrc.data.expected_salary,
           salaryMin: jobSrc.data.salary_min,
           salaryMax: jobSrc.data.salary_max,
           jobLocation: jobSrc.data.location,
           jobCity: jobSrc.data.city,
           jobProvince: jobSrc.data.province,
-          workerAddress: workerSrc.data.address,
+          workerAddress: enriched.address,
           semanticPctOverride: 0,
+          cvFitPct: cvSignals.skipped ? null : cvSignals.cv_fit_score,
         });
         const failed = await this.command.upsertMatchScore({
           application_id,
@@ -291,12 +355,15 @@ class CandidateMatchingCommand {
             ...scored.match_breakdown,
             error: "embedding_or_scoring_partial",
             semantic_provider: "skipped_error",
+            cv_gpt: cvSignals.skipped
+              ? { skipped: true, reason: cvSignals.reason || "skipped" }
+              : { skipped: false, model: cvSignals.model, cost: cvSignals.cost },
           },
           match_reasons: [
             ...(scored.match_reasons || []),
             {
               type: "error",
-              label: "Partial score (semantic unavailable); rules still applied",
+              label: "Partial score (semantic unavailable); rules/CV still applied",
               score: scored.match_score,
             },
           ].slice(0, 4),

@@ -247,9 +247,10 @@ const clampScore = (value) => Math.max(0, Math.min(100, Math.round(value)));
 
 /**
  * Hybrid match score 0–100.
- * Components: semantic, skills, position, experience (work history), salary, location.
+ * Components: semantic, skills, cv_fit (GPT resume), position, experience, salary, location.
  * @param {object} opts
  * @param {number} [opts.semanticPctOverride] - optional 0–100 from ES knn
+ * @param {number|null} [opts.cvFitPct] - optional 0–100 from GPT CV reader; null → drop weight
  */
 const computeHybridScore = ({
   jobEmbedding,
@@ -273,17 +274,23 @@ const computeHybridScore = ({
   workerAddress,
   weights: weightsOverride,
   semanticPctOverride,
+  cvFitPct = null,
 }) => {
   const cfg = config.get("/matching") || {};
   const weights = weightsOverride || cfg.weights || {};
-  const wSemantic = Number(weights.semantic ?? 0.25);
-  const wSkills = Number(weights.skills ?? 0.25);
-  const wPosition = Number(weights.position ?? 0.15);
-  const wExperience = Number(weights.experience ?? 0.15);
-  const wSalary = Number(weights.salary ?? 0.1);
+  const wSemantic = Number(weights.semantic ?? 0.15);
+  const wSkills = Number(weights.skills ?? 0.22);
+  const wCvFitRaw = Number(weights.cv_fit ?? weights.cvFit ?? 0.2);
+  const wPosition = Number(weights.position ?? 0.13);
+  const wExperience = Number(weights.experience ?? 0.12);
+  const wSalary = Number(weights.salary ?? 0.08);
   const wLocation = Number(weights.location ?? 0.1);
   // Keep education as soft bonus folded into remaining weight if explicitly provided
   const wEducation = Number(weights.education ?? 0);
+
+  const hasCvFit =
+    cvFitPct != null && Number.isFinite(Number(cvFitPct));
+  const wCvFit = hasCvFit ? wCvFitRaw : 0;
 
   const semanticPct =
     semanticPctOverride != null && Number.isFinite(Number(semanticPctOverride))
@@ -308,13 +315,22 @@ const computeHybridScore = ({
     workerAddress,
   });
   const educationPct = educationFitPct({ jobText, educations });
+  const cvPct = hasCvFit ? Math.max(0, Math.min(100, Number(cvFitPct))) : 0;
 
   const weightSum =
-    wSemantic + wSkills + wPosition + wExperience + wSalary + wLocation + wEducation || 1;
+    wSemantic +
+      wSkills +
+      wCvFit +
+      wPosition +
+      wExperience +
+      wSalary +
+      wLocation +
+      wEducation || 1;
 
   const match_score = clampScore(
     (wSemantic * semanticPct +
       wSkills * skillsPct +
+      wCvFit * cvPct +
       wPosition * positionPct +
       wExperience * experiencePct +
       wSalary * salaryPct +
@@ -326,6 +342,7 @@ const computeHybridScore = ({
   const match_breakdown = {
     semantic: clampScore(semanticPct),
     skills: clampScore(skillsPct),
+    cv_fit: hasCvFit ? clampScore(cvPct) : null,
     position: clampScore(positionPct),
     experience: clampScore(experiencePct),
     salary: clampScore(salaryPct),
@@ -334,6 +351,7 @@ const computeHybridScore = ({
     weights: {
       semantic: wSemantic,
       skills: wSkills,
+      cv_fit: wCvFit,
       position: wPosition,
       experience: wExperience,
       salary: wSalary,
@@ -343,13 +361,16 @@ const computeHybridScore = ({
   };
 
   const reasonCandidates = [
+    { type: "cv_fit", label: "GPT CV content fit vs job posting", score: match_breakdown.cv_fit },
     { type: "skills", label: "Skill overlap with job requirements", score: match_breakdown.skills },
     { type: "position", label: "Job title / role fit from work history", score: match_breakdown.position },
     { type: "experience", label: "Work history / experience level fit", score: match_breakdown.experience },
     { type: "salary", label: "Expected salary vs job range", score: match_breakdown.salary },
     { type: "location", label: "Location fit", score: match_breakdown.location },
     { type: "semantic", label: "Profile similarity to job description", score: match_breakdown.semantic },
-  ].sort((a, b) => b.score - a.score);
+  ]
+    .filter((r) => r.score != null)
+    .sort((a, b) => b.score - a.score);
 
   const match_reasons = reasonCandidates.slice(0, 3).map((r) => ({
     type: r.type,

@@ -50,14 +50,19 @@ FRONTEND_URL=http://localhost:5173
 
 Hybrid match scores (0–100) for each `job_application`, exposed on the recruiter pipeline.
 
+**hybrid-v3** combines rule-based signals (skills, position, experience, salary, location, profile semantic) with **GPT CV read** (`cv_fit`): the application resume is read by GPT-5 mini (OpenAI Responses API) so scores reflect CV content, not only the profile form.
+
 1. Apply migration `src/migration/026_application_match_scores.sql`
-2. Configure matching ENV (see `.env-example`): `MATCHING_*`
+2. Configure matching ENV (see `.env-example`): `MATCHING_*`, plus `OPENAI_API_KEY` for CV GPT (`MATCHING_CV_GPT_ENABLED=true`)
 3. Start API (`npm run dev`) — starts BullMQ matching worker automatically
 4. Optional backfill for existing applications:
 
 ```bash
 node scripts/backfill_application_matches.js
 ```
+
+Default weights (renormalize if CV GPT is skipped / no resume):
+`skills 0.22`, `cv_fit 0.20`, `semantic 0.15`, `position 0.13`, `experience 0.12`, `location 0.10`, `salary 0.08`
 
 Endpoints:
 - `GET /api/v1/recruiter/pipeline/candidates?sort=match_score&min_match_score=60`

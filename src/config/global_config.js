@@ -59,16 +59,20 @@ const config = {
   },
   matching: {
     enabled: process.env.MATCHING_ENABLED !== "false",
-    modelVersion: process.env.MATCHING_MODEL_VERSION || "hybrid-v2",
+    modelVersion: process.env.MATCHING_MODEL_VERSION || "hybrid-v3",
+    // GPT CV read for matching (requires OPENAI_API_KEY). Set false to skip.
+    cvGptEnabled: process.env.MATCHING_CV_GPT_ENABLED !== "false",
     embeddingUrl: process.env.MATCHING_EMBEDDING_URL || "",
     embeddingApiKey: process.env.MATCHING_EMBEDDING_API_KEY || "",
     embeddingDims: Number(process.env.MATCHING_EMBEDDING_DIMS || 256),
     weights: {
-      semantic: Number(process.env.MATCHING_W_SEMANTIC || 0.25),
-      skills: Number(process.env.MATCHING_W_SKILLS || 0.25),
-      position: Number(process.env.MATCHING_W_POSITION || 0.15),
-      experience: Number(process.env.MATCHING_W_EXPERIENCE || 0.15),
-      salary: Number(process.env.MATCHING_W_SALARY || 0.1),
+      // hybrid-v3: rule-based + GPT CV fit (weights renormalize if cv_fit skipped)
+      semantic: Number(process.env.MATCHING_W_SEMANTIC || 0.15),
+      skills: Number(process.env.MATCHING_W_SKILLS || 0.22),
+      cv_fit: Number(process.env.MATCHING_W_CV_FIT || 0.2),
+      position: Number(process.env.MATCHING_W_POSITION || 0.13),
+      experience: Number(process.env.MATCHING_W_EXPERIENCE || 0.12),
+      salary: Number(process.env.MATCHING_W_SALARY || 0.08),
       location: Number(process.env.MATCHING_W_LOCATION || 0.1),
       education: Number(process.env.MATCHING_W_EDUCATION || 0),
     },

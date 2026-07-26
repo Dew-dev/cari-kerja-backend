@@ -15,10 +15,20 @@ class Query {
             ja.id AS application_id,
             ja.job_post_id,
             ja.worker_id,
+            ja.resume_id,
             jp.recruiter_id,
-            jp.title AS job_title
+            jp.title AS job_title,
+            re.resume_url AS resume_url,
+            (
+              SELECT r2.resume_url
+              FROM resumes r2
+              WHERE r2.worker_id = ja.worker_id
+                AND r2.is_default = true
+              LIMIT 1
+            ) AS default_resume_url
          FROM job_applications ja
          JOIN job_posts jp ON jp.id = ja.job_post_id
+         LEFT JOIN resumes re ON re.id = ja.resume_id
          WHERE ja.id = $1
          LIMIT 1`,
         [application_id],
