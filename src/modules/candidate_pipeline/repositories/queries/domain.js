@@ -85,9 +85,9 @@ class CandidatePipeline {
 
     const matchScoresAvailable = result.meta?.match_scores_available !== false;
 
-    // Kick off scoring for still-pending applications so cards leave "Calculating…"
-    // Prefer sync (await) for a few rows so drawer/list get terminal ready/failed quickly.
-    // Skip entirely when AMS join fell back (fake pending on every row).
+    // Kick off scoring for still-pending applications without blocking the list response.
+    // Blocking preferSync here starved other drawer APIs (worker detail / timeline) and
+    // left the FE spinner under the match card spinning indefinitely.
     if (matchScoresAvailable) {
       const pendingApps = rows
         .filter((row) => {
@@ -95,35 +95,18 @@ class CandidatePipeline {
           const status = String(row.match_status || "pending");
           return !["ready", "failed", "insufficient_data"].includes(status);
         })
-        .slice(0, 5);
+        .slice(0, 10);
       if (pendingApps.length > 0) {
         const {
           enqueueOrComputeApplicationMatch,
         } = require("../../../../helpers/queues/matching.queue");
-        // Await sync for first batch so response can refresh statuses when possible.
-        try {
-          const settled = await Promise.allSettled(
-            pendingApps.map((row) =>
-              enqueueOrComputeApplicationMatch(row.application_id, { preferSync: true }),
-            ),
-          );
-          for (let i = 0; i < settled.length; i += 1) {
-            const item = settled[i];
-            if (item.status !== "fulfilled" || !item.value || item.value.mode !== "sync") continue;
-            const data = item.value.data;
-            const scoreRow = data?.match || data;
-            if (!scoreRow || scoreRow.match_score == null) continue;
-            const appId = pendingApps[i].application_id;
-            const target = rows.find((r) => r.application_id === appId);
-            if (!target) continue;
-            target.match_score = Number(scoreRow.match_score);
-            target.match_status = scoreRow.match_status || "ready";
-            if (scoreRow.match_breakdown) target.match_breakdown = scoreRow.match_breakdown;
-            if (scoreRow.match_reasons) target.match_reasons = scoreRow.match_reasons;
-          }
-        } catch (err) {
+        Promise.allSettled(
+          pendingApps.map((row) =>
+            enqueueOrComputeApplicationMatch(row.application_id),
+          ),
+        ).catch((err) => {
           logger.error(ctx, "getPipelineCandidates", "pending match kickoff failed", err.message || err);
-        }
+        });
       }
     }
 

@@ -902,7 +902,7 @@ class Jobposts {
     // 2. Ambil worker detail
     const worker = await this.query.findWorkerByApplicationId({ id });
 
-    if (worker.err) {
+    if (worker.err || !worker.data) {
       logger.error(
         ctx,
         "getWorkerByApplication",
@@ -912,7 +912,7 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Worker not found"));
     }
 
-    // 3. Ambil answers untuk application ini
+    // 3. Ambil answers untuk application ini (non-blocking for empty failures)
     const answersResult = await this.query.findAnswersByApplicationId({ id });
     
     const workerData = {

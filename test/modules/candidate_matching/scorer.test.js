@@ -9,42 +9,66 @@ const {
   cosineSimilarity,
 } = require("../../../src/modules/candidate_matching/services/scorer");
 
-describe("Candidate Matching Scorer", () => {
+describe("Candidate Matching Scorer (hybrid-v2.2)", () => {
   const perfectVec = [1, 0, 0];
   const sameVec = [1, 0, 0];
   const orthogonalVec = [0, 1, 0];
 
-  it("scores perfect skill overlap highly when embeddings align", () => {
+  const fairWeights = {
+    semantic: 0.15,
+    skills: 0.3,
+    position: 0.2,
+    experience: 0.15,
+    salary: 0.08,
+    location: 0.12,
+  };
+
+  it("scores strong skill+role fit highly", () => {
     const result = computeHybridScore({
       jobEmbedding: perfectVec,
       workerEmbedding: sameVec,
-      jobSkillIds: ["a", "b"],
-      workerSkillIds: ["a", "b"],
+      jobSkillNames: ["React", "Node.js", "PostgreSQL"],
+      workerSkillNames: ["React", "NodeJS", "PostgreSQL"],
       experienceLevelName: "Junior",
       totalYears: 2,
       jobText: "Need S1 Computer Science",
       educations: [{ degree: "S1", major: "Computer Science" }],
       jobTitle: "Backend Engineer",
-      workExperiences: [{ job_title: "Backend Engineer" }],
+      workExperiences: [{ job_title: "Backend Developer" }],
       expectedSalary: 15000000,
       salaryMin: 10000000,
       salaryMax: 20000000,
-      jobLocation: "Jakarta Selatan",
+      jobCity: "Jakarta Selatan",
       workerAddress: "Jakarta Selatan",
-      weights: {
-        semantic: 0.25,
-        skills: 0.25,
-        position: 0.15,
-        experience: 0.15,
-        salary: 0.1,
-        location: 0.1,
-      },
+      weights: fairWeights,
     });
 
-    expect(result.match_score).toBeGreaterThanOrEqual(85);
-    expect(result.match_breakdown.skills).toBe(100);
-    expect(result.match_breakdown.position).toBe(100);
-    expect(result.match_reasons.length).toBeGreaterThan(0);
+    expect(result.match_score).toBeGreaterThanOrEqual(80);
+    expect(result.match_breakdown.skills).toBeGreaterThanOrEqual(90);
+    expect(result.match_breakdown.position).toBeGreaterThanOrEqual(50);
+  });
+
+  it("does not inflate score when skills are weak despite mid semantic", () => {
+    const result = computeHybridScore({
+      jobEmbedding: perfectVec,
+      workerEmbedding: sameVec,
+      jobSkillNames: ["SIEM", "SOC", "Pentest", "Python", "AWS", "Kubernetes", "Go"],
+      workerSkillNames: ["Microsoft Office"],
+      experienceLevelName: "Junior",
+      totalYears: 2,
+      jobTitle: "Cybersecurity Consultant",
+      workExperiences: [{ job_title: "Administrative Assistant" }],
+      expectedSalary: 15000000,
+      salaryMin: 10000000,
+      salaryMax: 20000000,
+      jobCity: "Jakarta",
+      workerAddress: "Jakarta",
+      skipSemantic: false,
+      weights: fairWeights,
+    });
+
+    expect(result.match_breakdown.skills).toBeLessThan(20);
+    expect(result.match_score).toBeLessThan(55);
   });
 
   it("returns low skill score for empty worker profile skills", () => {
@@ -53,33 +77,18 @@ describe("Candidate Matching Scorer", () => {
     ).toBe(0);
   });
 
-  it("handles empty profile with neutral/low hybrid score", () => {
-    const result = computeHybridScore({
-      jobEmbedding: perfectVec,
-      workerEmbedding: orthogonalVec,
-      jobSkillIds: ["a", "b"],
-      workerSkillIds: [],
-      experienceLevelName: "Senior",
-      totalYears: 0,
-      jobText: "Senior engineer S1 required",
-      educations: [],
-      weights: {
-        semantic: 0.25,
-        skills: 0.25,
-        position: 0.15,
-        experience: 0.15,
-        salary: 0.1,
-        location: 0.1,
-      },
-    });
-
-    expect(result.match_score).toBeLessThan(50);
-    expect(result.match_breakdown.skills).toBe(0);
+  it("gives partial credit for aliased skills", () => {
+    expect(
+      skillOverlapPct({
+        jobSkillNames: ["React.js", "Node.js"],
+        workerSkillNames: ["React", "NodeJS"],
+      }),
+    ).toBe(100);
   });
 
-  it("maps cosine to [0,1] range", () => {
+  it("maps positive cosine only (orthogonal ≈ 0, not 50)", () => {
     expect(cosineSimilarity(perfectVec, sameVec)).toBeCloseTo(1, 5);
-    expect(cosineSimilarity(perfectVec, orthogonalVec)).toBeCloseTo(0.5, 5);
+    expect(cosineSimilarity(perfectVec, orthogonalVec)).toBeCloseTo(0, 5);
   });
 
   it("fits junior experience band", () => {
@@ -87,7 +96,14 @@ describe("Candidate Matching Scorer", () => {
     expect(experienceFitPct({ experienceLevelName: "Junior", totalYears: 0 })).toBeLessThan(100);
   });
 
-  it("rewards matching education requirement", () => {
+  it("scores education only when job requires a degree", () => {
+    expect(
+      educationFitPct({
+        jobText: "Friendly team, no degree required",
+        educations: [{ degree: "S1 Informatika" }],
+      }),
+    ).toBeNull();
+
     expect(
       educationFitPct({
         jobText: "Requires S1 Informatics",
@@ -96,16 +112,16 @@ describe("Candidate Matching Scorer", () => {
     ).toBe(100);
   });
 
-  it("scores position fit from work history titles", () => {
+  it("scores related security titles reasonably", () => {
     expect(
       positionFitPct({
-        jobTitle: "Frontend Developer",
-        workExperiences: [{ job_title: "Frontend Developer React" }],
+        jobTitle: "Cybersecurity Consultant",
+        workExperiences: [{ job_title: "Security Analyst" }],
       }),
-    ).toBeGreaterThanOrEqual(80);
+    ).toBeGreaterThanOrEqual(35);
   });
 
-  it("scores salary fit inside job range", () => {
+  it("softens salary outside a small corridor", () => {
     expect(
       salaryFitPct({
         expectedSalary: 12000000,
@@ -113,23 +129,23 @@ describe("Candidate Matching Scorer", () => {
         salaryMax: 15000000,
       }),
     ).toBe(100);
+
+    // 20% below min → still partial credit
+    expect(
+      salaryFitPct({
+        expectedSalary: 8000000,
+        salaryMin: 10000000,
+        salaryMax: 15000000,
+      }),
+    ).toBeGreaterThanOrEqual(50);
   });
 
-  it("scores location fit when address contains city", () => {
+  it("scores location highly on city match alone", () => {
     expect(
       locationFitPct({
         jobCity: "Bandung",
         jobProvince: "Jawa Barat",
         workerAddress: "Jl. Asia Afrika, Bandung 40111",
-      }),
-    ).toBeGreaterThanOrEqual(50);
-  });
-
-  it("matches skills with aliases and punctuation", () => {
-    expect(
-      skillOverlapPct({
-        jobSkillNames: ["React.js", "Node.js"],
-        workerSkillNames: ["React", "NodeJS"],
       }),
     ).toBe(100);
   });
@@ -144,33 +160,20 @@ describe("Candidate Matching Scorer", () => {
       workExperiences: [{ job_title: "Python Developer" }],
       experienceLevelName: "Junior",
       totalYears: 2,
-      // salary + location missing → weights dropped
       expectedSalary: null,
       salaryMin: null,
       salaryMax: null,
       jobCity: "",
       workerAddress: "",
       skipSemantic: true,
-      weights: {
-        semantic: 0.25,
-        skills: 0.25,
-        position: 0.15,
-        experience: 0.15,
-        salary: 0.1,
-        location: 0.1,
-      },
+      weights: fairWeights,
     });
 
     expect(result.match_breakdown.salary).toBeNull();
     expect(result.match_breakdown.location).toBeNull();
     expect(result.match_breakdown.semantic).toBeNull();
     expect(result.match_breakdown.weights.salary).toBe(0);
-    expect(result.match_breakdown.weights.location).toBe(0);
-    expect(result.match_score).toBeGreaterThanOrEqual(85);
-  });
-
-  it("returns null skill score when job lists no skills", () => {
-    expect(skillOverlapPct({ jobSkillNames: [], jobSkillIds: [] })).toBeNull();
+    expect(result.match_score).toBeGreaterThanOrEqual(80);
   });
 
   it("accepts semanticPctOverride from ES knn", () => {

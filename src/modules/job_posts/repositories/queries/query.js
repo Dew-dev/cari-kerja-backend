@@ -634,19 +634,19 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
 
       FROM job_applications ja
       JOIN workers w ON w.id = ja.worker_id
-      JOIN users u ON u.id = w.user_id
+      LEFT JOIN users u ON u.id = w.user_id
       LEFT JOIN application_statuses ast ON ast.id = ja.application_status_id
       LEFT JOIN resumes re ON re.id = ja.resume_id
 
       WHERE ja.id = $1
       LIMIT 1;
     `;
-      // console.log("Executing query to find worker by application ID:", query, [
-      //   id,
-      // ]);
       const result = await this.db.executeQuery(query, [id]);
-
-      return wrapper.data(result.rows[0]);
+      const row = result?.rows?.[0];
+      if (!row) {
+        return wrapper.error("Worker not found");
+      }
+      return wrapper.data(row);
     } catch (error) {
       logger.error(ctx, "findWorkerByApplicationId", "Query failed", error);
       return wrapper.error("Failed to fetch worker");
