@@ -29,6 +29,15 @@ const config = {
     clientSecret: process.env.TELEGRAM_CLIENT_SECRET,
     redirectUri: process.env.TELEGRAM_REDIRECT_URI,
   },
+  telegramBot: {
+    token: process.env.TELEGRAM_BOT_TOKEN || "",
+    username: process.env.TELEGRAM_BOT_USERNAME || "",
+    webhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET || "",
+    apiBase: process.env.TELEGRAM_API_BASE || "https://api.telegram.org",
+    rateLimitMax: Number(process.env.TELEGRAM_RATE_LIMIT_MAX || 25),
+    rateLimitDuration: Number(process.env.TELEGRAM_RATE_LIMIT_DURATION_MS || 1000),
+    startPayloadTtlSec: Number(process.env.TELEGRAM_START_PAYLOAD_TTL_SEC || 3600),
+  },
   r2BucketAuth: {
     enpS3Client: process.env.R2_ENDPOINT_S3_CLIENT,
     userApiToken: process.env.R2_USER_API_TOKEN,
