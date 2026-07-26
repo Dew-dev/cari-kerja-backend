@@ -1,13 +1,16 @@
 const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError } = require("../../../../helpers/errors");
+const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
 const { buildAuthStatus } = require("../../../../helpers/auth/login_status");
 const {
   buildTelegramProfileFields,
   omitSensitiveTelegramFields,
 } = require("../../../../helpers/auth/telegram_profile");
 const ctx = "Worker-Query-Domain";
+
+const isQueryFailure = (err) =>
+  typeof err === "string" && err.toLowerCase().includes("error querying");
 
 class Worker {
   constructor(db) {
@@ -20,6 +23,11 @@ class Worker {
     const worker = await this.query.findOneByUserId(user_id);
     if (worker.err) {
       logger.error(ctx, "getWorker", "Can not find worker", worker.err);
+      if (isQueryFailure(worker.err)) {
+        return wrapper.error(
+          new InternalServerError("Failed to load worker profile")
+        );
+      }
       return wrapper.error(new NotFoundError("Can not find worker"));
     }
 
@@ -57,6 +65,11 @@ class Worker {
     const worker = await this.query.findOneById(id);
     if (worker.err) {
       logger.error(ctx, "getWorkerById", "Can not find worker", worker.err);
+      if (isQueryFailure(worker.err)) {
+        return wrapper.error(
+          new InternalServerError("Failed to load worker profile")
+        );
+      }
       return wrapper.error(new NotFoundError("Can not find worker"));
     }
 
