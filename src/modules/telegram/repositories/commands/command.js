@@ -20,6 +20,25 @@ class Command {
     );
   }
 
+  /**
+   * Private-chat fallback: Telegram user id (OIDC sub / provider_id) == chat.id
+   * Safe without start payload when deep-link param is dropped by the mobile client.
+   */
+  async linkTelegramBotByProviderId({ providerId, chatId, username }) {
+    return this.db.executeQuery(
+      `UPDATE ${collection}
+       SET telegram_chat_id = $2,
+           telegram_notify_username = COALESCE($3, telegram_notify_username),
+           telegram_bot_linked_at = NOW(),
+           updated_at = NOW()
+       WHERE login_provider = 'telegram'
+         AND provider_id = $1
+         AND deleted_at IS NULL
+       RETURNING id`,
+      [String(providerId), String(chatId), username || null]
+    );
+  }
+
   async unlinkTelegramBotByChatId(chatId) {
     return this.db.executeQuery(
       `UPDATE ${collection}

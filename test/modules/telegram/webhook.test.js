@@ -82,4 +82,32 @@ describe("Telegram webhook domain", () => {
 
     expect(unlink).toHaveBeenCalledWith(99);
   });
+
+  it("links via provider_id when /start has no payload (mobile deep-link drop)", async () => {
+    const linkByProvider = jest.fn().mockResolvedValue({
+      rows: [{ id: userId }],
+    });
+    const domain = new TelegramDomain({});
+    domain.command.linkTelegramBotByProviderId = linkByProvider;
+    domain._safeReply = jest.fn().mockResolvedValue(undefined);
+
+    const result = await domain.handleWebhook({
+      secretToken: "test-webhook-secret",
+      update: {
+        message: {
+          text: "/start",
+          chat: { id: 8939532826, type: "private" },
+          from: { username: "worker1" },
+        },
+      },
+    });
+
+    expect(result.err).toBeNull();
+    expect(linkByProvider).toHaveBeenCalledWith({
+      providerId: "8939532826",
+      chatId: 8939532826,
+      username: "worker1",
+    });
+    expect(domain._safeReply.mock.calls[0][1]).toContain("Notifikasi Telegram aktif");
+  });
 });

@@ -33,6 +33,7 @@ class TelegramDomain {
       }
 
       const chatId = message.chat.id;
+      const chatType = message.chat.type || "private";
       const fromUsername = message.from?.username
         ? String(message.from.username).toLowerCase()
         : null;
@@ -50,41 +51,65 @@ class TelegramDomain {
       if (text.startsWith("/start")) {
         const parts = text.split(/\s+/);
         const payload = parts[1] || "";
-        if (!payload) {
+
+        // 1) Preferred: signed deep-link payload from FE
+        if (payload) {
+          const verified = verifyTelegramStartPayload(payload);
+          if (!verified?.userId) {
+            await this._safeReply(
+              chatId,
+              "Link aktivasi tidak valid atau sudah kedaluwarsa. Buka ulang tombol di aplikasi Cari Kerja."
+            );
+            return wrapper.data({ handled: "start_invalid" });
+          }
+
+          const result = await this.command.linkTelegramBot({
+            userId: verified.userId,
+            chatId,
+            username: fromUsername,
+          });
+          const linked = result?.rows?.[0]?.id;
+          if (!linked) {
+            await this._safeReply(
+              chatId,
+              "Akun Telegram login tidak ditemukan. Login dulu dengan Telegram di Cari Kerja, lalu coba lagi."
+            );
+            return wrapper.data({ handled: "start_user_not_found" });
+          }
+
           await this._safeReply(
             chatId,
-            "Untuk mengaktifkan notifikasi, buka tombol “Aktifkan notifikasi Telegram” di aplikasi Cari Kerja, jangan Start dari sini saja."
+            "Notifikasi Telegram aktif. Kamu akan menerima job alert dan update lamaran di sini."
           );
-          return wrapper.data({ handled: "start_missing_payload" });
-        }
-        const verified = verifyTelegramStartPayload(payload);
-        if (!verified?.userId) {
-          await this._safeReply(
-            chatId,
-            "Link aktivasi tidak valid atau sudah kedaluwarsa. Buka ulang tombol di aplikasi Cari Kerja."
-          );
-          return wrapper.data({ handled: "start_invalid" });
+          return wrapper.data({ handled: "start_ok", userId: verified.userId });
         }
 
-        const result = await this.command.linkTelegramBot({
-          userId: verified.userId,
-          chatId,
-          username: fromUsername,
-        });
-        const linked = result?.rows?.[0]?.id;
-        if (!linked) {
-          await this._safeReply(
+        // 2) Fallback: mobile clients often drop ?start= and send bare /start.
+        // In private chats, chat.id === Telegram user id === users.provider_id (OIDC sub).
+        if (chatType === "private") {
+          const byProvider = await this.command.linkTelegramBotByProviderId({
+            providerId: String(chatId),
             chatId,
-            "Akun Telegram login tidak ditemukan. Login dulu dengan Telegram di Cari Kerja, lalu coba lagi."
-          );
-          return wrapper.data({ handled: "start_user_not_found" });
+            username: fromUsername,
+          });
+          const linkedId = byProvider?.rows?.[0]?.id;
+          if (linkedId) {
+            await this._safeReply(
+              chatId,
+              "Notifikasi Telegram aktif. Kamu akan menerima job alert dan update lamaran di sini."
+            );
+            return wrapper.data({
+              handled: "start_ok_provider_fallback",
+              userId: linkedId,
+            });
+          }
         }
 
         await this._safeReply(
           chatId,
-          "Notifikasi Telegram aktif. Kamu akan menerima job alert dan update lamaran di sini."
+          "Akun Telegram belum terhubung ke Cari Kerja. Login dulu dengan Telegram di aplikasi, lalu tekan lagi tombol aktifkan notifikasi."
         );
-        return wrapper.data({ handled: "start_ok", userId: verified.userId });
+        return wrapper.data({ handled: "start_missing_payload_unmatched" });
       }
 
       return wrapper.data({ handled: "ignored" });
