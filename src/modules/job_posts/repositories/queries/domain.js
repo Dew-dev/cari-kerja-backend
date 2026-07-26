@@ -278,17 +278,73 @@ class Jobposts {
       idx += 1;
     }
 
-    // 🎯 Filter jobs by matching skills (Recommendations) when worker has skills
-    // Only apply if recommendations flag is true (default) and user_id is provided
-    if (recommendations !== false && user_id !== undefined && user_id !== null && user_id !== "") {
+    // HOT relevance: when no explicit city/province/category, infer from applications
+    // and hard-filter with OR (city match | remote | category). Empty → fallback all hot.
+    const hasExplicitGeoOrCategory = [
+      cities_name,
+      province_name,
+      category,
+    ].some((v) => v !== undefined && v !== null && String(v).trim() !== "");
+
+    let appliedHotRelevance = false;
+    let hotRelevanceStartIdx = null;
+
+    if (
+      listing === "hot" &&
+      !hasExplicitGeoOrCategory &&
+      user_id !== undefined &&
+      user_id !== null &&
+      user_id !== ""
+    ) {
+      try {
+        const prefsResult = await this.query.getWorkerHotPreferences(user_id);
+        const prefs = prefsResult?.data || {};
+        const preferredCity =
+          prefs.preferred_city && String(prefs.preferred_city).trim()
+            ? String(prefs.preferred_city).trim()
+            : null;
+        const preferredCategoryId =
+          prefs.preferred_category_id !== undefined &&
+          prefs.preferred_category_id !== null &&
+          !Number.isNaN(Number(prefs.preferred_category_id))
+            ? Number(prefs.preferred_category_id)
+            : null;
+
+        if (preferredCity || preferredCategoryId !== null) {
+          hotRelevanceStartIdx = conditions.length;
+          const orParts = [];
+          if (preferredCity) {
+            orParts.push(`(j.is_remote = TRUE OR j.city ILIKE $${idx})`);
+            values.push(preferredCity);
+            idx += 1;
+          }
+          if (preferredCategoryId !== null) {
+            orParts.push(`j.category_id = $${idx}`);
+            values.push(preferredCategoryId);
+            idx += 1;
+          }
+          conditions.push(` AND (${orParts.join(" OR ")})`);
+          appliedHotRelevance = true;
+        }
+      } catch (error) {
+        logger.error(ctx, "getJobPostsLogic", "Error inferring hot preferences", error);
+      }
+    }
+
+    // Skill recommendations — skip for HOT catalogue (paid inventory must stay visible)
+    if (
+      listing !== "hot" &&
+      recommendations !== false &&
+      user_id !== undefined &&
+      user_id !== null &&
+      user_id !== ""
+    ) {
       try {
         const workerSkillsResult = await this.workerSkillsQuery.getAllByWorkerId(user_id);
-        
+
         if (!workerSkillsResult.err && workerSkillsResult.data && workerSkillsResult.data.length > 0) {
-          // Worker has skills, so filter to only show jobs that have at least one matching skill
-          const skillIds = workerSkillsResult.data.map(skill => skill.skill_id);
-          
-          // Build condition to show only jobs that have at least one skill match
+          const skillIds = workerSkillsResult.data.map((skill) => skill.skill_id);
+
           conditions.push(` AND EXISTS (
             SELECT 1 FROM job_post_skills jps_filter
             WHERE jps_filter.job_post_id = j.id 
@@ -296,11 +352,9 @@ class Jobposts {
           )`);
           values.push(skillIds);
           idx += 1;
-          
         }
       } catch (error) {
         logger.error(ctx, "getJobPostsLogic", "Error fetching worker skills", error);
-        // Continue without skill filtering if there's an error
       }
     } else if (recommendations === false && user_id) {
     }
@@ -316,11 +370,26 @@ class Jobposts {
     const orderColumn = sortableColumns[sort_by] || sortableColumns.created_at;
     const orderDirection = sort_order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
-    const conditionsString = conditions.join("\n");
+    let conditionsString = conditions.join("\n");
 
-    const count = await this.query.countAllJobPosts(conditionsString, values);
-    // //console.log(count);
-    const totalData = count.data.rowCount;
+    let count = await this.query.countAllJobPosts(conditionsString, values);
+    let totalData = count.data.rowCount;
+
+    // Fallback: if inferred HOT relevance yields nothing, show all hot again
+    if (appliedHotRelevance && Number(totalData) === 0 && hotRelevanceStartIdx !== null) {
+      const removed = conditions.splice(hotRelevanceStartIdx);
+      const relevanceValueCount = removed.reduce((n, clause) => {
+        const matches = clause.match(/\$\d+/g);
+        return n + (matches ? matches.length : 0);
+      }, 0);
+      if (relevanceValueCount > 0) {
+        values.splice(values.length - relevanceValueCount, relevanceValueCount);
+        idx -= relevanceValueCount;
+      }
+      conditionsString = conditions.join("\n");
+      count = await this.query.countAllJobPosts(conditionsString, values);
+      totalData = count.data.rowCount;
+    }
 
     const data = {
       conditions: conditionsString,

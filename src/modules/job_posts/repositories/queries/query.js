@@ -800,6 +800,58 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       return wrapper.error("Failed to fetch responsibilities");
     }
   }
+
+  /**
+   * Infer preferred city + category from a worker's recent applications (mode).
+   * @param {string} worker_id
+   * @param {number} [limit=10]
+   * @returns {Promise<{err:*, data:{preferred_city:string|null, preferred_category_id:number|null}}>}
+   */
+  async getWorkerHotPreferences(worker_id, limit = 10) {
+    try {
+      const query = `
+      WITH recent AS (
+        SELECT j.city, j.category_id
+        FROM job_applications ja
+        JOIN job_posts j ON j.id = ja.job_post_id
+        WHERE ja.worker_id = $1
+        ORDER BY ja.applied_at DESC NULLS LAST
+        LIMIT $2
+      ),
+      city_mode AS (
+        SELECT city AS preferred_city, COUNT(*)::int AS c
+        FROM recent
+        WHERE city IS NOT NULL AND BTRIM(city) <> ''
+        GROUP BY city
+        ORDER BY c DESC, preferred_city ASC
+        LIMIT 1
+      ),
+      cat_mode AS (
+        SELECT category_id AS preferred_category_id, COUNT(*)::int AS c
+        FROM recent
+        WHERE category_id IS NOT NULL
+        GROUP BY category_id
+        ORDER BY c DESC, preferred_category_id ASC
+        LIMIT 1
+      )
+      SELECT
+        (SELECT preferred_city FROM city_mode) AS preferred_city,
+        (SELECT preferred_category_id FROM cat_mode) AS preferred_category_id
+      `;
+      const result = await this.db.executeQuery(query, [worker_id, limit]);
+      const row = result.rows?.[0] || {};
+      return wrapper.data({
+        preferred_city: row.preferred_city || null,
+        preferred_category_id:
+          row.preferred_category_id !== undefined && row.preferred_category_id !== null
+            ? Number(row.preferred_category_id)
+            : null,
+      });
+    } catch (error) {
+      logger.error(ctx, "getWorkerHotPreferences", "Query failed", error);
+      return wrapper.error("Failed to fetch worker hot preferences");
+    }
+  }
 }
 
 module.exports = Query;
