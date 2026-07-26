@@ -54,6 +54,100 @@ describe("Job Posts Query Domain", () => {
       expect(result.err).toBeNull();
       expect(result.data).toEqual([]);
     });
+
+    it("guest hot listing does not call preference inference", async () => {
+      mockQuery.getWorkerHotPreferences = jest.fn();
+      mockQuery.countAllJobPosts.mockResolvedValue({ data: { rowCount: 1 } });
+      mockQuery.findAll.mockResolvedValue({
+        err: null,
+        data: [{ id: "hot-1" }],
+        meta: { page: 1, per_page: 5, total_data: 1, total_pages: 1 },
+      });
+
+      await domain.getJobPostsLogic({ listing: "hot", page: 1, limit: 5 });
+
+      expect(mockQuery.getWorkerHotPreferences).not.toHaveBeenCalled();
+      expect(mockQuery.countAllJobPosts).toHaveBeenCalledTimes(1);
+      const conditions = mockQuery.countAllJobPosts.mock.calls[0][0];
+      expect(conditions).toContain("boost_type = 'hot'");
+    });
+
+    it("infers city/category OR filter for logged-in hot listing without explicit filters", async () => {
+      mockQuery.getWorkerHotPreferences = jest.fn().mockResolvedValue({
+        err: null,
+        data: { preferred_city: "Jakarta Selatan", preferred_category_id: 3 },
+      });
+      mockQuery.countAllJobPosts.mockResolvedValue({ data: { rowCount: 2 } });
+      mockQuery.findAll.mockResolvedValue({
+        err: null,
+        data: [{ id: "hot-1" }, { id: "hot-2" }],
+        meta: { page: 1, per_page: 5, total_data: 2, total_pages: 1 },
+      });
+
+      await domain.getJobPostsLogic({
+        listing: "hot",
+        user_id: "worker-1",
+        page: 1,
+        limit: 5,
+      });
+
+      expect(mockQuery.getWorkerHotPreferences).toHaveBeenCalledWith("worker-1");
+      const [conditions, values] = mockQuery.countAllJobPosts.mock.calls[0];
+      expect(conditions).toMatch(/is_remote = TRUE OR j\.city ILIKE/);
+      expect(conditions).toMatch(/category_id =/);
+      expect(values).toEqual(expect.arrayContaining(["Jakarta Selatan", 3]));
+    });
+
+    it("falls back to all hot when inferred relevance matches nothing", async () => {
+      mockQuery.getWorkerHotPreferences = jest.fn().mockResolvedValue({
+        err: null,
+        data: { preferred_city: "Medan", preferred_category_id: 9 },
+      });
+      mockQuery.countAllJobPosts
+        .mockResolvedValueOnce({ data: { rowCount: 0 } })
+        .mockResolvedValueOnce({ data: { rowCount: 3 } });
+      mockQuery.findAll.mockResolvedValue({
+        err: null,
+        data: [{ id: "hot-a" }],
+        meta: { page: 1, per_page: 5, total_data: 3, total_pages: 1 },
+      });
+
+      const result = await domain.getJobPostsLogic({
+        listing: "hot",
+        user_id: "worker-1",
+        page: 1,
+        limit: 5,
+      });
+
+      expect(result.err).toBeNull();
+      expect(mockQuery.countAllJobPosts).toHaveBeenCalledTimes(2);
+      const fallbackConditions = mockQuery.countAllJobPosts.mock.calls[1][0];
+      expect(fallbackConditions).not.toMatch(/is_remote = TRUE OR j\.city ILIKE/);
+      expect(fallbackConditions).toContain("boost_type = 'hot'");
+    });
+
+    it("uses explicit cities_name and skips inference", async () => {
+      mockQuery.getWorkerHotPreferences = jest.fn();
+      mockQuery.countAllJobPosts.mockResolvedValue({ data: { rowCount: 1 } });
+      mockQuery.findAll.mockResolvedValue({
+        err: null,
+        data: [{ id: "hot-1" }],
+        meta: { page: 1, per_page: 5, total_data: 1, total_pages: 1 },
+      });
+
+      await domain.getJobPostsLogic({
+        listing: "hot",
+        user_id: "worker-1",
+        cities_name: "Bandung",
+        page: 1,
+        limit: 5,
+      });
+
+      expect(mockQuery.getWorkerHotPreferences).not.toHaveBeenCalled();
+      const [conditions, values] = mockQuery.countAllJobPosts.mock.calls[0];
+      expect(conditions).toContain("j.city ILIKE");
+      expect(values).toContain("Bandung");
+    });
   });
 
   describe("getJobpostById", () => {
