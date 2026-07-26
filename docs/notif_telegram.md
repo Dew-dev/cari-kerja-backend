@@ -98,6 +98,12 @@ Telegram **hanya** memanggil URL HTTPS publik (bukan `http://localhost`).
 https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/setWebhook?url=https://be-stage.cari-kerja.co.id/api/v1/telegram/webhook&secret_token=<TELEGRAM_WEBHOOK_SECRET>
 ```
 
+**Penting:** nilai `url` harus lengkap dengan `https://`.  
+Salah: `be-stage.cari-kerja.co.id/api/v1/telegram/webhook`  
+Benar: `https://be-stage.cari-kerja.co.id/api/v1/telegram/webhook`  
+
+Tanpa `https://`, Telegram tidak mengirim event Start ke server (profil tetap `telegram_available: false`).
+
 Ganti host sesuai `APP_HOST`. Path endpoint BE:
 
 ```text
