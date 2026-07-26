@@ -32,41 +32,58 @@ const getSigningSecret = () => {
 };
 
 /**
- * Compact signed start payload: base64url(userId.exp.sig)
+ * Telegram deep-link `start` param max length is 64.
+ * Format: {uuid32hex}.{expBase36}.{sig8}  (~49 chars)
+ * Example: 550e8400e29b41d4a716446655440000.l8k2m0.Ab12CdEf
  */
+const uuidToCompact = (userId) => String(userId).replace(/-/g, "").toLowerCase();
+
+const compactToUuid = (compact) => {
+  if (!/^[0-9a-f]{32}$/i.test(compact)) return null;
+  const h = compact.toLowerCase();
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+};
+
 const createTelegramStartPayload = (userId) => {
   const ttl = Number(config.get("/telegramBot/startPayloadTtlSec") || 3600);
   const exp = Math.floor(Date.now() / 1000) + ttl;
-  const body = `${userId}.${exp}`;
+  const idCompact = uuidToCompact(userId);
+  if (!/^[0-9a-f]{32}$/.test(idCompact)) {
+    throw new Error("userId must be a UUID for telegram start payload");
+  }
+  const exp36 = exp.toString(36);
+  const body = `${idCompact}.${exp36}`;
   const sig = crypto
     .createHmac("sha256", getSigningSecret())
     .update(body)
     .digest("base64url")
-    .slice(0, 16);
-  return Buffer.from(`${body}.${sig}`).toString("base64url");
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .slice(0, 8);
+  const payload = `${body}.${sig}`;
+  if (payload.length > 64) {
+    throw new Error(`telegram start payload exceeds 64 chars (${payload.length})`);
+  }
+  return payload;
 };
 
 const verifyTelegramStartPayload = (payload) => {
   if (!payload) return null;
-  let decoded;
-  try {
-    decoded = Buffer.from(String(payload), "base64url").toString("utf8");
-  } catch {
-    return null;
-  }
-  const parts = decoded.split(".");
+  const raw = String(payload).trim();
+  const parts = raw.split(".");
   if (parts.length !== 3) return null;
-  const [userId, expStr, sig] = parts;
-  const exp = Number(expStr);
+  const [idCompact, exp36, sig] = parts;
+  const userId = compactToUuid(idCompact);
+  const exp = parseInt(exp36, 36);
   if (!userId || !exp || Number.isNaN(exp)) return null;
   if (exp < Math.floor(Date.now() / 1000)) return null;
-  const body = `${userId}.${exp}`;
+  const body = `${idCompact.toLowerCase()}.${exp36}`;
   const expected = crypto
     .createHmac("sha256", getSigningSecret())
     .update(body)
     .digest("base64url")
-    .slice(0, 16);
-  const a = Buffer.from(sig);
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .slice(0, 8);
+  const a = Buffer.from(String(sig));
   const b = Buffer.from(expected);
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
   return { userId };

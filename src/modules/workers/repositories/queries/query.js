@@ -49,7 +49,11 @@ class Query {
 
       const workerResult = await this.db.executeQuery(workerQuery, [user_id]);
 
-      if (!workerResult || workerResult.rows.length === 0) {
+      // executeQuery returns null on SQL/driver errors — do not treat as "not found"
+      if (!workerResult) {
+        return wrapper.error(errorQueryMessage);
+      }
+      if (workerResult.rows.length === 0) {
         return wrapper.error(errorEmptyMessage);
       }
 
@@ -163,7 +167,10 @@ class Query {
 
       const workerResult = await this.db.executeQuery(workerQuery, [id]);
 
-      if (!workerResult || workerResult.rows.length === 0) {
+      if (!workerResult) {
+        return wrapper.error(errorQueryMessage);
+      }
+      if (workerResult.rows.length === 0) {
         return wrapper.error(errorEmptyMessage);
       }
 

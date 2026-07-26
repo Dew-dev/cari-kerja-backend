@@ -50,6 +50,13 @@ class TelegramDomain {
       if (text.startsWith("/start")) {
         const parts = text.split(/\s+/);
         const payload = parts[1] || "";
+        if (!payload) {
+          await this._safeReply(
+            chatId,
+            "Untuk mengaktifkan notifikasi, buka tombol “Aktifkan notifikasi Telegram” di aplikasi Cari Kerja, jangan Start dari sini saja."
+          );
+          return wrapper.data({ handled: "start_missing_payload" });
+        }
         const verified = verifyTelegramStartPayload(payload);
         if (!verified?.userId) {
           await this._safeReply(

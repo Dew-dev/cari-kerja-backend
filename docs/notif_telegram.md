@@ -153,7 +153,7 @@ npm test -- --testPathPatterns="telegram_profile|NotificationService|telegram_te
 4. Webhook menyimpan `telegram_chat_id` → `telegram_available: true`.
 5. User bisa `/stop` di chat bot untuk mematikan link.
 
-Payload `start` di-sign HMAC (expiry ~1 jam); regenerate dari `/me`.
+Payload `start` di-sign HMAC (expiry ~1 jam), **maks. 64 karakter** (batas Telegram deep-link); regenerate dari `/me`. Jangan Start bot tanpa membuka tombol dari aplikasi.
 
 ### A.6 Apa yang dikirim lewat Telegram
 
