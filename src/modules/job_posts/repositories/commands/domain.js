@@ -24,7 +24,6 @@ const jobPostQuestionParamType = require("./command_model.js");
 // const commandModel = require("../../job_tags/repositories/commands/command_model");
 const tagsModel = require("../../../job_tags/repositories/commands/command_model.js");
 const statusEmailTemplate = require("../../../../helpers/utils/statusEmailTemplate");
-const { addEmailJob } = require("../../../../helpers/queues/email.queue");
 const {
   assertRecruiterVerifiedForPublish,
   isOpenJobStatus,
@@ -836,37 +835,58 @@ class Jobpost {
       return wrapper.error(new NotFoundError("Application not found"));
     }
 
-    // Email only for local/google accounts; telegram users are notified via Telegram (no email fallback)
+    // Multi-channel notify (email + telegram). Channels are independent.
     try {
-      const canEmail =
-        app.data.email &&
-        app.data.login_provider !== "telegram" &&
-        (app.data.login_provider === "local" ||
-          app.data.login_provider === "google" ||
-          !app.data.login_provider);
+      const config = require("../../../../config/global_config");
+      const notificationService = require("../../../../helpers/notifications/NotificationService");
+      const feUrl = (config.get("/frontendUrl") || "").replace(/\/$/, "");
+      const actionUrl = feUrl
+        ? `${feUrl}/jobposts/${app.data.job_post_id}`
+        : undefined;
 
-      if (canEmail) {
-        const config = require("../../../../config/global_config");
-        const feUrl = (config.get("/frontendUrl") || "").replace(/\/$/, "");
-        const actionUrl = feUrl
-          ? `${feUrl}/jobposts/${app.data.job_post_id}`
-          : undefined;
+      const stageName = String(app.data.status_name || "");
+      const isInterview = /interview|wawancara/i.test(stageName);
+      const notifyType = isInterview
+        ? "interview_invitation"
+        : "application_status";
 
-        await addEmailJob({
-          to: app.data.email,
-          subject: `Update lamaran — ${app.data.job_title}`,
-          html: statusEmailTemplate({
-            name: app.data.user_name,
-            jobTitle: app.data.job_title,
-            status: app.data.status_name,
-            stageName: app.data.status_name,
-            companyName: app.data.company_name,
-            actionUrl,
-          }),
-        });
-      }
+      const hasEmail = Boolean(app.data.email && String(app.data.email).trim());
+      const emailPayload = hasEmail
+        ? {
+            to: app.data.email,
+            subject: `Update lamaran — ${app.data.job_title}`,
+            html: statusEmailTemplate({
+              name: app.data.user_name,
+              jobTitle: app.data.job_title,
+              status: app.data.status_name,
+              stageName: app.data.status_name,
+              companyName: app.data.company_name,
+              actionUrl,
+            }),
+          }
+        : null;
+
+      await notificationService.notify({
+        user: {
+          id: app.data.user_id,
+          email: app.data.email,
+          login_provider: app.data.login_provider,
+          telegram_chat_id: app.data.telegram_chat_id,
+          name: app.data.user_name,
+        },
+        type: notifyType,
+        data: {
+          name: app.data.user_name,
+          jobTitle: app.data.job_title,
+          status: app.data.status_name,
+          stageName: app.data.status_name,
+          companyName: app.data.company_name,
+          actionUrl,
+        },
+        email: emailPayload,
+      });
     } catch (e) {
-      logger.error(ctx, "changeApplicationStatus", "Send email failed", e);
+      logger.error(ctx, "changeApplicationStatus", "Notify failed", e);
     }
 
     return wrapper.data("Application status updated successfully");
