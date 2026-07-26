@@ -41,6 +41,7 @@ const isExemptPath = (req) => {
   // health / docs / webhook / admin settings toggle must remain reachable
   if (p === "/" || p.startsWith("/api-docs")) return true;
   if (p.startsWith("/api/v1/payments/webhook")) return true;
+  if (p.startsWith("/api/v1/telegram/webhook")) return true;
   if (p.startsWith("/api/v1/admin/settings")) return true;
   if (p.startsWith("/api/v1/admin/stats")) return true;
   if (p === "/api/v1/users/login" || p === "/api/v1/users/refresh-token") return true;
