@@ -1,4 +1,9 @@
+jest.mock("../../../src/modules/job_alerts/services/job_alert_chat", () => ({
+  isChatEnabled: jest.fn(() => false),
+}));
+
 const JobAlertsQueryDomain = require("../../../src/modules/job_alerts/repositories/queries/domain");
+const { isChatEnabled } = require("../../../src/modules/job_alerts/services/job_alert_chat");
 const { NotFoundError, InternalServerError } = require("../../../src/helpers/errors");
 
 describe("Job Alerts Query Domain", () => {
@@ -12,6 +17,8 @@ describe("Job Alerts Query Domain", () => {
       findWorkerJobAlertsPreference: jest.fn(),
     };
     domain.query = mockQuery;
+    jest.clearAllMocks();
+    isChatEnabled.mockReturnValue(false);
   });
 
   it("should report active when email exists and toggle is on", async () => {
@@ -29,6 +36,8 @@ describe("Job Alerts Query Domain", () => {
     expect(result.data).toEqual({
       enabled: true,
       has_email: true,
+      telegram_available: false,
+      chat_available: false,
       active: true,
       last_sent_at: null,
     });
@@ -48,6 +57,22 @@ describe("Job Alerts Query Domain", () => {
     expect(result.data.active).toBe(false);
     expect(result.data.has_email).toBe(false);
     expect(result.data.enabled).toBe(true);
+  });
+
+  it("should report active via chat when chat enabled without email", async () => {
+    isChatEnabled.mockReturnValue(true);
+    mockQuery.findWorkerJobAlertsPreference.mockResolvedValue({
+      err: null,
+      data: {
+        email: null,
+        job_alerts_enabled: true,
+        job_alerts_last_sent_at: null,
+      },
+    });
+
+    const result = await domain.getPreferences({ worker_id: workerId });
+    expect(result.data.active).toBe(true);
+    expect(result.data.chat_available).toBe(true);
   });
 
   it("should return InternalServerError when preference query fails", async () => {

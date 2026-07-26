@@ -83,6 +83,12 @@ const config = {
       knnCandidates: Number(process.env.MATCHING_ES_KNN_CANDIDATES || 50),
     },
   },
+  jobAlerts: {
+    // Daily digests also land in worker chat via the system recruiter bot (migration 032).
+    chatEnabled: process.env.JOB_ALERTS_CHAT_ENABLED !== "false",
+    chatUserId:
+      process.env.JOB_ALERTS_CHAT_USER_ID || "a0000000-0000-4000-8000-000000000001",
+  },
 };
 
 const store = new confidence.Store(config);

@@ -829,13 +829,18 @@ async function clearWorkersAndRecruiters(client) {
   );
   console.log(`  Removed ${delWorkers.rowCount} worker row(s).`);
 
+  // Keep the job-alert chat bot (migration 032) so daily chat digests keep working.
+  const JOB_ALERTS_CHAT_BOT_USER_ID =
+    process.env.JOB_ALERTS_CHAT_USER_ID || "a0000000-0000-4000-8000-000000000001";
+
   const del = await client.query(
     `DELETE FROM users
      WHERE role_id IN ($1, $2)
+       AND id <> $3::uuid
      RETURNING id, role_id`,
-    [WORKER_ROLE_ID, RECRUITER_ROLE_ID],
+    [WORKER_ROLE_ID, RECRUITER_ROLE_ID, JOB_ALERTS_CHAT_BOT_USER_ID],
   );
-  console.log(`  Removed ${del.rowCount} user(s).`);
+  console.log(`  Removed ${del.rowCount} user(s) (preserved job-alert chat bot ${JOB_ALERTS_CHAT_BOT_USER_ID}).`);
 }
 
 async function seedWorkers(client, passwordHash, idrCurrencyId, nationalityId) {

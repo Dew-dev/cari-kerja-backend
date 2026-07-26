@@ -10,15 +10,28 @@ const {
 const jobAlertsEmailTemplate = require("../../../../helpers/utils/jobAlertsEmailTemplate");
 const notificationService = require("../../../../helpers/notifications/NotificationService");
 const config = require("../../../../config/global_config");
+const {
+  deliverJobAlertChat,
+  isChatEnabled,
+} = require("../../services/job_alert_chat");
 
 const ctx = "JobAlerts-Command-Domain";
 const JOBS_PER_EMAIL = 10;
 const WORKER_BATCH_SIZE = 100;
 
+function hasEmailChannel(worker) {
+  return Boolean(worker?.email && String(worker.email).trim());
+}
+
+function hasTelegramChannel(worker) {
+  return worker?.login_provider === "telegram" && Boolean(worker?.telegram_chat_id);
+}
+
 class JobAlertsCommand {
   constructor(db) {
     this.command = new Command(db);
     this.query = new Query(db);
+    this.db = db;
   }
 
   async updatePreferences(payload) {
@@ -36,11 +49,12 @@ class JobAlertsCommand {
     const telegramAvailable =
       pref.data.login_provider === "telegram" &&
       Boolean(pref.data.telegram_chat_id);
+    const chatAvailable = isChatEnabled();
 
-    if (!hasEmail && !telegramAvailable) {
+    if (!hasEmail && !telegramAvailable && !chatAvailable) {
       return wrapper.error(
         new BadRequestError(
-          "Job alerts memerlukan email atau notifikasi Telegram yang sudah diaktifkan.",
+          "Job alerts memerlukan email, notifikasi Telegram, atau chat rekomendasi yang aktif.",
         ),
       );
     }
@@ -58,26 +72,33 @@ class JobAlertsCommand {
       enabled: result.data.job_alerts_enabled,
       has_email: hasEmail,
       telegram_available: telegramAvailable,
-      active: result.data.job_alerts_enabled && (hasEmail || telegramAvailable),
+      chat_available: chatAvailable,
+      active:
+        result.data.job_alerts_enabled && (hasEmail || telegramAvailable || chatAvailable),
     });
   }
 
   /**
    * Daily digests for all eligible workers. Safe to call repeatedly;
    * skips workers already sent today (Asia/Jakarta).
-   * Uses NotificationService — scheduler must not know Telegram details.
+   * Channels: email + Telegram (NotificationService) and optional in-app chat.
    */
   async runDailyJobAlerts() {
     let processed = 0;
     let sent = 0;
     let skipped = 0;
     let failed = 0;
+    let chatSent = 0;
 
-    logger.info(ctx, "runDailyJobAlerts", "Starting daily job alerts run");
+    const chatEnabled = isChatEnabled();
+    logger.info(ctx, "runDailyJobAlerts", "Starting daily job alerts run", {
+      chatEnabled,
+    });
 
     let guard = 0;
     const maxLoops = 1000;
     const feUrl = (config.get("/frontendUrl") || "").replace(/\/$/, "");
+    let chatBotUnavailable = false;
 
     // eslint-disable-next-line no-constant-condition
     while (true) {
@@ -89,6 +110,7 @@ class JobAlertsCommand {
       const workersResult = await this.query.findEligibleWorkers({
         limit: WORKER_BATCH_SIZE,
         offset: 0,
+        includeChatOnly: chatEnabled,
       });
 
       if (workersResult.err) {
@@ -123,42 +145,74 @@ class JobAlertsCommand {
             continue;
           }
 
-          const actionUrl = feUrl ? `${feUrl}/jobs` : undefined;
-          const emailPayload =
-            worker.email && String(worker.email).trim()
-              ? {
-                  to: worker.email,
-                  subject: `${jobs.length} rekomendasi lowongan untuk Anda hari ini`,
-                  html: jobAlertsEmailTemplate({
-                    name: worker.worker_name,
-                    jobs,
-                  }),
-                }
-              : null;
+          const canNotify = hasEmailChannel(worker) || hasTelegramChannel(worker);
+          let delivered = false;
 
-          await notificationService.notify({
-            user: {
-              id: worker.user_id,
-              email: worker.email,
-              login_provider: worker.login_provider,
-              telegram_chat_id: worker.telegram_chat_id,
-              name: worker.worker_name,
-            },
-            type: "job_alert",
-            data: {
-              name: worker.worker_name,
-              jobs: jobs.map((j) => ({
-                title: j.title,
-                company: j.company_name,
-                url: j.id && feUrl ? `${feUrl}/jobposts/${j.id}` : undefined,
-              })),
-              actionUrl,
-            },
-            email: emailPayload,
-          });
+          if (canNotify) {
+            const actionUrl = feUrl ? `${feUrl}/jobs` : undefined;
+            const emailPayload =
+              worker.email && String(worker.email).trim()
+                ? {
+                    to: worker.email,
+                    subject: `${jobs.length} rekomendasi lowongan untuk Anda hari ini`,
+                    html: jobAlertsEmailTemplate({
+                      name: worker.worker_name,
+                      jobs,
+                    }),
+                  }
+                : null;
+
+            await notificationService.notify({
+              user: {
+                id: worker.user_id,
+                email: worker.email,
+                login_provider: worker.login_provider,
+                telegram_chat_id: worker.telegram_chat_id,
+                name: worker.worker_name,
+              },
+              type: "job_alert",
+              data: {
+                name: worker.worker_name,
+                jobs: jobs.map((j) => ({
+                  title: j.title,
+                  company: j.company_name,
+                  url: j.id && feUrl ? `${feUrl}/jobposts/${j.id}` : undefined,
+                })),
+                actionUrl,
+              },
+              email: emailPayload,
+            });
+            delivered = true;
+          }
+
+          if (chatEnabled && !chatBotUnavailable) {
+            const chatResult = await deliverJobAlertChat(this.db, worker, jobs);
+            if (chatResult.err) {
+              const msg = chatResult.err.message || String(chatResult.err);
+              if (/bot user not found|no recruiters row/i.test(msg)) {
+                chatBotUnavailable = true;
+                logger.error(ctx, "runDailyJobAlerts", "Chat bot unavailable; skipping chat for rest of run", {
+                  err: msg,
+                });
+              } else {
+                logger.error(ctx, "runDailyJobAlerts", "Chat delivery failed", {
+                  worker_id: worker.worker_id,
+                  err: msg,
+                });
+              }
+            } else if (!chatResult.data?.skipped) {
+              chatSent += 1;
+              delivered = true;
+            }
+          }
+
+          if (delivered) {
+            sent += 1;
+          } else {
+            failed += 1;
+          }
 
           await this.command.markJobAlertsSent(worker.worker_id);
-          sent += 1;
         } catch (err) {
           failed += 1;
           logger.error(ctx, "runDailyJobAlerts", "Failed for worker", {
@@ -176,7 +230,7 @@ class JobAlertsCommand {
       if (workers.length < WORKER_BATCH_SIZE) break;
     }
 
-    const summary = { processed, sent, skipped, failed };
+    const summary = { processed, sent, skipped, failed, chat_sent: chatSent };
     logger.info(ctx, "runDailyJobAlerts", "Completed", summary);
     return wrapper.data(summary);
   }

@@ -29,11 +29,12 @@ class Query {
   /**
    * Workers eligible for today's digest:
    * - job_alerts_enabled
-   * - local/google with email OR telegram login with bot linked (telegram_chat_id)
    * - not soft-deleted
    * - not already sent today (Asia/Jakarta calendar day)
+   * - channel: local/google with email, OR telegram with chat_id,
+   *   OR includeChatOnly (in-app chat digest) when JOB_ALERTS_CHAT_ENABLED
    */
-  async findEligibleWorkers({ limit = 200, offset = 0 } = {}) {
+  async findEligibleWorkers({ limit = 200, offset = 0, includeChatOnly = false } = {}) {
     try {
       const res = await this.db.executeQuery(
         `SELECT
@@ -49,7 +50,8 @@ class Query {
          WHERE w.deleted_at IS NULL
            AND w.job_alerts_enabled = TRUE
            AND (
-             (
+             $3::boolean = TRUE
+             OR (
                u.login_provider IN ('local', 'google')
                AND u.email IS NOT NULL
                AND TRIM(u.email) <> ''
@@ -66,7 +68,7 @@ class Query {
            )
          ORDER BY w.created_at ASC
          LIMIT $1 OFFSET $2`,
-        [limit, offset],
+        [limit, offset, Boolean(includeChatOnly)],
       );
       return wrapper.data(res?.rows || []);
     } catch (error) {
