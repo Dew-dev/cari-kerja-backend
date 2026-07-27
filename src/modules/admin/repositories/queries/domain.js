@@ -517,10 +517,29 @@ class AdminQuery {
     if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
 
     const rawQuery = `
-      SELECT id, company_name, job_title, start_date, end_date, is_current, description, created_at, updated_at
-      FROM work_experiences
-      WHERE worker_id = $1
-      ORDER BY start_date DESC
+      SELECT
+        we.id,
+        we.company_name,
+        we.job_title,
+        we.job_title_id,
+        CASE
+          WHEN jt.id IS NOT NULL THEN json_build_object(
+            'id', jt.id,
+            'name', jt.name,
+            'slug', jt.slug
+          )
+          ELSE NULL
+        END AS job_title_ref,
+        we.start_date,
+        we.end_date,
+        we.is_current,
+        we.description,
+        we.created_at,
+        we.updated_at
+      FROM work_experiences we
+      LEFT JOIN job_titles jt ON jt.id = we.job_title_id AND jt.deleted_at IS NULL
+      WHERE we.worker_id = $1
+      ORDER BY we.start_date DESC
     `;
     const result = await this.db.executeQuery(rawQuery, [worker_id]);
     return wrapper.data(result?.rows || []);
