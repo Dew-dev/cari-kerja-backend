@@ -4,22 +4,35 @@
  * `user_id` = users.id (used internally by chat tables / JWT)
  */
 
+const { decrypt } = require("../../../helpers/utils/crypto_helper");
+
+const plain = (value) => {
+  if (value === null || value === undefined || value === "") return value ?? null;
+  if (typeof value !== "string") return value;
+  return decrypt(value);
+};
+
 const mapWorker = (row) => ({
   id: row.worker_profile_id || null,
   user_id: row.worker_id,
-  username: row.worker_username || null,
-  name: row.worker_name || row.worker_username || null,
+  username: plain(row.worker_username),
+  name: plain(row.worker_name) || plain(row.worker_username) || null,
   avatar_url: row.worker_avatar || null,
 });
 
-const mapRecruiter = (row) => ({
-  id: row.recruiter_profile_id || null,
-  user_id: row.recruiter_id,
-  username: row.recruiter_username || null,
-  name: row.recruiter_name || row.recruiter_company || row.recruiter_username || null,
-  company_name: row.recruiter_company || null,
-  avatar_url: row.recruiter_avatar || null,
-});
+const mapRecruiter = (row) => {
+  const company = plain(row.recruiter_company);
+  const contactName = plain(row.recruiter_name);
+  const username = plain(row.recruiter_username);
+  return {
+    id: row.recruiter_profile_id || null,
+    user_id: row.recruiter_id,
+    username: username || null,
+    name: contactName || company || username || null,
+    company_name: company || null,
+    avatar_url: row.recruiter_avatar || null,
+  };
+};
 
 /**
  * @param {object} row
@@ -75,10 +88,10 @@ const formatMessage = (row) => {
     sender: {
       id: senderProfileId || null,
       user_id: row.sender_id,
-      username: row.sender_username || null,
-      name: row.sender_name || row.sender_username || null,
+      username: plain(row.sender_username),
+      name: plain(row.sender_name) || plain(row.sender_username) || null,
       avatar_url: row.sender_avatar || null,
-      company_name: row.sender_company || null,
+      company_name: plain(row.sender_company) || null,
       role_id: row.sender_role_id ?? null,
     },
   };
