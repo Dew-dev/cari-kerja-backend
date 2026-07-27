@@ -22,17 +22,27 @@ class Query {
     try {
       const query = `
         SELECT 
-          id,
-          company_name,
-          job_title,
-          start_date,
-          end_date,
-          is_current,
-          description,
-          updated_at
-        FROM work_experiences
-        WHERE worker_id = $1
-        ORDER BY start_date DESC;
+          we.id,
+          we.company_name,
+          we.job_title,
+          we.job_title_id,
+          CASE
+            WHEN jt.id IS NOT NULL THEN json_build_object(
+              'id', jt.id,
+              'name', jt.name,
+              'slug', jt.slug
+            )
+            ELSE NULL
+          END AS job_title_ref,
+          we.start_date,
+          we.end_date,
+          we.is_current,
+          we.description,
+          we.updated_at
+        FROM work_experiences we
+        LEFT JOIN job_titles jt ON jt.id = we.job_title_id AND jt.deleted_at IS NULL
+        WHERE we.worker_id = $1
+        ORDER BY we.start_date DESC;
       `;
 
       const result = await this.db.executeQuery(query, [worker_id]);
@@ -53,16 +63,26 @@ class Query {
     try {
       const query = `
         SELECT 
-          id,
-          company_name,
-          job_title,
-          start_date,
-          end_date,
-          is_current,
-          description,
-          updated_at
-        FROM work_experiences
-        WHERE worker_id = $1 AND id = $2
+          we.id,
+          we.company_name,
+          we.job_title,
+          we.job_title_id,
+          CASE
+            WHEN jt.id IS NOT NULL THEN json_build_object(
+              'id', jt.id,
+              'name', jt.name,
+              'slug', jt.slug
+            )
+            ELSE NULL
+          END AS job_title_ref,
+          we.start_date,
+          we.end_date,
+          we.is_current,
+          we.description,
+          we.updated_at
+        FROM work_experiences we
+        LEFT JOIN job_titles jt ON jt.id = we.job_title_id AND jt.deleted_at IS NULL
+        WHERE we.worker_id = $1 AND we.id = $2
         LIMIT 1;
       `;
 

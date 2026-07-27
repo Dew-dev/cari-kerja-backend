@@ -8,21 +8,36 @@ const {
   InternalServerError,
 } = require("../../../../helpers/errors");
 const { enqueueRecomputeWorkerMatches } = require("../../../../helpers/queues/matching.queue");
+const { resolveJobTitle } = require("../../../job_titles/helpers/resolve_job_title");
 const ctx = "WorkerExperience-Domain";
 
 class WorkExperience {
   constructor(db) {
+    this.db = db;
     this.command = new Command(db);
     this.query = new Query(db);
   }
 
+  async _resolveTitleFields(payload) {
+    const resolved = await resolveJobTitle(
+      { id: payload.job_title_id, name: payload.job_title },
+      this.db
+    );
+    return {
+      job_title_id: resolved?.id || null,
+      job_title: resolved?.name || payload.job_title,
+    };
+  }
+
   // INSERT one work experience
   async insertOne(payload) {
+    const titleFields = await this._resolveTitleFields(payload);
     const document = {
       id: uuidv4(),
       worker_id: payload.worker_id,
       company_name: payload.company_name,
-      job_title: payload.job_title,
+      job_title: titleFields.job_title,
+      job_title_id: titleFields.job_title_id,
       start_date: payload.start_date,
       end_date: payload.is_current ? null : (payload.end_date || null),
       is_current: payload.is_current || false,
@@ -46,9 +61,11 @@ class WorkExperience {
       return wrapper.error(new NotFoundError("Worker experience not found"));
     }
 
+    const titleFields = await this._resolveTitleFields(payload);
     const document = {
       company_name: payload.company_name,
-      job_title: payload.job_title,
+      job_title: titleFields.job_title,
+      job_title_id: titleFields.job_title_id,
       start_date: payload.start_date,
       end_date: payload.is_current ? null : (payload.end_date || null),
       is_current: payload.is_current || false,

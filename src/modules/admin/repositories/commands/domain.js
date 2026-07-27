@@ -5,6 +5,7 @@ const { NotFoundError, InternalServerError, BadRequestError, ConflictError } = r
 const { LOOKUP_CONFIG } = require("../../helpers/lookup_config");
 const { PLAN_CONFIG } = require("../../helpers/plan_config");
 const { WORKER_SUBRESOURCES } = require("../../helpers/worker_subresource_config");
+const { resolveJobTitle } = require("../../../job_titles/helpers/resolve_job_title");
 const { deleteObjectStream } = require("../../../../helpers/databases/r2-cloudflare/oss");
 const { ACTIONS } = require("../../../../helpers/audit/actions");
 const { v4: uuidv4 } = require("uuid");
@@ -366,6 +367,17 @@ class AdminCommand {
     if (!config) return wrapper.error(new BadRequestError("Invalid sub-resource"));
     if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
 
+    if (resource === "work_experiences" && (data.job_title || data.job_title_id)) {
+      const resolved = await resolveJobTitle(
+        { id: data.job_title_id, name: data.job_title },
+        this.db
+      );
+      if (resolved) {
+        data.job_title_id = resolved.id;
+        data.job_title = resolved.name;
+      }
+    }
+
     const document = { id: uuidv4(), worker_id };
     for (const column of config.columns) {
       if (data[column] !== undefined) document[column] = data[column];
@@ -383,6 +395,17 @@ class AdminCommand {
 
     const existing = await this.db.findOne({ id, worker_id }, { id: 1 }, config.table);
     if (existing.err) return wrapper.error(new NotFoundError(`${config.label} not found`));
+
+    if (resource === "work_experiences" && (data.job_title || data.job_title_id)) {
+      const resolved = await resolveJobTitle(
+        { id: data.job_title_id, name: data.job_title },
+        this.db
+      );
+      if (resolved) {
+        data.job_title_id = resolved.id;
+        data.job_title = resolved.name;
+      }
+    }
 
     const document = {};
     for (const column of config.columns) {

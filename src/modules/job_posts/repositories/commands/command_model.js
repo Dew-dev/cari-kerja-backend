@@ -13,6 +13,8 @@ const jobPostQuestionCreateParamType = joi.object({
 const createJobPostParamType = joi.object({
   recruiter_id: joi.string().required(),
   title: joi.string().required(),
+  job_title_id: joi.string().uuid().optional().allow(null),
+  job_title: joi.string().max(120).optional().allow("", null),
   description: joi.string().required(),
   employment_type_id: joi.number().required(),
   experience_level_id: joi.number().required(),
@@ -194,6 +196,8 @@ const updateJobPostParamType = joi.object({
   recruiter_id: joi.string().uuid().required(),
 
   title: joi.string().required(),
+  job_title_id: joi.string().uuid().optional().allow(null),
+  job_title: joi.string().max(120).optional().allow("", null),
   description: joi.string().required(),
 
   employment_type_id: joi.number().required(),

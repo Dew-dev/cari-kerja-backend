@@ -3,7 +3,7 @@
 const WORKER_SUBRESOURCES = {
   work_experiences: {
     table: "work_experiences",
-    columns: ["company_name", "job_title", "start_date", "end_date", "is_current", "description"],
+    columns: ["company_name", "job_title", "job_title_id", "start_date", "end_date", "is_current", "description"],
     label: "Work experience",
   },
   educations: {

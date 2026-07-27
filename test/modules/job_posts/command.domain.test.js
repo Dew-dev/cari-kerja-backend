@@ -2,6 +2,13 @@ jest.mock("uuid", () => ({ v4: jest.fn(() => "jobpost-uuid-1234") }));
 jest.mock("../../../src/helpers/queues/email.queue", () => ({
   addEmailJob: jest.fn().mockResolvedValue(undefined),
 }));
+jest.mock("../../../src/modules/job_titles/helpers/resolve_job_title", () => ({
+  resolveJobTitle: jest.fn().mockResolvedValue({
+    id: "550e8400-e29b-41d4-a716-446655440099",
+    name: "Backend Developer",
+    slug: "backend-developer",
+  }),
+}));
 
 const JobPostsCommandDomain = require("../../../src/modules/job_posts/repositories/commands/domain");
 const {
@@ -25,6 +32,7 @@ describe("Job Posts Command Domain", () => {
   beforeEach(() => {
     domain = new JobPostsCommandDomain({});
     mockCommand = {
+      db: { executeQuery: jest.fn().mockResolvedValue({ rows: [] }) },
       insertJobPost: jest.fn(),
       insertMany: jest.fn(),
       deleteAppliedJobpost: jest.fn(),

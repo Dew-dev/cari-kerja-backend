@@ -39,6 +39,7 @@ const {
   enqueueOrComputeApplicationMatch,
   enqueueRecomputeJobMatches,
 } = require("../../../../helpers/queues/matching.queue");
+const { resolveJobTitle } = require("../../../job_titles/helpers/resolve_job_title");
 
 class Jobpost {
   constructor(db) {
@@ -52,6 +53,8 @@ class Jobpost {
     const {
       recruiter_id,
       title,
+      job_title_id,
+      job_title,
       description,
       employment_type_id,
       experience_level_id,
@@ -113,10 +116,21 @@ class Jobpost {
       }
     }
 
+    const resolvedTitle = await resolveJobTitle(
+      { id: job_title_id, name: job_title || title },
+      this.command.db
+    );
+    // Keep marketing headline unless client only sent taxonomy name with empty title
+    const headline =
+      (!title || !String(title).trim()) && job_title && resolvedTitle
+        ? resolvedTitle.name
+        : title;
+
     const jobPostId = uuidv4();
     const data = {
       recruiter_id,
-      title,
+      title: headline,
+      job_title_id: resolvedTitle?.id || null,
       description,
       employment_type_id,
       experience_level_id,
@@ -895,7 +909,7 @@ class Jobpost {
   async updateJobPost(payload) {
     
     console.log("skillResult (update):", payload);
-    const { id, recruiter_id, user_id, tags, job_post_questions, questions, skills, province, city, is_remote, ...jobData } = payload;
+    const { id, recruiter_id, user_id, tags, job_post_questions, questions, skills, province, city, is_remote, job_title_id, job_title, ...jobData } = payload;
 
     // 1️⃣ cek job milik recruiter
     const job = await this.query.findOneJobPost({
@@ -950,10 +964,26 @@ class Jobpost {
       }
     }
 
+    const resolvedTitle = await resolveJobTitle(
+      {
+        id: job_title_id,
+        name: job_title || jobData.title,
+      },
+      this.command.db
+    );
+    if (
+      (!jobData.title || !String(jobData.title).trim()) &&
+      job_title &&
+      resolvedTitle
+    ) {
+      jobData.title = resolvedTitle.name;
+    }
+
     // 2️⃣ update job_posts - preserve existing values for fields not provided
     const updateResult = await this.command.updateJobPost({
       id,
       ...jobData,
+      job_title_id: resolvedTitle?.id ?? job_title_id ?? null,
       location: jobData.location ?? job.data.location,
       province: province ?? job.data.province,
       city: city ?? job.data.city,
@@ -1081,6 +1111,7 @@ class Jobpost {
       newJob = await this.command.insertJobPost({
         recruiter_id,
         title: `${original.title} (Copy)`,
+        job_title_id: original.job_title_id ?? null,
         description: original.description,
         employment_type_id: original.employment_type_id,
         experience_level_id: original.experience_level_id,
