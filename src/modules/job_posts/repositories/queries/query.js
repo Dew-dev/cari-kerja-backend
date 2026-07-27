@@ -27,6 +27,12 @@ class Query {
                 u.email,
                 r.description AS company_description,
                 j.title,
+                j.job_title_id,
+                (
+                  SELECT json_build_object('id', jt.id, 'name', jt.name, 'slug', jt.slug)
+                  FROM job_titles jt
+                  WHERE jt.id = j.job_title_id AND jt.deleted_at IS NULL
+                ) AS job_title_ref,
                 j.description,
                 j.location,
                 j.province,
@@ -128,6 +134,12 @@ class Query {
                 r.company_name,
                 r.avatar_url,
                 j.title,
+                j.job_title_id,
+                (
+                  SELECT json_build_object('id', jt.id, 'name', jt.name, 'slug', jt.slug)
+                  FROM job_titles jt
+                  WHERE jt.id = j.job_title_id AND jt.deleted_at IS NULL
+                ) AS job_title_ref,
                 j.description,
                 j.location,
                 j.province,
@@ -276,6 +288,12 @@ class Query {
   r.avatar_url,
 
   j.title,
+  j.job_title_id,
+  (
+    SELECT json_build_object('id', jt.id, 'name', jt.name, 'slug', jt.slug)
+    FROM job_titles jt
+    WHERE jt.id = j.job_title_id AND jt.deleted_at IS NULL
+  ) AS job_title_ref,
   j.description,
   j.location,
   j.province,

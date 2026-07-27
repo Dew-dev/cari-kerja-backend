@@ -8,6 +8,7 @@ const dateString = joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).messages({
 const addWorkExperienceParamType = joi.object({
   worker_id: joi.string().uuid().required(),
   company_name: joi.string().max(150).required(),
+  job_title_id: joi.string().uuid().optional().allow(null),
   job_title: joi.string().max(100).required(),
   start_date: dateString.required(),
   end_date: dateString.optional().allow(null),
@@ -20,6 +21,7 @@ const updateWorkExperienceParamType = joi.object({
   id: joi.string().uuid().required(), // work experience id
   worker_id: joi.string().uuid().required(),
   company_name: joi.string().max(150).required(),
+  job_title_id: joi.string().uuid().optional().allow(null),
   job_title: joi.string().max(100).required(),
   start_date: dateString.required(),
   end_date: dateString.optional().allow(null),

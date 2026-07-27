@@ -33,6 +33,7 @@ const jobAlerts = require('./job_alerts');
 const candidateMatching = require('./candidate_matching');
 const news = require('./news');
 const telegram = require('./telegram');
+const jobTitles = require('./job_titles');
 
 
 module.exports = (server) => {
@@ -46,6 +47,7 @@ module.exports = (server) => {
   certifications(server);
   workerSkills(server);
   skills(server);
+  jobTitles(server);
   education(server);
   language(server);
   portfolio(server);

@@ -298,6 +298,7 @@ class Query {
             'id', we.id,
             'company_name', we.company_name,
             'job_title', we.job_title,
+            'job_title_id', we.job_title_id,
             'start_date', we.start_date,
             'end_date', we.end_date
           ) ORDER BY we.start_date DESC), '[]'::json)

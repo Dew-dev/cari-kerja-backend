@@ -226,6 +226,7 @@ const workerSubResourceFields = {
   work_experiences: {
     company_name: joi.string().max(150),
     job_title: joi.string().max(100),
+    job_title_id: joi.string().uuid().allow(null),
     start_date: joi.string(),
     end_date: joi.string().allow(null),
     is_current: joi.boolean(),

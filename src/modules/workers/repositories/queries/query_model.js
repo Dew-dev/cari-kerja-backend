@@ -20,11 +20,13 @@ const getWorkersParamType = joi.object({
   max_salary: joi.number().optional(),
   experience_years: joi.number().optional(),
   education_level: joi.string().optional(),
+  job_title_id: joi.string().uuid().optional(),
+  min_years: joi.number().min(0).optional(),
   sort_by: joi.string().optional(),
   sort_order: joi.string().optional(),
   page: joi.number().integer().min(1).optional(),
   limit: joi.number().integer().min(1).optional(),
-});
+}).and("job_title_id", "min_years");
 
 module.exports = {
   getWorkerByUserIdParamType,

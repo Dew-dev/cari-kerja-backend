@@ -106,6 +106,8 @@ class Worker {
       max_salary,
       experience_years,
       education_level,
+      job_title_id,
+      min_years,
       sort_by = "created_at",
       sort_order = "desc",
       page = 1,
@@ -207,6 +209,23 @@ class Worker {
       `);
       values.push(education_level);
       idx += 1;
+    }
+
+    // Filter by tenure in a specific job title (both params required together)
+    if (job_title_id && min_years !== undefined && min_years !== null && min_years !== "") {
+      conditions.push(`
+        AND EXISTS (
+          SELECT 1 FROM work_experiences we
+          WHERE we.worker_id = w.id
+            AND we.job_title_id = $${idx}
+          GROUP BY we.worker_id
+          HAVING SUM(
+            (COALESCE(we.end_date, CURRENT_DATE) - we.start_date) / 365.25
+          ) >= $${idx + 1}
+        )
+      `);
+      values.push(job_title_id, Number(min_years));
+      idx += 2;
     }
 
     const sortableColumns = {

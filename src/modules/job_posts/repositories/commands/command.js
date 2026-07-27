@@ -102,6 +102,7 @@ class Command {
     province,
     city,
     is_remote,
+    job_title_id,
   }) {
     const query = `
       UPDATE job_posts
@@ -119,6 +120,7 @@ class Command {
         province = $12,
         city = $13,
         is_remote = $14,
+        job_title_id = $15,
         updated_at = NOW()
       WHERE id = $1
       RETURNING id;
@@ -139,6 +141,7 @@ class Command {
       province,
       city,
       is_remote,
+      job_title_id ?? null,
     ];
 
     const result = await this.db.executeQuery(query, values);
@@ -185,6 +188,7 @@ class Command {
     province,
     city,
     is_remote,
+    job_title_id,
   }) {
     const query = `
       INSERT INTO job_posts (
@@ -203,9 +207,10 @@ class Command {
         category_id,
         province,
         city,
-        is_remote
+        is_remote,
+        job_title_id
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17
       )
       RETURNING id;
     `;
@@ -228,6 +233,7 @@ class Command {
       city ?? null,
       // Column is NOT NULL; binding undefined becomes NULL and rejects DEFAULT.
       is_remote ?? false,
+      job_title_id ?? null,
     ];
 
     const result = await this.db.executeQuery(query, values);
