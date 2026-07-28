@@ -73,13 +73,14 @@ describe("[QA] categories module", () => {
   describe("Business logic — duplicate category name", () => {
     it("[BUG-CA-003] addCategory should return ConflictError on duplicate name", async () => {
       const domain = new CategoryCommandDomain({});
+      const dup = new Error("duplicate key value violates unique constraint");
+      dup.code = "23505";
       domain.command = {
-        insertOne: jest.fn().mockResolvedValue({
-          err: new Error("duplicate key value violates unique constraint"),
-          data: null,
-        }),
+        insertOne: jest.fn().mockResolvedValue({ err: null, data: { id: 1 } }),
+        upsertTranslation: jest.fn().mockRejectedValue(dup),
+        deleteOne: jest.fn().mockResolvedValue({ err: null }),
       };
-      domain.query = { findOne: jest.fn() };
+      domain.query = { findOne: jest.fn(), listTranslations: jest.fn() };
 
       const result = await domain.addCategory({ name: "Technology" });
 

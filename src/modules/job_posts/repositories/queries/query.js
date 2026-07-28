@@ -45,7 +45,12 @@ class Query {
                 el.name AS experience_level,
                 st.name AS salary_type,
                 j.category_id,
-                cat.name AS category_name,
+                (
+                  SELECT ct.name
+                  FROM category_translations ct
+                  WHERE ct.category_id = j.category_id AND ct.locale = 'id'
+                  LIMIT 1
+                ) AS category_name,
                 j.experience_level_id,
                 j.employment_type_id,
                 j.salary_min,
@@ -151,7 +156,12 @@ class Query {
                 et.name AS employment_type,
                 el.name AS experience_level,
                 st.name AS salary_type,
-                cat.name AS category,
+                (
+                  SELECT ct.name
+                  FROM category_translations ct
+                  WHERE ct.category_id = j.category_id AND ct.locale = 'id'
+                  LIMIT 1
+                ) AS category,
                 j.salary_min,
                 j.salary_max,
                 c.code AS currency,

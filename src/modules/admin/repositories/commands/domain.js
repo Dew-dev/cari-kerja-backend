@@ -93,6 +93,28 @@ class AdminCommand {
     const { table, name, iso_alpha2, iso_alpha3 } = payload;
     if (!LOOKUP_CONFIG[table]) return wrapper.error(new BadRequestError("Invalid lookup table"));
 
+    if (table === "categories") {
+      try {
+        const inserted = await this.db.executeQuery(
+          `INSERT INTO categories DEFAULT VALUES RETURNING id`
+        );
+        const categoryId = inserted?.rows?.[0]?.id;
+        if (!categoryId) return wrapper.error(new InternalServerError("Failed to insert"));
+        const locale = LOOKUP_CONFIG.categories.defaultLocale || "id";
+        const result = await this.db.executeQuery(
+          `
+          INSERT INTO category_translations (category_id, locale, name, created_at, updated_at)
+          VALUES ($1, $2, $3, NOW(), NOW())
+          RETURNING category_id AS id, name
+          `,
+          [categoryId, locale, name]
+        );
+        return wrapper.data(result.rows[0]);
+      } catch (err) {
+        return wrapper.error(new InternalServerError("Failed to insert"));
+      }
+    }
+
     const { column, select } = LOOKUP_CONFIG[table];
     let rawQuery = `INSERT INTO ${table} (${column}) VALUES ($1) RETURNING ${select}`;
     let values = [name];
@@ -111,6 +133,26 @@ class AdminCommand {
   async updateLookupTable(payload) {
     const { table, id, name } = payload;
     if (!LOOKUP_CONFIG[table]) return wrapper.error(new BadRequestError("Invalid lookup table"));
+
+    if (table === "categories") {
+      const locale = LOOKUP_CONFIG.categories.defaultLocale || "id";
+      try {
+        const result = await this.db.executeQuery(
+          `
+          INSERT INTO category_translations (category_id, locale, name, created_at, updated_at)
+          VALUES ($1, $2, $3, NOW(), NOW())
+          ON CONFLICT (category_id, locale) DO UPDATE
+            SET name = EXCLUDED.name, updated_at = NOW()
+          RETURNING category_id AS id, name
+          `,
+          [id, locale, name]
+        );
+        if (!result?.rows?.[0]) return wrapper.error(new NotFoundError("Record not found"));
+        return wrapper.data(result.rows[0]);
+      } catch (err) {
+        return wrapper.error(new InternalServerError("Failed to update"));
+      }
+    }
 
     const { column, select } = LOOKUP_CONFIG[table];
     const rawQuery = `UPDATE ${table} SET ${column} = $1 WHERE id = $2 RETURNING ${select}`;

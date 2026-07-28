@@ -24,13 +24,13 @@ class Query {
       `
       SELECT
         c.id,
-        COALESCE(t.name, tf.name, c.name) AS name,
+        COALESCE(t.name, tf.name) AS name,
         c.created_at,
         $2::text AS locale,
         CASE
           WHEN t.id IS NOT NULL THEN t.locale
           WHEN tf.id IS NOT NULL THEN tf.locale
-          ELSE '${DEFAULT_LOCALE}'
+          ELSE NULL
         END AS locale_resolved
       FROM categories c
       LEFT JOIN category_translations t
@@ -67,21 +67,21 @@ class Query {
       const query = `
       SELECT
         c.id,
-        COALESCE(t.name, tf.name, c.name) AS name,
+        COALESCE(t.name, tf.name) AS name,
         c.created_at,
         $4::text AS locale,
         CASE
           WHEN t.id IS NOT NULL THEN t.locale
           WHEN tf.id IS NOT NULL THEN tf.locale
-          ELSE '${DEFAULT_LOCALE}'
+          ELSE NULL
         END AS locale_resolved
       FROM ${collection} c
       LEFT JOIN category_translations t
         ON t.category_id = c.id AND t.locale = $4
       LEFT JOIN category_translations tf
         ON tf.category_id = c.id AND tf.locale = $5
-      WHERE COALESCE(t.name, tf.name, c.name) ILIKE $1
-      ORDER BY c.created_at DESC
+      WHERE COALESCE(t.name, tf.name) ILIKE $1
+      ORDER BY c.id ASC
       LIMIT $2 OFFSET $3;
     `;
 
@@ -104,13 +104,13 @@ class Query {
       const query = `
       SELECT
         c.id,
-        COALESCE(t.name, tf.name, c.name) AS name,
+        COALESCE(t.name, tf.name) AS name,
         COUNT(j.id)::int AS job_count,
         $1::text AS locale,
         CASE
           WHEN t.id IS NOT NULL THEN t.locale
           WHEN tf.id IS NOT NULL THEN tf.locale
-          ELSE '${DEFAULT_LOCALE}'
+          ELSE NULL
         END AS locale_resolved
       FROM categories c
       LEFT JOIN category_translations t
@@ -148,7 +148,7 @@ class Query {
         ON t.category_id = c.id AND t.locale = $2
       LEFT JOIN category_translations tf
         ON tf.category_id = c.id AND tf.locale = $3
-      WHERE COALESCE(t.name, tf.name, c.name) ILIKE $1;
+      WHERE COALESCE(t.name, tf.name) ILIKE $1;
     `;
       const countResult = await this.db.executeQuery(countQuery, [
         searchQuery,
