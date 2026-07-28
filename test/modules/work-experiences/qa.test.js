@@ -6,6 +6,22 @@ jest.mock("uuid", () => ({
   v4: jest.fn(() => "work-exp-uuid-1234"),
 }));
 
+jest.mock("../../../src/modules/job_titles/helpers/resolve_job_title", () => ({
+  resolveJobTitle: jest.fn().mockResolvedValue({
+    id: "550e8400-e29b-41d4-a716-446655440099",
+    name: "Engineer",
+    slug: "engineer",
+    category_id: 1,
+  }),
+  JobTitleResolveError: class JobTitleResolveError extends Error {
+    constructor(message, code) {
+      super(message);
+      this.name = "JobTitleResolveError";
+      this.code = code;
+    }
+  },
+}));
+
 jest.mock("../../../src/modules/work-experiences/repositories/commands/command_handler", () => ({
   insertWorkExperience: jest.fn(),
   updateWorkExperience: jest.fn(),
@@ -104,6 +120,7 @@ describe("[QA] work-experiences module", () => {
         worker_id: workerId,
         company_name: "Acme",
         job_title: "Engineer",
+        category_id: 1,
         start_date: "2020-01-01",
         end_date: "2024-06-01",
         is_current: true,
@@ -129,6 +146,7 @@ describe("[QA] work-experiences module", () => {
         worker_id: workerId,
         company_name: "Acme",
         job_title: "Engineer",
+        category_id: 1,
         start_date: "2020-01-01",
         end_date: "2024-06-01",
         is_current: true,
@@ -164,6 +182,7 @@ describe("[QA] work-experiences module", () => {
         worker_id: workerId,
         company_name: "Hacked Co",
         job_title: "Hacker",
+        category_id: 1,
         start_date: "2020-01-01",
         is_current: false,
       });
@@ -189,6 +208,7 @@ describe("[QA] work-experiences module", () => {
     const validBody = {
       company_name: "Acme",
       job_title: "Engineer",
+      category_id: 1,
       start_date: "2020-01-01",
       end_date: null,
       is_current: true,

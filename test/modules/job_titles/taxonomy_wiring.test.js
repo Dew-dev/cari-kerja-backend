@@ -5,6 +5,13 @@ const WorkExpCommandDomain = require("../../../src/modules/work-experiences/repo
 
 jest.mock("../../../src/modules/job_titles/helpers/resolve_job_title", () => ({
   resolveJobTitle: jest.fn(),
+  JobTitleResolveError: class JobTitleResolveError extends Error {
+    constructor(message, code) {
+      super(message);
+      this.name = "JobTitleResolveError";
+      this.code = code;
+    }
+  },
 }));
 
 jest.mock("../../../src/helpers/queues/matching.queue", () => ({
@@ -18,15 +25,15 @@ describe("job titles taxonomy wiring", () => {
   const titleId = "550e8400-e29b-41d4-a716-446655440099";
 
   describe("workers tenure filter validation", () => {
-    it("requires job_title_id and min_years together", () => {
+    it("requires category_id and min_years together", () => {
       const onlyId = queryModel.getWorkersParamType.validate({
-        job_title_id: titleId,
+        category_id: 1,
       });
       const onlyYears = queryModel.getWorkersParamType.validate({
         min_years: 2,
       });
       const both = queryModel.getWorkersParamType.validate({
-        job_title_id: titleId,
+        category_id: 1,
         min_years: 2,
       });
 
@@ -37,7 +44,7 @@ describe("job titles taxonomy wiring", () => {
   });
 
   describe("workers tenure filter SQL", () => {
-    it("filters by job_title_id tenure with HAVING sum of years", async () => {
+    it("filters by category_id tenure with JOIN job_titles and HAVING sum of years", async () => {
       const domain = new WorkersQueryDomain({});
       let captured = null;
       domain.query = {
@@ -47,7 +54,7 @@ describe("job titles taxonomy wiring", () => {
           return Promise.resolve({
             err: null,
             data: [],
-            meta: { page: 1, limit: 12, total_data: 0, total_pages: 0 },
+            meta: { page: 1, limit: 12, total: 0, totalPage: 0 },
           });
         }),
       };
@@ -55,29 +62,89 @@ describe("job titles taxonomy wiring", () => {
       await domain.getWorkers({
         page: 1,
         limit: 12,
-        job_title_id: titleId,
+        category_id: 5,
         min_years: 3,
       });
 
-      expect(captured.conditions).toMatch(/job_title_id/);
-      expect(captured.conditions).toMatch(/365\.25/);
-      expect(captured.conditions).toMatch(/HAVING SUM/i);
+      expect(captured.conditions).toMatch(/jt\.category_id/);
+      expect(captured.conditions).toMatch(/JOIN job_titles jt/i);
+      expect(captured.conditions).toMatch(/EXTRACT\(EPOCH/i);
+      expect(captured.conditions).toMatch(/31557600/);
+      expect(captured.conditions).toMatch(/HAVING/i);
       expect(captured.values).toEqual(
-        expect.arrayContaining([titleId, 3])
+        expect.arrayContaining([5, 3])
       );
+    });
+
+    it("applies tenure filter when min_years is 0", async () => {
+      const domain = new WorkersQueryDomain({});
+      let captured = null;
+      domain.query = {
+        countAllWorkers: jest.fn().mockResolvedValue({ err: null, data: { rowCount: 2 } }),
+        findAll: jest.fn().mockImplementation((payload) => {
+          captured = payload;
+          return Promise.resolve({
+            err: null,
+            data: [{ id: "w1" }],
+            meta: { page: 1, limit: 12, total: 2, totalPage: 1 },
+          });
+        }),
+      };
+
+      const result = await domain.getWorkers({
+        page: 1,
+        limit: 12,
+        category_id: 1,
+        min_years: 0,
+      });
+
+      expect(result.err).toBeNull();
+      expect(captured.conditions).toMatch(/jt\.category_id/);
+      expect(captured.values).toEqual(expect.arrayContaining([1, 0]));
+    });
+
+    it("returns empty list (not 404) when no workers match", async () => {
+      const domain = new WorkersQueryDomain({});
+      domain.query = {
+        countAllWorkers: jest.fn().mockResolvedValue({ err: null, data: { rowCount: 0 } }),
+        findAll: jest.fn().mockResolvedValue({
+          err: null,
+          data: [],
+          meta: { page: 1, limit: 12, total: 0, totalPage: 0 },
+        }),
+      };
+
+      const result = await domain.getWorkers({
+        category_id: 2,
+        min_years: 1,
+        page: 1,
+        limit: 12,
+      });
+
+      expect(result.err).toBeNull();
+      expect(result.data).toEqual([]);
     });
   });
 
   describe("work experience create resolves job title", () => {
-    it("accepts optional job_title_id on insert schema", () => {
-      const { error } = weCommandModel.addWorkExperienceParamType.validate({
+    it("requires category_id on insert schema", () => {
+      const missing = weCommandModel.addWorkExperienceParamType.validate({
         worker_id: workerId,
         company_name: "Acme",
         job_title: "Engineer",
         job_title_id: titleId,
         start_date: "2020-01-01",
       });
-      expect(error).toBeUndefined();
+      const ok = weCommandModel.addWorkExperienceParamType.validate({
+        worker_id: workerId,
+        company_name: "Acme",
+        job_title: "Engineer",
+        job_title_id: titleId,
+        category_id: 1,
+        start_date: "2020-01-01",
+      });
+      expect(missing.error).toBeDefined();
+      expect(ok.error).toBeUndefined();
     });
 
     it("persists resolved job_title_id and canonical name on insert", async () => {
@@ -85,6 +152,7 @@ describe("job titles taxonomy wiring", () => {
         id: titleId,
         name: "Software Engineer",
         slug: "software-engineer",
+        category_id: 1,
       });
 
       const domain = new WorkExpCommandDomain({});
@@ -99,12 +167,13 @@ describe("job titles taxonomy wiring", () => {
         worker_id: workerId,
         company_name: "Acme",
         job_title: "software engineer",
+        category_id: 1,
         start_date: "2020-01-01",
         is_current: true,
       });
 
       expect(resolveJobTitle).toHaveBeenCalledWith(
-        { id: undefined, name: "software engineer" },
+        { id: undefined, name: "software engineer", category_id: 1 },
         expect.anything()
       );
       expect(domain.command.insertOne).toHaveBeenCalledWith(
@@ -112,6 +181,9 @@ describe("job titles taxonomy wiring", () => {
           job_title_id: titleId,
           job_title: "Software Engineer",
         })
+      );
+      expect(domain.command.insertOne.mock.calls[0][0]).not.toHaveProperty(
+        "category_id"
       );
     });
   });
