@@ -25,7 +25,7 @@ describe("job titles taxonomy wiring", () => {
   const titleId = "550e8400-e29b-41d4-a716-446655440099";
 
   describe("workers tenure filter validation", () => {
-    it("requires category_id and min_years together", () => {
+    it("allows category_id alone; min_years requires category_id", () => {
       const onlyId = queryModel.getWorkersParamType.validate({
         category_id: 1,
       });
@@ -37,7 +37,7 @@ describe("job titles taxonomy wiring", () => {
         min_years: 2,
       });
 
-      expect(onlyId.error).toBeDefined();
+      expect(onlyId.error).toBeUndefined();
       expect(onlyYears.error).toBeDefined();
       expect(both.error).toBeUndefined();
     });
@@ -76,7 +76,7 @@ describe("job titles taxonomy wiring", () => {
       );
     });
 
-    it("applies tenure filter when min_years is 0", async () => {
+    it("defaults min_years to 0 when only category_id is provided", async () => {
       const domain = new WorkersQueryDomain({});
       let captured = null;
       domain.query = {
@@ -95,7 +95,6 @@ describe("job titles taxonomy wiring", () => {
         page: 1,
         limit: 12,
         category_id: 1,
-        min_years: 0,
       });
 
       expect(result.err).toBeNull();

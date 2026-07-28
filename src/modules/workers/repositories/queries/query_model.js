@@ -50,7 +50,8 @@ const getWorkersParamType = joi
     page: optionalPositiveInt(),
     limit: optionalPositiveInt(),
   })
-  .and("category_id", "min_years");
+  // min_years only makes sense with a category; category alone defaults min_years to 0 in domain.
+  .with("min_years", "category_id");
 
 module.exports = {
   getWorkerByUserIdParamType,

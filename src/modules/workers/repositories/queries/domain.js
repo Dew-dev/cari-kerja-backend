@@ -211,13 +211,16 @@ class Worker {
       idx += 1;
     }
 
-    // Filter by tenure in a specific job category (both params required together).
+    // Filter by tenure in a specific job category.
+    // min_years is optional and defaults to 0 (any experience in that category).
     // Use epoch seconds so timestamptz - timestamptz always yields a numeric year value.
     const hasCategoryId =
       category_id !== undefined && category_id !== null && category_id !== "";
-    const hasMinYears =
-      min_years !== undefined && min_years !== null && min_years !== "";
-    if (hasCategoryId && hasMinYears) {
+    if (hasCategoryId) {
+      const minYearsValue =
+        min_years !== undefined && min_years !== null && min_years !== ""
+          ? Number(min_years)
+          : 0;
       conditions.push(`
         AND EXISTS (
           SELECT 1
@@ -240,7 +243,7 @@ class Worker {
           ) >= $${idx + 1}
         )
       `);
-      values.push(Number(category_id), Number(min_years));
+      values.push(Number(category_id), minYearsValue);
       idx += 2;
     }
 
