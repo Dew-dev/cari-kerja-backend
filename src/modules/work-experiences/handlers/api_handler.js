@@ -7,7 +7,7 @@ const { sendResponse } = require("../../../helpers/utils/response");
 
 // query
 const getWorkExperienceById = async (req,res) => {
-    const payload = {...req.params, worker_id: req.userMeta.worker_id};
+    const payload = {...req.params, worker_id: req.userMeta.worker_id, locale: req.query.locale};
     const validatePayload = validator.isValidPayload(payload, queryModel.getOneWorkExpParam);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);
@@ -17,7 +17,7 @@ const getWorkExperienceById = async (req,res) => {
 }
 
 const getAllWorkExperiences = async (req, res) => {
-    const payload = {worker_id: req.userMeta.worker_id};
+    const payload = {worker_id: req.userMeta.worker_id, locale: req.query.locale};
     const validatePayload = validator.isValidPayload(payload, queryModel.getAllWorkExpParam);
     if (validatePayload.err) {
         return sendResponse(validatePayload, res);

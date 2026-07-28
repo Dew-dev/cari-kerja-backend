@@ -5,7 +5,10 @@ const { NotFoundError, InternalServerError, BadRequestError, ConflictError } = r
 const { LOOKUP_CONFIG } = require("../../helpers/lookup_config");
 const { PLAN_CONFIG } = require("../../helpers/plan_config");
 const { WORKER_SUBRESOURCES } = require("../../helpers/worker_subresource_config");
-const { resolveJobTitle } = require("../../../job_titles/helpers/resolve_job_title");
+const {
+  resolveJobTitle,
+  JobTitleResolveError,
+} = require("../../../job_titles/helpers/resolve_job_title");
 const { deleteObjectStream } = require("../../../../helpers/databases/r2-cloudflare/oss");
 const { ACTIONS } = require("../../../../helpers/audit/actions");
 const { v4: uuidv4 } = require("uuid");
@@ -410,14 +413,27 @@ class AdminCommand {
     if (!(await this.findWorker(worker_id))) return wrapper.error(new NotFoundError("Worker not found"));
 
     if (resource === "work_experiences" && (data.job_title || data.job_title_id)) {
-      const resolved = await resolveJobTitle(
-        { id: data.job_title_id, name: data.job_title },
-        this.db
-      );
-      if (resolved) {
-        data.job_title_id = resolved.id;
-        data.job_title = resolved.name;
+      try {
+        const resolved = await resolveJobTitle(
+          {
+            id: data.job_title_id,
+            name: data.job_title,
+            category_id: data.category_id,
+          },
+          this.db
+        );
+        if (resolved) {
+          data.job_title_id = resolved.id;
+          data.job_title = resolved.name;
+        }
+      } catch (err) {
+        if (err instanceof JobTitleResolveError || err?.name === "JobTitleResolveError") {
+          return wrapper.error(new BadRequestError(err.message));
+        }
+        throw err;
       }
+      // category_id is only used for title resolve; not a WE column
+      delete data.category_id;
     }
 
     const document = { id: uuidv4(), worker_id };
@@ -439,14 +455,26 @@ class AdminCommand {
     if (existing.err) return wrapper.error(new NotFoundError(`${config.label} not found`));
 
     if (resource === "work_experiences" && (data.job_title || data.job_title_id)) {
-      const resolved = await resolveJobTitle(
-        { id: data.job_title_id, name: data.job_title },
-        this.db
-      );
-      if (resolved) {
-        data.job_title_id = resolved.id;
-        data.job_title = resolved.name;
+      try {
+        const resolved = await resolveJobTitle(
+          {
+            id: data.job_title_id,
+            name: data.job_title,
+            category_id: data.category_id,
+          },
+          this.db
+        );
+        if (resolved) {
+          data.job_title_id = resolved.id;
+          data.job_title = resolved.name;
+        }
+      } catch (err) {
+        if (err instanceof JobTitleResolveError || err?.name === "JobTitleResolveError") {
+          return wrapper.error(new BadRequestError(err.message));
+        }
+        throw err;
       }
+      delete data.category_id;
     }
 
     const document = {};

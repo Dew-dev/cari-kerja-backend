@@ -11,9 +11,9 @@ class WorkExperience {
 
   // Get All Work Experiences By Worker Id
   async getAllWorkExperiencesByWorkerId(payload) {
-    const { worker_id } = payload;
+    const { worker_id, locale } = payload;
 
-    const result = await this.query.getAllByWorkerId(worker_id);
+    const result = await this.query.getAllByWorkerId(worker_id, locale);
 
     if (result.err) {
       logger.error(ctx, "getAllWorkExperiencesByWorkerId", "No work experiences found", result.err);
@@ -25,9 +25,9 @@ class WorkExperience {
 
   // Get One Work Experience By Id
   async getWorkExperienceById(payload) {
-    const { worker_id, id } = payload;
+    const { worker_id, id, locale } = payload;
 
-    const result = await this.query.getOneById(worker_id, id);
+    const result = await this.query.getOneById(worker_id, id, locale);
 
     if (result.err) {
       logger.error(ctx, "getWorkExperienceById", "Work experience not found", result.err);

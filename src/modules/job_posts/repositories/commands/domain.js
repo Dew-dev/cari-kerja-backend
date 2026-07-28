@@ -39,7 +39,10 @@ const {
   enqueueOrComputeApplicationMatch,
   enqueueRecomputeJobMatches,
 } = require("../../../../helpers/queues/matching.queue");
-const { resolveJobTitle } = require("../../../job_titles/helpers/resolve_job_title");
+const {
+  resolveJobTitle,
+  JobTitleResolveError,
+} = require("../../../job_titles/helpers/resolve_job_title");
 
 class Jobpost {
   constructor(db) {
@@ -116,10 +119,18 @@ class Jobpost {
       }
     }
 
-    const resolvedTitle = await resolveJobTitle(
-      { id: job_title_id, name: job_title || title },
-      this.command.db
-    );
+    let resolvedTitle;
+    try {
+      resolvedTitle = await resolveJobTitle(
+        { id: job_title_id, name: job_title || title, category_id },
+        this.command.db
+      );
+    } catch (err) {
+      if (err instanceof JobTitleResolveError || err?.name === "JobTitleResolveError") {
+        return wrapper.error(new BadRequestError(err.message));
+      }
+      throw err;
+    }
     // Keep marketing headline unless client only sent taxonomy name with empty title
     const headline =
       (!title || !String(title).trim()) && job_title && resolvedTitle
@@ -964,13 +975,22 @@ class Jobpost {
       }
     }
 
-    const resolvedTitle = await resolveJobTitle(
-      {
-        id: job_title_id,
-        name: job_title || jobData.title,
-      },
-      this.command.db
-    );
+    let resolvedTitle;
+    try {
+      resolvedTitle = await resolveJobTitle(
+        {
+          id: job_title_id,
+          name: job_title || jobData.title,
+          category_id: jobData.category_id ?? job.data.category_id,
+        },
+        this.command.db
+      );
+    } catch (err) {
+      if (err instanceof JobTitleResolveError || err?.name === "JobTitleResolveError") {
+        return wrapper.error(new BadRequestError(err.message));
+      }
+      throw err;
+    }
     if (
       (!jobData.title || !String(jobData.title).trim()) &&
       job_title &&
