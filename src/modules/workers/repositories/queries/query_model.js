@@ -1,5 +1,27 @@
 const joi = require("joi");
 
+/** Query-string friendly number: treat "" / null as absent. */
+const optionalNumber = () =>
+  joi
+    .alternatives()
+    .try(joi.valid("", null), joi.number())
+    .optional()
+    .custom((value) => (value === "" || value === null ? undefined : value));
+
+const optionalPositiveInt = () =>
+  joi
+    .alternatives()
+    .try(joi.valid("", null), joi.number().integer().positive())
+    .optional()
+    .custom((value) => (value === "" || value === null ? undefined : value));
+
+const optionalNonNegNumber = () =>
+  joi
+    .alternatives()
+    .try(joi.valid("", null), joi.number().min(0))
+    .optional()
+    .custom((value) => (value === "" || value === null ? undefined : value));
+
 const getWorkerByUserIdParamType = joi.object({
   user_id: joi.string().required(),
 });
@@ -8,25 +30,27 @@ const getWorkerByIdParamType = joi.object({
   id: joi.string().uuid().required(),
 });
 
-const getWorkersParamType = joi.object({
-  search: joi.string().optional(),
-  skills: joi.alternatives().try(
-    joi.string(),
-    joi.array().items(joi.string())
-  ).optional(),
-  gender: joi.string().optional(),
-  nationality: joi.string().optional(),
-  min_salary: joi.number().optional(),
-  max_salary: joi.number().optional(),
-  experience_years: joi.number().optional(),
-  education_level: joi.string().optional(),
-  job_title_id: joi.string().uuid().optional(),
-  min_years: joi.number().min(0).optional(),
-  sort_by: joi.string().optional(),
-  sort_order: joi.string().optional(),
-  page: joi.number().integer().min(1).optional(),
-  limit: joi.number().integer().min(1).optional(),
-}).and("job_title_id", "min_years");
+const getWorkersParamType = joi
+  .object({
+    search: joi.string().allow("").optional(),
+    skills: joi
+      .alternatives()
+      .try(joi.string().allow(""), joi.array().items(joi.string()))
+      .optional(),
+    gender: joi.string().allow("").optional(),
+    nationality: joi.string().allow("").optional(),
+    min_salary: optionalNumber(),
+    max_salary: optionalNumber(),
+    experience_years: optionalNumber(),
+    education_level: joi.string().allow("").optional(),
+    category_id: optionalPositiveInt(),
+    min_years: optionalNonNegNumber(),
+    sort_by: joi.string().optional(),
+    sort_order: joi.string().optional(),
+    page: optionalPositiveInt(),
+    limit: optionalPositiveInt(),
+  })
+  .and("category_id", "min_years");
 
 module.exports = {
   getWorkerByUserIdParamType,

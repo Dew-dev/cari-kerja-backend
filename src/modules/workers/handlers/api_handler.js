@@ -36,8 +36,21 @@ const getWorkerById = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const sanitizeWorkersQuery = (query = {}) => {
+  const payload = {};
+  for (const [key, value] of Object.entries(query)) {
+    // Tenure filter is category_id + min_years (job_title_id is deprecated).
+    if (key === "job_title_id") continue;
+    if (value === "" || value === null || value === undefined) continue;
+    if (typeof value === "number" && Number.isNaN(value)) continue;
+    if (typeof value === "string" && value.trim() === "") continue;
+    payload[key] = value;
+  }
+  return payload;
+};
+
 const getWorkers = async (req, res) => {
-  const payload = { ...req.query };
+  const payload = sanitizeWorkersQuery(req.query);
   const validatePayload = validator.isValidPayload(
     payload,
     queryModel.getWorkersParamType
