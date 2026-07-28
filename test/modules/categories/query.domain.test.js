@@ -8,7 +8,8 @@ describe("Categories Query Domain", () => {
   beforeEach(() => {
     domain = new CategoriesQueryDomain({});
     mockQuery = {
-      findOne: jest.fn(),
+      findOneResolved: jest.fn(),
+      listTranslations: jest.fn(),
       findAllCategories: jest.fn(),
       countAllCategories: jest.fn(),
       findAllCategoriesWithJobcount: jest.fn(),
@@ -18,18 +19,24 @@ describe("Categories Query Domain", () => {
 
   describe("getOneCategory", () => {
     it("should return category data when found", async () => {
-      const categoryData = { id: 1, name: "Technology", created_at: "2024-01-01" };
-      mockQuery.findOne.mockResolvedValue({ err: null, data: categoryData });
+      const categoryData = {
+        id: 1,
+        name: "Technology",
+        created_at: "2024-01-01",
+        locale: "id",
+        locale_resolved: "id",
+      };
+      mockQuery.findOneResolved.mockResolvedValue(categoryData);
 
       const result = await domain.getOneCategory({ id: 1 });
 
       expect(result.err).toBeNull();
       expect(result.data).toEqual(categoryData);
-      expect(mockQuery.findOne).toHaveBeenCalledWith({ id: 1 }, { id: 1, name: 1, created_at: 1 });
+      expect(mockQuery.findOneResolved).toHaveBeenCalledWith(1, "id");
     });
 
     it("should return NotFoundError when category not found", async () => {
-      mockQuery.findOne.mockResolvedValue({ err: new Error("not found"), data: null });
+      mockQuery.findOneResolved.mockResolvedValue(null);
 
       const result = await domain.getOneCategory({ id: 999 });
 
@@ -57,8 +64,8 @@ describe("Categories Query Domain", () => {
         total_data: 25,
         total_pages: 3,
       });
-      expect(mockQuery.findAllCategories).toHaveBeenCalledWith(1, 10, "tech");
-      expect(mockQuery.countAllCategories).toHaveBeenCalledWith("tech");
+      expect(mockQuery.findAllCategories).toHaveBeenCalledWith(1, 10, "tech", "id");
+      expect(mockQuery.countAllCategories).toHaveBeenCalledWith("tech", "id");
     });
 
     it("should return NotFoundError when query fails", async () => {
@@ -72,7 +79,10 @@ describe("Categories Query Domain", () => {
     });
 
     it("should never return null meta values when count data is invalid", async () => {
-      mockQuery.findAllCategories.mockResolvedValue({ err: null, data: [{ id: 1, name: "Tech" }] });
+      mockQuery.findAllCategories.mockResolvedValue({
+        err: null,
+        data: [{ id: 1, name: "Tech" }],
+      });
       mockQuery.countAllCategories.mockResolvedValue({ err: null, data: null });
 
       const result = await domain.getAllCategories({ page: 1, limit: 10, search: "" });
@@ -85,11 +95,16 @@ describe("Categories Query Domain", () => {
 
     it("should return InternalServerError when count query fails", async () => {
       mockQuery.findAllCategories.mockResolvedValue({ err: null, data: [{ id: 1 }] });
-      mockQuery.countAllCategories.mockResolvedValue({ err: new Error("count failed"), data: null });
+      mockQuery.countAllCategories.mockResolvedValue({
+        err: new Error("count failed"),
+        data: null,
+      });
 
       const result = await domain.getAllCategories(payload);
 
-      expect(result.err).toBeInstanceOf(require("../../../src/helpers/errors").InternalServerError);
+      expect(result.err).toBeInstanceOf(
+        require("../../../src/helpers/errors").InternalServerError
+      );
       expect(result.err.message).toBe("Can not count categories");
     });
   });
@@ -97,16 +112,23 @@ describe("Categories Query Domain", () => {
   describe("getAllCategoriesWithJobcount", () => {
     it("should return categories with job count when found", async () => {
       const categories = [{ id: 1, name: "Technology", job_count: 5 }];
-      mockQuery.findAllCategoriesWithJobcount.mockResolvedValue({ err: null, data: categories });
+      mockQuery.findAllCategoriesWithJobcount.mockResolvedValue({
+        err: null,
+        data: categories,
+      });
 
       const result = await domain.getAllCategoriesWithJobcount();
 
       expect(result.err).toBeNull();
       expect(result.data).toEqual(categories);
+      expect(mockQuery.findAllCategoriesWithJobcount).toHaveBeenCalledWith("id");
     });
 
     it("should return NotFoundError when query fails", async () => {
-      mockQuery.findAllCategoriesWithJobcount.mockResolvedValue({ err: new Error("db error"), data: null });
+      mockQuery.findAllCategoriesWithJobcount.mockResolvedValue({
+        err: new Error("db error"),
+        data: null,
+      });
 
       const result = await domain.getAllCategoriesWithJobcount();
 

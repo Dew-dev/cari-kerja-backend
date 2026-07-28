@@ -1,5 +1,8 @@
 const CategoryDomain = require("../../../src/modules/categories/repositories/commands/domain");
-const { NotFoundError, InternalServerError } = require("../../../src/helpers/errors");
+const {
+  NotFoundError,
+  InternalServerError,
+} = require("../../../src/helpers/errors");
 
 describe("Categories Command Domain", () => {
   let domain;
@@ -12,9 +15,11 @@ describe("Categories Command Domain", () => {
       insertOne: jest.fn(),
       updateOneNew: jest.fn(),
       deleteOne: jest.fn(),
+      upsertTranslation: jest.fn().mockResolvedValue({ locale: "id", name: "Technology" }),
     };
     mockQuery = {
       findOne: jest.fn(),
+      listTranslations: jest.fn().mockResolvedValue([{ locale: "id", name: "Technology" }]),
     };
     domain.command = mockCommand;
     domain.query = mockQuery;
@@ -23,12 +28,22 @@ describe("Categories Command Domain", () => {
   describe("addCategory", () => {
     it("should return id when insert succeeds", async () => {
       mockCommand.insertOne.mockResolvedValue({ err: null, data: { id: 1 } });
+      mockQuery.listTranslations.mockResolvedValue([{ locale: "id", name: "Technology" }]);
 
       const result = await domain.addCategory({ name: "Technology" });
 
       expect(result.err).toBeNull();
-      expect(result.data).toEqual({ id: 1 });
+      expect(result.data).toEqual({
+        id: 1,
+        name: "Technology",
+        translations: { id: { name: "Technology" } },
+      });
       expect(mockCommand.insertOne).toHaveBeenCalledWith({ name: "Technology" });
+      expect(mockCommand.upsertTranslation).toHaveBeenCalledWith({
+        category_id: 1,
+        locale: "id",
+        name: "Technology",
+      });
     });
 
     it("should return InternalServerError when insert fails", async () => {
@@ -46,14 +61,25 @@ describe("Categories Command Domain", () => {
     const payload = { id: 1, name: "Updated Name" };
 
     it("should return id when update succeeds", async () => {
-      mockQuery.findOne.mockResolvedValue({ err: null, data: { id: 1 } });
+      mockQuery.findOne.mockResolvedValue({ err: null, data: { id: 1, name: "Old" } });
       mockCommand.updateOneNew.mockResolvedValue({ err: null, data: { id: 1 } });
+      mockQuery.listTranslations.mockResolvedValue([
+        { locale: "id", name: "Updated Name" },
+      ]);
 
       const result = await domain.updateCategory(payload);
 
       expect(result.err).toBeNull();
-      expect(result.data).toEqual({ id: 1 });
-      expect(mockCommand.updateOneNew).toHaveBeenCalledWith({ id: 1 }, { name: "Updated Name" });
+      expect(result.data).toEqual({
+        id: 1,
+        name: "Updated Name",
+        translations: { id: { name: "Updated Name" } },
+      });
+      expect(mockCommand.upsertTranslation).toHaveBeenCalled();
+      expect(mockCommand.updateOneNew).toHaveBeenCalledWith(
+        { id: 1 },
+        { name: "Updated Name" }
+      );
     });
 
     it("should return NotFoundError when category does not exist", async () => {
@@ -67,8 +93,11 @@ describe("Categories Command Domain", () => {
     });
 
     it("should return InternalServerError when update fails", async () => {
-      mockQuery.findOne.mockResolvedValue({ err: null, data: { id: 1 } });
-      mockCommand.updateOneNew.mockResolvedValue({ err: new Error("update failed"), data: null });
+      mockQuery.findOne.mockResolvedValue({ err: null, data: { id: 1, name: "Old" } });
+      mockCommand.updateOneNew.mockResolvedValue({
+        err: new Error("update failed"),
+        data: null,
+      });
 
       const result = await domain.updateCategory(payload);
 

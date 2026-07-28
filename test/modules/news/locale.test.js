@@ -11,9 +11,11 @@ describe("news locale helper", () => {
     expect(resolveLocale("en")).toBe("en");
     expect(resolveLocale("en-US")).toBe("en");
     expect(resolveLocale("id-ID")).toBe("id");
+    expect(resolveLocale("ru")).toBe("ru");
+    expect(resolveLocale("uz-UZ")).toBe("uz");
     expect(resolveLocale("fr")).toBe("id");
     expect(resolveLocale(undefined)).toBe(DEFAULT_LOCALE);
-    expect(SUPPORTED_LOCALES).toEqual(["id", "en"]);
+    expect(SUPPORTED_LOCALES).toEqual(["id", "en", "ru", "uz"]);
   });
 
   it("picks exact translation or falls back to id", () => {
