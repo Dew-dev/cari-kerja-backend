@@ -5,12 +5,13 @@ class Command {
     this.db = db;
   }
 
-  async insertOne(document) {
-    return this.db.insertOne(document, collection);
-  }
-
-  async updateOneNew(parameter, document) {
-    return this.db.updateOneNew(parameter, document, collection);
+  async insertOne() {
+    const result = await this.db.executeQuery(
+      `INSERT INTO categories DEFAULT VALUES RETURNING id, created_at`
+    );
+    const row = result?.rows?.[0];
+    if (!row) return { err: new Error("Failed to insert category"), data: null };
+    return { err: null, data: row };
   }
 
   async deleteOne(parameter) {

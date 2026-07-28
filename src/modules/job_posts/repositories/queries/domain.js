@@ -186,7 +186,13 @@ class Jobposts {
     }
 
     if (category !== undefined && category !== null && category !== "") {
-      conditions.push(` AND cat.name = $${idx}`);
+      conditions.push(`
+        AND EXISTS (
+          SELECT 1 FROM category_translations ct
+          WHERE ct.category_id = j.category_id
+            AND lower(ct.name) = lower($${idx})
+        )
+      `);
       values.push(category);
       idx += 1;
     }

@@ -30,15 +30,8 @@ class Category {
       normalized.translations[DEFAULT_LOCALE]?.name ||
       Object.values(normalized.translations)[0]?.name;
 
-    const result = await this.command.insertOne({ name: defaultName });
+    const result = await this.command.insertOne();
     if (result.err) {
-      const message = result.err.message || "";
-      const isDuplicate =
-        result.err.code === "23505" ||
-        /duplicate key|unique constraint/i.test(message);
-      if (isDuplicate) {
-        return wrapper.error(new ConflictError("Category name already exists"));
-      }
       logger.error(ctx, "addCategory", "Failed insert Category", result.err);
       return wrapper.error(new InternalServerError("Failed insert Category"));
     }
@@ -56,6 +49,12 @@ class Category {
       const message = err.message || "";
       const isDuplicate =
         err.code === "23505" || /duplicate key|unique constraint/i.test(message);
+      // Roll back orphan category row
+      try {
+        await this.command.deleteOne({ id: categoryId });
+      } catch (_) {
+        /* ignore */
+      }
       if (isDuplicate) {
         return wrapper.error(new ConflictError("Category name already exists"));
       }
@@ -76,7 +75,7 @@ class Category {
   async updateCategory(payload) {
     const { id } = payload;
 
-    const category = await this.query.findOne({ id }, { id: 1, name: 1 });
+    const category = await this.query.findOne({ id }, { id: 1 });
     if (category.err) {
       return wrapper.error(new NotFoundError("Category not found"));
     }
@@ -104,27 +103,13 @@ class Category {
       return wrapper.error(new InternalServerError("Update Category failed"));
     }
 
-    const defaultName =
-      normalized.translations[DEFAULT_LOCALE]?.name || category.data.name;
-
-    if (normalized.translations[DEFAULT_LOCALE]?.name) {
-      const result = await this.command.updateOneNew(
-        { id },
-        { name: normalized.translations[DEFAULT_LOCALE].name }
-      );
-      if (result.err) {
-        const message = result.err.message || "";
-        const isDuplicate =
-          result.err.code === "23505" ||
-          /duplicate key|unique constraint/i.test(message);
-        if (isDuplicate) {
-          return wrapper.error(new ConflictError("Category name already exists"));
-        }
-        return wrapper.error(new InternalServerError("Update Category failed"));
-      }
-    }
-
     const translations = await this.query.listTranslations(id);
+    const defaultName =
+      normalized.translations[DEFAULT_LOCALE]?.name ||
+      translations.find((t) => t.locale === DEFAULT_LOCALE)?.name ||
+      translations[0]?.name ||
+      null;
+
     return wrapper.data({
       id,
       name: defaultName,

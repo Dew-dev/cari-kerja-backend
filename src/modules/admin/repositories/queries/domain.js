@@ -492,7 +492,28 @@ class AdminQuery {
       return wrapper.error(new NotFoundError("Invalid lookup table"));
     }
 
-    const { column, select } = LOOKUP_CONFIG[table];
+    const config = LOOKUP_CONFIG[table];
+
+    if (config.i18n && table === "categories") {
+      const locale = config.defaultLocale || "id";
+      const sql = search
+        ? `SELECT c.id, ct.name
+           FROM categories c
+           INNER JOIN category_translations ct
+             ON ct.category_id = c.id AND ct.locale = $1
+           WHERE ct.name ILIKE $2
+           ORDER BY c.id ASC`
+        : `SELECT c.id, ct.name
+           FROM categories c
+           INNER JOIN category_translations ct
+             ON ct.category_id = c.id AND ct.locale = $1
+           ORDER BY c.id ASC`;
+      const values = search ? [locale, `%${search}%`] : [locale];
+      const result = await this.db.executeQuery(sql, values);
+      return wrapper.data(result.rows);
+    }
+
+    const { column, select } = config;
     let whereQuery = "";
     const values = [];
     if (search) {

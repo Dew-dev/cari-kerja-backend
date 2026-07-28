@@ -17,7 +17,13 @@ const LOOKUP_CONFIG = {
   nationalities: { column: "country_name", select: "id, country_name, iso_alpha2, iso_alpha3" },
   roles: { column: "name", select: "id, name" },
   currencies: { column: "name", select: "id, code, numeric_code, name, symbol" },
-  categories: { column: "name", select: "id, name" },
+  // name lives in category_translations; admin lookup resolves default locale (id)
+  categories: {
+    column: "name",
+    select: "c.id, ct.name",
+    i18n: true,
+    defaultLocale: "id",
+  },
   languages: { column: "name", select: "id, name" },
 };
 
