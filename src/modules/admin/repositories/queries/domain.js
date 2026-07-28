@@ -543,11 +543,14 @@ class AdminQuery {
         we.company_name,
         we.job_title,
         we.job_title_id,
+        jt.category_id,
+        COALESCE(t.name, tf.name) AS category_name,
         CASE
           WHEN jt.id IS NOT NULL THEN json_build_object(
             'id', jt.id,
             'name', jt.name,
-            'slug', jt.slug
+            'slug', jt.slug,
+            'category_id', jt.category_id
           )
           ELSE NULL
         END AS job_title_ref,
@@ -559,6 +562,10 @@ class AdminQuery {
         we.updated_at
       FROM work_experiences we
       LEFT JOIN job_titles jt ON jt.id = we.job_title_id AND jt.deleted_at IS NULL
+      LEFT JOIN category_translations t
+        ON t.category_id = jt.category_id AND t.locale = 'id'
+      LEFT JOIN category_translations tf
+        ON tf.category_id = jt.category_id AND tf.locale = 'id'
       WHERE we.worker_id = $1
       ORDER BY we.start_date DESC
     `;

@@ -106,7 +106,7 @@ class Worker {
       max_salary,
       experience_years,
       education_level,
-      job_title_id,
+      category_id,
       min_years,
       sort_by = "created_at",
       sort_order = "desc",
@@ -211,20 +211,36 @@ class Worker {
       idx += 1;
     }
 
-    // Filter by tenure in a specific job title (both params required together)
-    if (job_title_id && min_years !== undefined && min_years !== null && min_years !== "") {
+    // Filter by tenure in a specific job category (both params required together).
+    // Use epoch seconds so timestamptz - timestamptz always yields a numeric year value.
+    const hasCategoryId =
+      category_id !== undefined && category_id !== null && category_id !== "";
+    const hasMinYears =
+      min_years !== undefined && min_years !== null && min_years !== "";
+    if (hasCategoryId && hasMinYears) {
       conditions.push(`
         AND EXISTS (
-          SELECT 1 FROM work_experiences we
+          SELECT 1
+          FROM work_experiences we
+          INNER JOIN job_titles jt
+            ON jt.id = we.job_title_id
+           AND jt.deleted_at IS NULL
+           AND COALESCE(jt.is_active, TRUE) IS TRUE
+           AND jt.category_id = $${idx}
           WHERE we.worker_id = w.id
-            AND we.job_title_id = $${idx}
+            AND we.start_date IS NOT NULL
           GROUP BY we.worker_id
-          HAVING SUM(
-            (COALESCE(we.end_date, CURRENT_DATE) - we.start_date) / 365.25
+          HAVING COALESCE(
+            SUM(
+              EXTRACT(EPOCH FROM (
+                COALESCE(we.end_date, CURRENT_TIMESTAMP) - we.start_date
+              )) / 31557600.0
+            ),
+            0
           ) >= $${idx + 1}
         )
       `);
-      values.push(job_title_id, Number(min_years));
+      values.push(Number(category_id), Number(min_years));
       idx += 2;
     }
 
@@ -240,7 +256,11 @@ class Worker {
     const conditionsString = conditions.join("\n");
 
     const count = await this.query.countAllWorkers(conditionsString, values);
-    const totalData = count.data.rowCount;
+    if (count.err) {
+      logger.error(ctx, "getWorkers", "Cannot count workers", count.err);
+      return wrapper.error(new InternalServerError("Cannot count workers"));
+    }
+    const totalData = Number(count.data?.rowCount || 0);
 
     const data = {
       conditions: conditionsString,
@@ -257,10 +277,11 @@ class Worker {
 
     if (workers.err) {
       logger.error(ctx, "getWorkers", "Cannot find workers", workers.err);
-      return wrapper.error(new NotFoundError("Cannot find workers"));
+      return wrapper.error(new InternalServerError("Cannot find workers"));
     }
 
-    return wrapper.paginationData(workers.data, workers.meta);
+    // Empty list is a valid filter result — never 404.
+    return wrapper.paginationData(workers.data || [], workers.meta);
   }
 }
 

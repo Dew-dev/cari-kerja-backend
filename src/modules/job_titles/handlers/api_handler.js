@@ -18,7 +18,7 @@ const listJobTitles = async (req, res) => {
 
 const getJobTitle = async (req, res) => {
   const validatePayload = validator.isValidPayload(
-    { id: req.params.id },
+    { id: req.params.id, locale: req.query.locale },
     queryModel.getJobTitleParamType
   );
   if (validatePayload.err) return sendResponse(validatePayload, res);

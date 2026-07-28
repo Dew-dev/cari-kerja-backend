@@ -299,10 +299,12 @@ class Query {
             'company_name', we.company_name,
             'job_title', we.job_title,
             'job_title_id', we.job_title_id,
+            'category_id', jt.category_id,
             'start_date', we.start_date,
             'end_date', we.end_date
           ) ORDER BY we.start_date DESC), '[]'::json)
            FROM work_experiences we
+           LEFT JOIN job_titles jt ON jt.id = we.job_title_id AND jt.deleted_at IS NULL
            WHERE we.worker_id = w.id
           ) AS work_experiences,
           (SELECT COALESCE(json_agg(json_build_object(
@@ -329,7 +331,6 @@ class Query {
 
       values.push(parseInt(limit, 10));
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
-      console.log("workersQuery", workersQuery, values);
       const workersResult = await this.db.executeQuery(workersQuery, values);
 
       const result = workersResult.rows.map((row) => ({

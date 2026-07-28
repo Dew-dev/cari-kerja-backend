@@ -6,9 +6,13 @@ const { v4: uuidv4 } = require("uuid");
 const {
   NotFoundError,
   InternalServerError,
+  BadRequestError,
 } = require("../../../../helpers/errors");
 const { enqueueRecomputeWorkerMatches } = require("../../../../helpers/queues/matching.queue");
-const { resolveJobTitle } = require("../../../job_titles/helpers/resolve_job_title");
+const {
+  resolveJobTitle,
+  JobTitleResolveError,
+} = require("../../../job_titles/helpers/resolve_job_title");
 const ctx = "WorkerExperience-Domain";
 
 class WorkExperience {
@@ -19,19 +23,38 @@ class WorkExperience {
   }
 
   async _resolveTitleFields(payload) {
-    const resolved = await resolveJobTitle(
-      { id: payload.job_title_id, name: payload.job_title },
-      this.db
-    );
-    return {
-      job_title_id: resolved?.id || null,
-      job_title: resolved?.name || payload.job_title,
-    };
+    try {
+      const resolved = await resolveJobTitle(
+        {
+          id: payload.job_title_id,
+          name: payload.job_title,
+          category_id: payload.category_id,
+        },
+        this.db
+      );
+      return {
+        job_title_id: resolved?.id || null,
+        job_title: resolved?.name || payload.job_title,
+      };
+    } catch (err) {
+      if (err instanceof JobTitleResolveError || err?.name === "JobTitleResolveError") {
+        throw err;
+      }
+      throw err;
+    }
   }
 
   // INSERT one work experience
   async insertOne(payload) {
-    const titleFields = await this._resolveTitleFields(payload);
+    let titleFields;
+    try {
+      titleFields = await this._resolveTitleFields(payload);
+    } catch (err) {
+      if (err instanceof JobTitleResolveError || err?.name === "JobTitleResolveError") {
+        return wrapper.error(new BadRequestError(err.message));
+      }
+      throw err;
+    }
     const document = {
       id: uuidv4(),
       worker_id: payload.worker_id,
@@ -61,7 +84,15 @@ class WorkExperience {
       return wrapper.error(new NotFoundError("Worker experience not found"));
     }
 
-    const titleFields = await this._resolveTitleFields(payload);
+    let titleFields;
+    try {
+      titleFields = await this._resolveTitleFields(payload);
+    } catch (err) {
+      if (err instanceof JobTitleResolveError || err?.name === "JobTitleResolveError") {
+        return wrapper.error(new BadRequestError(err.message));
+      }
+      throw err;
+    }
     const document = {
       company_name: payload.company_name,
       job_title: titleFields.job_title,

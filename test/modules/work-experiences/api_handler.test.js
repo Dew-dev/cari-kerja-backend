@@ -33,6 +33,7 @@ describe("Work Experiences API Handler", () => {
   const validBody = {
     company_name: "Acme",
     job_title: "Engineer",
+    category_id: 1,
     start_date: "2020-01-01",
     end_date: null,
     is_current: true,
