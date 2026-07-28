@@ -22,10 +22,6 @@ const getHotJobposts = async (payload) => {
   return domain.getJobPostsLogic({ ...payload, listing: "hot" });
 };
 
-const getCategoriesByName = async (payload) => {
-  return domain.getCategoriesByName(payload);
-};
-
 const getJobpostsSelf = async (payload) => {
   return domain.getJobPostsLogic(payload);
 };
@@ -54,7 +50,6 @@ module.exports = {
   getJobpostQuestions,
   getCurrencyByCode,
   getAppliedJobposts,
-  getCategoriesByName,
   getJobApplicants,
   getWorkerByApplication,
 };

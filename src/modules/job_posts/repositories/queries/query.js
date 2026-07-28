@@ -3,7 +3,29 @@ const currencies_collection = "currencies";
 const errorQueryMessage = "Error querying PostgreSQL";
 const logger = require("../../../../helpers/utils/logger");
 const wrapper = require("../../../../helpers/utils/wrapper");
+const {
+  DEFAULT_LOCALE,
+  resolveLocale,
+} = require("../../../../helpers/i18n/locale");
 const ctx = "Job_Posts-Query";
+
+const categoryNameSql = (jobAlias, locale) => {
+  const loc = resolveLocale(locale);
+  return `COALESCE(
+    (
+      SELECT ct.name
+      FROM category_translations ct
+      WHERE ct.category_id = ${jobAlias}.category_id AND ct.locale = '${loc}'
+      LIMIT 1
+    ),
+    (
+      SELECT ct.name
+      FROM category_translations ct
+      WHERE ct.category_id = ${jobAlias}.category_id AND ct.locale = '${DEFAULT_LOCALE}'
+      LIMIT 1
+    )
+  )`;
+};
 
 class Query {
   constructor(db) {
@@ -14,7 +36,7 @@ class Query {
     return this.db.findOne(parameter, projection, collection);
   }
 
-  async findOneByJobpostsId(id, user_id = null) {
+  async findOneByJobpostsId(id, user_id = null, locale = DEFAULT_LOCALE) {
     try {
       const jobpostQuery = `
             SELECT 
@@ -45,12 +67,7 @@ class Query {
                 el.name AS experience_level,
                 st.name AS salary_type,
                 j.category_id,
-                (
-                  SELECT ct.name
-                  FROM category_translations ct
-                  WHERE ct.category_id = j.category_id AND ct.locale = 'id'
-                  LIMIT 1
-                ) AS category_name,
+                ${categoryNameSql("j", locale)} AS category_name,
                 j.experience_level_id,
                 j.employment_type_id,
                 j.salary_min,
@@ -129,6 +146,7 @@ class Query {
     page,
     totalData,
     user_id = null,
+    locale = DEFAULT_LOCALE,
   }) {
     try {
       // Build dynamic query using WHERE 1=1
@@ -156,12 +174,7 @@ class Query {
                 et.name AS employment_type,
                 el.name AS experience_level,
                 st.name AS salary_type,
-                (
-                  SELECT ct.name
-                  FROM category_translations ct
-                  WHERE ct.category_id = j.category_id AND ct.locale = 'id'
-                  LIMIT 1
-                ) AS category,
+                ${categoryNameSql("j", locale)} AS category,
                 j.salary_min,
                 j.salary_max,
                 c.code AS currency,
@@ -524,17 +537,6 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
     }
   }
 
-  async findCategories(parameter, projection) {
-    return this.db.findManyLike(
-      { name: parameter.name },
-      projection,
-      { name: "ASC" },
-      1,
-      10,
-      "categories",
-      "OR",
-    );
-  }
   async findAllByJobPostId({
     job_post_id,
     conditions = "",
