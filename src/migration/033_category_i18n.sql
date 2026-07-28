@@ -126,7 +126,31 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_category_translations_locale_name
 CREATE INDEX IF NOT EXISTS idx_category_translations_category_id
     ON category_translations (category_id);
 
--- Remap all job posts to default category (Information Technology)
-UPDATE job_posts SET category_id = 1 WHERE category_id IS NULL;
+-- Remap job posts to a sensible category by title (do NOT wipe posts)
+UPDATE job_posts jp
+SET category_id = mapped.category_id,
+    updated_at = NOW()
+FROM (
+  SELECT
+    id,
+    CASE
+      WHEN title ~* '(marketing|sales executive|advertising)' THEN 10
+      WHEN title ~* '(hotel|resort|housekeeping|front office|guest experience|chef|cultural experience|mice|hospitality)' THEN 9
+      WHEN title ~* '(product designer|ui/?ux|graphic designer)' THEN 11
+      WHEN title ~* '(manufacturing|production planner|optical|optics|energy project|environmental compliance|sustainability)' THEN 5
+      WHEN title ~* '(engineer|developer|devops|cloud|\\bqa\\b|cybersecurity|backend|frontend|full stack|architect)' THEN 1
+      WHEN title ~* '(\\bhr\\b|human resources?|recruiter)' THEN 12
+      WHEN title ~* '(finance|account|bank)' THEN 2
+      WHEN title ~* '(nurse|doctor|medical|pharmacy)' THEN 3
+      WHEN title ~* '(teacher|lecturer|trainer)' THEN 4
+      WHEN title ~* '(logistics|warehouse|shipping)' THEN 7
+      WHEN title ~* '(construction|civil engineer)' THEN 8
+      WHEN title ~* '(e-?commerce|retail|store manager)' THEN 6
+      ELSE 1
+    END AS category_id
+  FROM job_posts
+) mapped
+WHERE jp.id = mapped.id
+  AND (jp.category_id IS DISTINCT FROM mapped.category_id OR jp.category_id IS NULL);
 
 COMMIT;
