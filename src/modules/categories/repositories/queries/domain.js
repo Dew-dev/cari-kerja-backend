@@ -2,6 +2,10 @@ const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
+const {
+  DEFAULT_LOCALE,
+  resolveLocale,
+} = require("../../../../helpers/i18n/locale");
 const ctx = "Categories-Query-Domain";
 
 const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
@@ -13,23 +17,40 @@ class Categories {
 
   async getOneCategory(payload) {
     const { id } = payload;
-    const category = await this.query.findOne(
-      { id },
-      { id: 1, name: 1, created_at: 1 }
-    );
-    if (category.err) {
-      logger.error(ctx, "getCategory", "Can not find Category", category.err);
+    const locale = resolveLocale(payload.locale);
+    const includeTranslations =
+      payload.include_translations === true ||
+      payload.include_translations === "true" ||
+      payload.include_translations === "1";
+
+    const category = await this.query.findOneResolved(id, locale);
+    if (!category) {
+      logger.error(ctx, "getCategory", "Can not find Category", id);
       return wrapper.error(new NotFoundError("Can not find Category"));
     }
 
-    return wrapper.data(category.data);
+    const data = { ...category };
+    if (includeTranslations) {
+      const rows = await this.query.listTranslations(id);
+      data.translations = Object.fromEntries(
+        rows.map((r) => [r.locale, { name: r.name }])
+      );
+    }
+
+    return wrapper.data(data);
   }
 
   async getAllCategories(payload) {
     const { page, limit, search } = payload;
+    const locale = resolveLocale(payload.locale);
 
-    const categories = await this.query.findAllCategories(page, limit, search);
-    const count = await this.query.countAllCategories(search);
+    const categories = await this.query.findAllCategories(
+      page,
+      limit,
+      search,
+      locale
+    );
+    const count = await this.query.countAllCategories(search, locale);
 
     if (categories.err) {
       if (categories.err === EMPTY_RESULT_MESSAGE) {
@@ -60,8 +81,9 @@ class Categories {
     return wrapper.paginationData(categories.data, meta);
   }
 
-  async getAllCategoriesWithJobcount() {
-    const categories = await this.query.findAllCategoriesWithJobcount();
+  async getAllCategoriesWithJobcount(payload = {}) {
+    const locale = resolveLocale(payload.locale || DEFAULT_LOCALE);
+    const categories = await this.query.findAllCategoriesWithJobcount(locale);
 
     if (categories.err) {
       if (categories.err === EMPTY_RESULT_MESSAGE) {

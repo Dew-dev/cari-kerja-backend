@@ -12,8 +12,8 @@ const getAllCategories = async (payload) => {
   return domain.getAllCategories(payload);
 };
 
-const getAllCategoriesWithJobcount = async () => {
-  return domain.getAllCategoriesWithJobcount();
+const getAllCategoriesWithJobcount = async (payload) => {
+  return domain.getAllCategoriesWithJobcount(payload);
 }
 
 module.exports = {

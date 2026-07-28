@@ -88,7 +88,9 @@ describe("Categories API Handler", () => {
 
       await apiHandler.getAllCategoriesWithJobcount(req, res);
 
-      expect(queryHandler.getAllCategoriesWithJobcount).toHaveBeenCalled();
+      expect(queryHandler.getAllCategoriesWithJobcount).toHaveBeenCalledWith({
+        locale: undefined,
+      });
       expect(res.status).toHaveBeenCalledWith(200);
     });
   });

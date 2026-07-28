@@ -1,38 +1,9 @@
-const SUPPORTED_LOCALES = ["id", "en"];
-const DEFAULT_LOCALE = "id";
-
-/**
- * Normalize Accept-Language / query locale to a supported code.
- * @param {string|undefined|null} raw
- * @returns {string}
- */
-function resolveLocale(raw) {
-  if (!raw || typeof raw !== "string") return DEFAULT_LOCALE;
-  const primary = raw.trim().toLowerCase().split(",")[0].split("-")[0].split("_")[0];
-  if (SUPPORTED_LOCALES.includes(primary)) return primary;
-  return DEFAULT_LOCALE;
-}
-
-/**
- * Pick translation row for requested locale with fallback to default.
- * @param {Array<{locale: string}>} rows
- * @param {string} requested
- * @returns {{ row: object|null, locale: string, locale_resolved: string }}
- */
-function pickTranslation(rows, requested) {
-  const locale = resolveLocale(requested);
-  const list = Array.isArray(rows) ? rows : [];
-  const exact = list.find((r) => r.locale === locale);
-  if (exact) {
-    return { row: exact, locale, locale_resolved: locale };
-  }
-  const fallback = list.find((r) => r.locale === DEFAULT_LOCALE) || list[0] || null;
-  return {
-    row: fallback,
-    locale,
-    locale_resolved: fallback ? fallback.locale : locale,
-  };
-}
+const {
+  SUPPORTED_LOCALES,
+  DEFAULT_LOCALE,
+  resolveLocale,
+  pickTranslation,
+} = require("../../../helpers/i18n/locale");
 
 /**
  * Normalize create/update payload into translations map.

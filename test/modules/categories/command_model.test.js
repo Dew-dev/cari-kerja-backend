@@ -8,10 +8,22 @@ describe("Categories Command Model", () => {
       expect(value.name).toBe("Technology");
     });
 
-    it("should reject missing name", () => {
+    it("should accept translations map", () => {
+      const { error, value } = commandModel.addCategoryType.validate({
+        translations: {
+          id: { name: "Teknologi Informasi" },
+          en: { name: "Information Technology" },
+          ru: { name: "IT" },
+          uz: { name: "IT" },
+        },
+      });
+      expect(error).toBeUndefined();
+      expect(value.translations.en.name).toBe("Information Technology");
+    });
+
+    it("should reject missing name and translations", () => {
       const { error } = commandModel.addCategoryType.validate({});
       expect(error).toBeDefined();
-      expect(error.details[0].path).toContain("name");
     });
 
     it("should reject non-string name", () => {
@@ -22,7 +34,10 @@ describe("Categories Command Model", () => {
 
   describe("updateCategoryType", () => {
     it("should validate valid payload", () => {
-      const { error, value } = commandModel.updateCategoryType.validate({ id: 1, name: "Updated" });
+      const { error, value } = commandModel.updateCategoryType.validate({
+        id: 1,
+        name: "Updated",
+      });
       expect(error).toBeUndefined();
       expect(value).toEqual({ id: 1, name: "Updated" });
     });
@@ -32,7 +47,7 @@ describe("Categories Command Model", () => {
       expect(error).toBeDefined();
     });
 
-    it("should reject missing name", () => {
+    it("should reject missing name and translations", () => {
       const { error } = commandModel.updateCategoryType.validate({ id: 1 });
       expect(error).toBeDefined();
     });
