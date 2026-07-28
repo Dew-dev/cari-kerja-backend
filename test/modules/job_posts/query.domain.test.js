@@ -33,6 +33,30 @@ describe("Job Posts Query Domain", () => {
       expect(result.meta).toEqual(meta);
     });
 
+    it("filters by category_id and passes locale to findAll", async () => {
+      mockQuery.countAllJobPosts.mockResolvedValue({ data: { rowCount: 0 } });
+      mockQuery.findAll.mockResolvedValue({
+        err: null,
+        data: [],
+        meta: { page: 1, per_page: 12, total_data: 0, total_pages: 0 },
+      });
+
+      await domain.getJobPostsLogic({
+        page: 1,
+        limit: 12,
+        category_id: 3,
+        locale: "uz",
+      });
+
+      const conditions = mockQuery.countAllJobPosts.mock.calls[0][0];
+      const values = mockQuery.countAllJobPosts.mock.calls[0][1];
+      expect(conditions).toMatch(/j\.category_id = \$/);
+      expect(values).toContain(3);
+      expect(mockQuery.findAll).toHaveBeenCalledWith(
+        expect.objectContaining({ locale: "uz" })
+      );
+    });
+
     it("should return NotFoundError when findAll fails", async () => {
       mockQuery.countAllJobPosts.mockResolvedValue({ data: { rowCount: 0 } });
       mockQuery.findAll.mockResolvedValue({ err: new Error("db error"), data: null });

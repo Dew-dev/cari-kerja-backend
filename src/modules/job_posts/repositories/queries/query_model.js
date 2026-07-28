@@ -37,6 +37,8 @@ const getJobpostsParamType = joi.object({
   salary_max: joi.number().optional(),
   currency: joi.string().optional(),
   category: joi.string().optional(),
+  category_id: joi.number().integer().positive().optional(),
+  locale: joi.string().trim().max(16).optional(),
   created_after: joi.string().optional(),
   created_before: joi.string().optional(),
   search: joi.string().optional(),
@@ -103,10 +105,7 @@ const getAppliedJobpostsParamType = joi.object({
 const getJobpostByIdParamType = joi.object({
   id: joi.string().required(),
   user_id: joi.string().optional(),
-});
-
-const getCategoriesByNameParamType = joi.object({
-  name: joi.string().required(),
+  locale: joi.string().trim().max(16).optional(),
 });
 
 const getJobpostQuestionsParamType = joi.object({
@@ -174,7 +173,6 @@ module.exports = {
   getJobPostAnswersParamType,
   getJobApplicationsParamType,
   getOneCurrencyParamType,
-  getCategoriesByNameParamType,
   getJobApplicantsParamType,
   getWorkerByApplicationParamType,
 };

@@ -3,6 +3,7 @@ const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError } = require("../../../../helpers/errors");
 const WorkerSkillsQuery = require("../../../worker-skills/repositories/queries/query");
+const { resolveLocale } = require("../../../../helpers/i18n/locale");
 const ctx = "Jobposts-Query-Domain";
 
 const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
@@ -30,6 +31,8 @@ class Jobposts {
       salary_max,
       currency,
       category,
+      category_id,
+      locale,
       created_after,
       created_before,
       search, // Full-text search term
@@ -46,6 +49,8 @@ class Jobposts {
       // public: OPEN + exclude hot | hot: OPEN + boost_type hot | unset: recruiter/self filters
       listing = null,
     } = payload;
+
+    const resolvedLocale = resolveLocale(locale);
 
     const conditions = [];
     const values = [];
@@ -185,7 +190,12 @@ class Jobposts {
       idx += 1;
     }
 
-    if (category !== undefined && category !== null && category !== "") {
+    if (category_id !== undefined && category_id !== null && category_id !== "") {
+      conditions.push(` AND j.category_id = $${idx}`);
+      values.push(Number(category_id));
+      idx += 1;
+    } else if (category !== undefined && category !== null && category !== "") {
+      // Legacy fallback: filter by translated category name (any locale)
       conditions.push(`
         AND EXISTS (
           SELECT 1 FROM category_translations ct
@@ -290,6 +300,7 @@ class Jobposts {
       cities_name,
       province_name,
       category,
+      category_id,
     ].some((v) => v !== undefined && v !== null && String(v).trim() !== "");
 
     let appliedHotRelevance = false;
@@ -406,6 +417,7 @@ class Jobposts {
       limit,
       page,
       totalData,
+      locale: resolvedLocale,
     };
     let finalData = data;
     if (user_id !== undefined && user_id !== null && user_id !== "") {
@@ -428,8 +440,12 @@ class Jobposts {
   }
 
   async getJobpostById(payload) {
-    const { id, user_id } = payload;
-    const jobpost = await this.query.findOneByJobpostsId(id, user_id ?? null);
+    const { id, user_id, locale } = payload;
+    const jobpost = await this.query.findOneByJobpostsId(
+      id,
+      user_id ?? null,
+      resolveLocale(locale)
+    );
 
     if (jobpost.err) {
       logger.error(ctx, "getJobpostById", "Job Post Query", jobpost.err);
@@ -851,21 +867,6 @@ class Jobposts {
     }
 
     return wrapper.data(currency.data);
-  }
-
-  async getCategoriesByName(payload) {
-    const { name } = payload ?? "";
-    //console.log(name);
-    const jobtag = await this.query.findCategories(
-      { name },
-      { id: 1, name: 1 },
-    );
-    if (jobtag.err) {
-      logger.error(ctx, "getTagByName", "Can not find tag", jobtag.err);
-      return wrapper.error(new NotFoundError("Can not find tag"));
-    }
-
-    return wrapper.data(jobtag.data);
   }
 
   async getJobApplicants(payload) {

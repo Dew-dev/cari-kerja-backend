@@ -35,6 +35,7 @@ const getJobpostsByRecruiterId = async (req, res) => {
 const getJobpostById = async (req, res) => {
   const payload = {
     id: req.params.id,
+    locale: req.query.locale,
     ...(req.userMeta ? { user_id: req.userMeta.worker_id } : {}),
   };
   const validatePayload = validator.isValidPayload(
@@ -285,19 +286,6 @@ const updateJobPostStatus = async (req, res) => {
   return sendResponse(result, res, 201);
 };
 
-const getCategoriesByName = async (req, res) => {
-  const payload = req.params;
-  const validatePayload = validator.isValidPayload(
-    payload,
-    queryModel.getCategoriesByNameParamType
-  );
-  if (validatePayload.err) {
-    return sendResponse(validatePayload, res);
-  }
-  const result = await queryHandler.getCategoriesByName(validatePayload.data);
-  return sendResponse(result, res);
-};
-
 const getJobApplicants = async (req, res) => {
   const payload = req.params;
 
@@ -487,7 +475,6 @@ module.exports = {
   updateJobPostStatus,
   getAppliedJobposts,
   deleteAppliedJobpost,
-  getCategoriesByName,
   getJobApplicants,
   updateApplicationStatus,
   getWorkerByApplication,
