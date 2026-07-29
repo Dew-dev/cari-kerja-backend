@@ -13,6 +13,8 @@ describe("Job Posts Query Domain", () => {
       findAll: jest.fn(),
       findOneByJobpostsId: jest.fn(),
       findAllByRecruiterId: jest.fn(),
+      clearExpiredJobBoosts: jest.fn().mockResolvedValue({ err: null, data: { cleared: 0 } }),
+      getWorkerHotPreferences: jest.fn(),
     };
     mockWorkerSkillsQuery = { getSkillIdsByWorkerId: jest.fn() };
     domain.query = mockQuery;
@@ -80,7 +82,6 @@ describe("Job Posts Query Domain", () => {
     });
 
     it("guest hot listing does not call preference inference", async () => {
-      mockQuery.getWorkerHotPreferences = jest.fn();
       mockQuery.countAllJobPosts.mockResolvedValue({ data: { rowCount: 1 } });
       mockQuery.findAll.mockResolvedValue({
         err: null,
@@ -90,10 +91,27 @@ describe("Job Posts Query Domain", () => {
 
       await domain.getJobPostsLogic({ listing: "hot", page: 1, limit: 5 });
 
+      expect(mockQuery.clearExpiredJobBoosts).toHaveBeenCalled();
       expect(mockQuery.getWorkerHotPreferences).not.toHaveBeenCalled();
       expect(mockQuery.countAllJobPosts).toHaveBeenCalledTimes(1);
       const conditions = mockQuery.countAllJobPosts.mock.calls[0][0];
       expect(conditions).toContain("boost_type = 'hot'");
+      expect(conditions).toContain("boost_expires_at > NOW()");
+    });
+
+    it("public listing excludes only currently-active hot boosts", async () => {
+      mockQuery.countAllJobPosts.mockResolvedValue({ data: { rowCount: 1 } });
+      mockQuery.findAll.mockResolvedValue({
+        err: null,
+        data: [{ id: "job-1" }],
+        meta: { page: 1, per_page: 12, total_data: 1, total_pages: 1 },
+      });
+
+      await domain.getJobPostsLogic({ listing: "public", page: 1, limit: 12 });
+
+      expect(mockQuery.clearExpiredJobBoosts).toHaveBeenCalled();
+      const conditions = mockQuery.countAllJobPosts.mock.calls[0][0];
+      expect(conditions).toContain("boost_expires_at <= NOW()");
     });
 
     it("infers city/category OR filter for logged-in hot listing without explicit filters", async () => {
