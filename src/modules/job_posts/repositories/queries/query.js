@@ -833,6 +833,32 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
   }
 
   /**
+   * Clear boost_type / is_hot when boost_expires_at has passed.
+   * Prevents HOT inventory and badges from sticking forever.
+   */
+  async clearExpiredJobBoosts() {
+    try {
+      const result = await this.db.executeQuery(
+        `
+        UPDATE job_posts
+        SET
+          boost_type = NULL,
+          is_hot = FALSE,
+          boost_expires_at = NULL,
+          updated_at = NOW()
+        WHERE boost_expires_at IS NOT NULL
+          AND boost_expires_at <= NOW()
+          AND (boost_type IS NOT NULL OR is_hot = TRUE)
+        `
+      );
+      return wrapper.data({ cleared: result?.rowCount ?? 0 });
+    } catch (error) {
+      logger.error(ctx, "clearExpiredJobBoosts", "Query failed", error);
+      return wrapper.error("Failed to clear expired job boosts");
+    }
+  }
+
+  /**
    * Infer preferred city + category from a worker's recent applications (mode).
    * @param {string} worker_id
    * @param {number} [limit=10]

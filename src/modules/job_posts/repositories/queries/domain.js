@@ -68,12 +68,28 @@ class Jobposts {
 
     // Public catalogue and HOT catalogue always require OPEN (status_id = 1)
     if (listing === "public" || listing === "hot") {
+      // Clear expired boosts so badges / boost_type don't stick forever
+      try {
+        await this.query.clearExpiredJobBoosts();
+      } catch (err) {
+        logger.error(ctx, "getJobPostsLogic", "Failed to clear expired boosts", err);
+      }
+
       conditions.push(` AND j.status_id = 1`);
       if (listing === "hot") {
+        // Active HOT only: type hot AND not past boost_expires_at
         conditions.push(` AND j.boost_type = 'hot'`);
+        conditions.push(
+          ` AND j.boost_expires_at IS NOT NULL AND j.boost_expires_at > NOW()`
+        );
       } else {
-        // Regular list: everything except hot boost
-        conditions.push(` AND (j.boost_type IS NULL OR j.boost_type <> 'hot')`);
+        // Regular list: exclude currently-active hot boosts (expired fall back here)
+        conditions.push(` AND (
+          j.boost_type IS NULL
+          OR j.boost_type <> 'hot'
+          OR j.boost_expires_at IS NULL
+          OR j.boost_expires_at <= NOW()
+        )`);
       }
     } else if (status !== undefined && status !== null && status !== "") {
       conditions.push(` AND jps.name = $${idx}`);

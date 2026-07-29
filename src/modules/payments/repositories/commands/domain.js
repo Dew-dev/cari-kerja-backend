@@ -491,7 +491,7 @@ class PaymentCommandDomain {
     try {
       const query = `
         SELECT rsp.id, rsp.recruiter_id, rsp.plan_id, rsp.is_used, rsp.is_active, rsp.expires_at,
-               spp.is_hot
+               spp.is_hot, spp.duration_days
         FROM recruiter_single_posts rsp
         JOIN single_post_plans spp ON spp.id = rsp.plan_id
         WHERE rsp.id = $1 AND rsp.recruiter_id = $2
@@ -531,6 +531,13 @@ class PaymentCommandDomain {
       await this.command.markSinglePostAsUsed({ id: single_post_slot_id, job_post_id });
 
       if (slot.is_hot) {
+        const durationDays = Math.max(1, Number(slot.duration_days) || 1);
+        const boostExpiresAt = new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
+        await this.command.updateJobPostBoostStatus({
+          job_post_id,
+          boost_type: "hot",
+          boost_expires_at: boostExpiresAt,
+        });
         await this.command.updateJobPostHotStatus({ job_post_id, is_hot: true });
       }
 

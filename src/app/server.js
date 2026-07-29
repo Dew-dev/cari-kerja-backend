@@ -13,6 +13,7 @@ const emailWorker = require("../helpers/queues/email.worker");
 const telegramWorker = require("../helpers/queues/telegram.worker");
 const matchingWorker = require("../helpers/queues/matching.worker");
 const jobAlertsScheduler = require("../helpers/schedulers/jobAlerts.scheduler");
+const jobBoostExpiryScheduler = require("../helpers/schedulers/jobBoostExpiry.scheduler");
 const swaggerUi = require("swagger-ui-express");
 const fs = require("fs");
 const { initSocket } = require("../helpers/socket");
@@ -46,6 +47,7 @@ class AppServer {
     telegramWorker.start();
     matchingWorker.start();
     jobAlertsScheduler.start();
+    jobBoostExpiryScheduler.start();
     initSocket(this.server);
   }
 
