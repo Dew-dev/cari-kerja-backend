@@ -68,6 +68,16 @@ class AppServer {
       });
     });
 
+    // Lightweight liveness probe for CD / load balancers (no auth, no DB).
+    this.app.get("/api/v1/health", (req, res) => {
+      res.status(200).send({
+        success: true,
+        data: { status: "ok" },
+        message: "OK",
+        code: 200,
+      });
+    });
+
     // Swagger UI
     try {
       const swaggerFile = JSON.parse(fs.readFileSync(path.join(__dirname, "../../swagger_output.json"), 'utf8'));
