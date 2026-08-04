@@ -50,9 +50,11 @@ chmod 600 ~/.ssh/authorized_keys
 
 Confirm the VPS can still `git pull` the backend repo (deploy key / machine key for GitHub already in use under `/var/www/cari-kerja/be-stage-cari-kerja`).
 
-### 2. GitHub Secrets
+### 2. GitHub Secrets (repository secrets)
 
-Repo → **Settings → Secrets and variables → Actions** (and optionally bind them to environment `staging`):
+Repo → **Settings → Secrets and variables → Actions** → **New repository secret**.
+
+The deploy workflow reads **repository secrets** only (no GitHub Environment required), so collaborators who can manage Actions secrets can finish setup without Environments access.
 
 | Secret | Description |
 |--------|-------------|
@@ -60,8 +62,6 @@ Repo → **Settings → Secrets and variables → Actions** (and optionally bind
 | `VPS_PORT` | SSH port (usually `22`) |
 | `VPS_USER` | SSH user (usually `root`) |
 | `VPS_SSH_PRIVATE_KEY` | Full private key PEM contents (`cari-kerja-be-staging-deploy`) |
-
-Optional: create GitHub Environment named `staging` (workflow references `environment: staging`) for protection rules / secret scoping.
 
 ### 3. Smoke test
 
