@@ -4,6 +4,7 @@ const verifyRole = require("../middlewares/verifyRole");
 const jobpostHandler = require("../modules/job_posts/handlers/api_handler");
 const Applications = require("../modules/job_applications/handlers/api_handler");
 const applyLimiter = require("../middlewares/rateLimitApply");
+const jobSearchLimiter = require("../middlewares/rateLimitJobSearch");
 
 // Worker self-service application flows
 const workerRoles = [1, 3]; // worker, super_admin
@@ -22,6 +23,7 @@ module.exports = (server) => {
   // Register before /job-posts/:id so "hot" / "applied" are not parsed as ids
   server.get(
     "/api/v1/job-posts/hot",
+    ...jobSearchLimiter,
     optionalVerifyToken,
     jobpostHandler.getHotJobposts,
   );
@@ -50,6 +52,7 @@ module.exports = (server) => {
   );
   server.get(
     "/api/v1/job-posts",
+    ...jobSearchLimiter,
     optionalVerifyToken,
     jobpostHandler.getJobposts,
   );
