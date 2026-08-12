@@ -181,8 +181,8 @@ class EmployerVerificationCommand {
       );
     }
 
-    const ok = await this.command.deleteDocument(application.id, doc_type);
-    if (!ok) {
+    const removed = await this.command.deleteDocument(application.id, doc_type);
+    if (!removed) {
       return wrapper.error(new NotFoundError("Document not found"));
     }
 
@@ -190,6 +190,7 @@ class EmployerVerificationCommand {
     return wrapper.data({
       documents,
       missing_required: this._missingRequired(documents),
+      deleted_file_url: removed.file_url || null,
     });
   }
 

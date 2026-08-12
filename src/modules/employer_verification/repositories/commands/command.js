@@ -71,10 +71,10 @@ class Command {
     const result = await this.db.executeQuery(
       `DELETE FROM employer_verification_documents
        WHERE application_id = $1 AND doc_type = $2
-       RETURNING id`,
+       RETURNING *`,
       [applicationId, docType]
     );
-    return result?.rowCount > 0;
+    return result?.rows?.[0] || null;
   }
 
   async submitApplication(applicationId) {

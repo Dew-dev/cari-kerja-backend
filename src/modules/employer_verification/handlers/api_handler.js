@@ -4,8 +4,13 @@ const queryHandler = require("../repositories/queries/query_handler");
 const queryModel = require("../repositories/queries/query_model");
 const validator = require("../../../helpers/utils/validator");
 const { sendResponse } = require("../../../helpers/utils/response");
-const { ForbiddenError, BadRequestError } = require("../../../helpers/errors");
+const {
+  ForbiddenError,
+  BadRequestError,
+  InternalServerError,
+} = require("../../../helpers/errors");
 const wrapper = require("../../../helpers/utils/wrapper");
+const objectStorage = require("../../../helpers/storage/object_storage");
 
 const assertRecruiter = (req) => {
   if (Number(req.userMeta?.role_id) !== 2) {
@@ -68,10 +73,24 @@ const uploadDocument = async (req, res) => {
     );
   }
 
+  let fileUrl;
+  try {
+    fileUrl = await objectStorage.persistUploadedFile(req.file, {
+      folder: "employer-verification",
+    });
+  } catch (err) {
+    return sendResponse(
+      wrapper.error(
+        new InternalServerError(err.message || "Document upload failed")
+      ),
+      res
+    );
+  }
+
   const payload = {
     user_id: req.userMeta.id,
     doc_type: req.body.doc_type,
-    file_url: `/uploads/employer-verification/${req.file.filename}`,
+    file_url: fileUrl,
     file_name: req.file.originalname,
     mime_type: req.file.mimetype,
   };
@@ -101,6 +120,9 @@ const deleteDocument = async (req, res) => {
   if (validatePayload.err) return sendResponse(validatePayload, res);
 
   const result = await commandHandler.deleteDocument(validatePayload.data);
+  if (!result.err && result.data?.deleted_file_url) {
+    await objectStorage.deleteStored(result.data.deleted_file_url);
+  }
   return sendResponse(result, res);
 };
 
