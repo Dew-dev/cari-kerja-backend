@@ -40,6 +40,10 @@ const {
   enqueueRecomputeJobMatches,
 } = require("../../../../helpers/queues/matching.queue");
 const {
+  syncJobPostSafe,
+  deleteJobPostSafe,
+} = require("../../services/elasticsearch_job_search");
+const {
   resolveJobTitle,
   JobTitleResolveError,
 } = require("../../../job_titles/helpers/resolve_job_title");
@@ -265,12 +269,14 @@ class Jobpost {
           .join(", ")}`,
         metadata: { title, recruiter_id },
       });
+      syncJobPostSafe(this.command.db, actualJobPostId);
       return wrapper.data(
         { ...data, id: actualJobPostId, moderation },
         "CONTENT_FLAGGED: Job held for review due to content risk"
       );
     }
 
+    syncJobPostSafe(this.command.db, actualJobPostId);
     return wrapper.data({ ...data, id: actualJobPostId });
   }
 
@@ -536,12 +542,14 @@ class Jobpost {
       }
 
       if (moderation) {
+        syncJobPostSafe(this.command.db, id);
         return wrapper.data(
           { ...result.data, moderation },
           "CONTENT_FLAGGED: Job held for review due to content risk"
         );
       }
 
+      syncJobPostSafe(this.command.db, id);
       return wrapper.data(result.data);
     } catch (err) {
       logger.error(ctx, "Update job post status", "Job Posts Commands", err);
@@ -1091,6 +1099,7 @@ class Jobpost {
       await enqueueRecomputeJobMatches(id);
     }
 
+    syncJobPostSafe(this.command.db, id);
     return wrapper.data(
       payload,
       payload?.moderation
@@ -1231,6 +1240,7 @@ class Jobpost {
       await this.command.insertMany(questionsData, "job_post_questions");
     }
 
+    syncJobPostSafe(this.command.db, newJobId);
     return wrapper.data({
       id: newJobId,
       message: "Job duplicated successfully",
@@ -1246,6 +1256,7 @@ class Jobpost {
     }
 
     await this.command.archiveJobPost(id);
+    syncJobPostSafe(this.command.db, id);
     return wrapper.data("Job archived");
   }
 
@@ -1259,6 +1270,7 @@ class Jobpost {
     }
 
     await this.command.restoreJobPost(id);
+    syncJobPostSafe(this.command.db, id);
     return wrapper.data("Job restored");
   }
 
@@ -1272,6 +1284,7 @@ class Jobpost {
     }
 
     await this.command.deleteJobPost(id);
+    deleteJobPostSafe(id);
     return wrapper.data("Job deleted successfully");
   }
 

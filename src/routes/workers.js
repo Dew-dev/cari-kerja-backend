@@ -3,6 +3,7 @@ const verifyRole = require("../middlewares/verifyRole");
 const workerHandler = require("../modules/workers/handlers/api_handler");
 const { uploadAvatarWorker } = require("../middlewares/uploader");
 const { validateUploadedMagicBytes } = require("../helpers/fraud/magic_bytes");
+const revealContactLimiter = require("../middlewares/rateLimitRevealContact");
 
 // Self-scoped worker profile routes (me / update own profile)
 const workerRoles = [1, 3]; // worker (1), super_admin (3)
@@ -21,6 +22,14 @@ module.exports = (server) => {
     verifyToken,
     verifyRole(recruiterRoles),
     workerHandler.getWorkers
+  );
+  // Click-to-reveal contact (anti-scraping) — register before /:id
+  server.get(
+    "/api/v1/workers/:id/contact/:field",
+    verifyToken,
+    verifyRole(viewerRoles),
+    revealContactLimiter,
+    workerHandler.revealWorkerContact
   );
   server.get(
     "/api/v1/workers/:id",

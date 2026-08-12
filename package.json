@@ -13,6 +13,7 @@
     "swagger": "node swagger.js && node format-swagger.js",
     "backfill:matches": "node scripts/backfill_application_matches.js",
     "reindex:matching-es": "node scripts/reindex_matching_elasticsearch.js",
+    "reindex:job-search-es": "node scripts/reindex_job_search_elasticsearch.js",
     "seed:workers-recruiters": "node scripts/seed_workers_recruiters.js",
     "dev:clean": "npx --yes kill-port 5001 && nodemon index.js"
   },

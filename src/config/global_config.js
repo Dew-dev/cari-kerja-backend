@@ -44,6 +44,21 @@ const config = {
     accS3User: process.env.R2_ACCESS_S3_USER,
     secS3User: process.env.R2_SECRET_S3_USER,
     bucketName: process.env.R2_BUCKET_NAME,
+    publicBaseUrl: process.env.R2_PUBLIC_BASE_URL || "",
+    region: process.env.S3_REGION || "auto",
+  },
+  minio: {
+    endpoint: process.env.MINIO_ENDPOINT || "http://127.0.0.1:9000",
+    accessKey: process.env.MINIO_ACCESS_KEY || "",
+    secretKey: process.env.MINIO_SECRET_KEY || "",
+    bucketName: process.env.MINIO_BUCKET || "cari-kerja",
+    region: process.env.MINIO_REGION || "us-east-1",
+    publicBaseUrl: process.env.MINIO_PUBLIC_BASE_URL || "",
+    useSSL:
+      process.env.MINIO_USE_SSL != null
+        ? process.env.MINIO_USE_SSL === "true"
+        : String(process.env.MINIO_ENDPOINT || "").startsWith("https"),
+    forcePathStyle: process.env.MINIO_FORCE_PATH_STYLE !== "false",
   },
   redisUrl: process.env.REDIS_URL || "redis://localhost:6379",
   xendit: {
@@ -81,6 +96,15 @@ const config = {
       jobsIndex: process.env.MATCHING_ES_JOBS_INDEX || "matching_jobs",
       workersIndex: process.env.MATCHING_ES_WORKERS_INDEX || "matching_workers",
       knnCandidates: Number(process.env.MATCHING_ES_KNN_CANDIDATES || 50),
+    },
+  },
+  jobSearch: {
+    elasticsearch: {
+      enabled: process.env.JOB_SEARCH_ES_ENABLED === "true",
+      node: process.env.ELASTICSEARCH_NODE || "http://localhost:9200",
+      username: process.env.ELASTICSEARCH_USERNAME || "",
+      password: process.env.ELASTICSEARCH_PASSWORD || "",
+      index: process.env.JOB_SEARCH_ES_INDEX || "job_posts_search",
     },
   },
 };

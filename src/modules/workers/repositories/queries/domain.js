@@ -1,12 +1,15 @@
 const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
+const { NotFoundError, InternalServerError, BadRequestError } = require("../../../../helpers/errors");
 const { buildAuthStatus } = require("../../../../helpers/auth/login_status");
 const {
   buildTelegramProfileFields,
   omitSensitiveTelegramFields,
 } = require("../../../../helpers/auth/telegram_profile");
+const {
+  obfuscateContactFields,
+} = require("../../../../helpers/fraud/contact_obfuscation");
 const ctx = "Worker-Query-Domain";
 
 const isQueryFailure = (err) =>
@@ -87,12 +90,58 @@ class Worker {
     delete clean.telegram_notify_username;
     delete clean.login_provider;
 
-    return wrapper.data({
+    const forSelf =
+      payload.viewer_user_id &&
+      String(payload.viewer_user_id) === String(row.user_id);
+
+    const base = {
       ...clean,
       ...buildTelegramProfileFields(telegramUser, {
         forSelf: false,
         displayName: row.name,
       }),
+    };
+
+    if (forSelf) {
+      return wrapper.data(base);
+    }
+
+    // Public / recruiter view: never emit raw email/phone (click-to-reveal instead)
+    const obfuscated = obfuscateContactFields(base);
+    delete obfuscated.email;
+    delete obfuscated.telephone;
+    return wrapper.data(obfuscated);
+  }
+
+  /**
+   * Click-to-reveal contact field (anti-scraping). Requires authenticated viewer.
+   */
+  async revealWorkerContact(payload) {
+    const { id, field } = payload;
+    const allowed = ["email", "telephone"];
+    if (!allowed.includes(field)) {
+      return wrapper.error(new BadRequestError("Unknown contact field"));
+    }
+
+    const worker = await this.query.findOneById(id);
+    if (worker.err) {
+      if (isQueryFailure(worker.err)) {
+        return wrapper.error(
+          new InternalServerError("Failed to load worker contact")
+        );
+      }
+      return wrapper.error(new NotFoundError("Can not find worker"));
+    }
+
+    const value = worker.data?.[field] || null;
+    if (!value) {
+      return wrapper.error(new NotFoundError("Contact field not available"));
+    }
+
+    return wrapper.data({
+      worker_id: id,
+      field,
+      value,
     });
   }
 
@@ -284,7 +333,13 @@ class Worker {
     }
 
     // Empty list is a valid filter result — never 404.
-    return wrapper.paginationData(workers.data || [], workers.meta);
+    const rows = (workers.data || []).map((row) => {
+      const obfuscated = obfuscateContactFields(row);
+      delete obfuscated.email;
+      delete obfuscated.telephone;
+      return obfuscated;
+    });
+    return wrapper.paginationData(rows, workers.meta);
   }
 }
 

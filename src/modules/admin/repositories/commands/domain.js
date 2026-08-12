@@ -9,7 +9,7 @@ const {
   resolveJobTitle,
   JobTitleResolveError,
 } = require("../../../job_titles/helpers/resolve_job_title");
-const { deleteObjectStream } = require("../../../../helpers/databases/r2-cloudflare/oss");
+const objectStorage = require("../../../../helpers/storage/object_storage");
 const { ACTIONS } = require("../../../../helpers/audit/actions");
 const { v4: uuidv4 } = require("uuid");
 
@@ -595,8 +595,7 @@ class AdminCommand {
 
     const resumeUrl = result.rows[0].resume_url;
     if (resumeUrl) {
-      // best-effort: file key di R2 = path tanpa leading slash
-      await deleteObjectStream(resumeUrl.replace(/^\//, ""));
+      await objectStorage.deleteStored(resumeUrl);
     }
     return wrapper.data("Resume deleted successfully");
   }

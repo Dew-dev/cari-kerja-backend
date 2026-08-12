@@ -28,6 +28,12 @@ const getWorkerByUserIdParamType = joi.object({
 
 const getWorkerByIdParamType = joi.object({
   id: joi.string().uuid().required(),
+  viewer_user_id: joi.string().uuid().optional(),
+});
+
+const revealWorkerContactParamType = joi.object({
+  id: joi.string().uuid().required(),
+  field: joi.string().valid("email", "telephone").required(),
 });
 
 const getWorkersParamType = joi
@@ -56,5 +62,6 @@ const getWorkersParamType = joi
 module.exports = {
   getWorkerByUserIdParamType,
   getWorkerByIdParamType,
+  revealWorkerContactParamType,
   getWorkersParamType,
 };
