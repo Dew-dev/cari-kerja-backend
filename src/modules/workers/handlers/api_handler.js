@@ -5,7 +5,8 @@ const queryModel = require("../repositories/queries/query_model");
 const validator = require("../../../helpers/utils/validator");
 const { sendResponse, paginationResponse } = require("../../../helpers/utils/response");
 const wrapper = require("../../../helpers/utils/wrapper");
-const { ForbiddenError } = require("../../../helpers/errors");
+const { ForbiddenError, InternalServerError } = require("../../../helpers/errors");
+const objectStorage = require("../../../helpers/storage/object_storage");
 
 const SUPER_ADMIN_ROLE_ID = 3;
 
@@ -24,7 +25,10 @@ const getWorkerByUserId = async (req, res) => {
 };
 
 const getWorkerById = async (req, res) => {
-  const payload = { id: req.params.id };
+  const payload = {
+    id: req.params.id,
+    viewer_user_id: req.userMeta?.id,
+  };
   const validatePayload = validator.isValidPayload(
     payload,
     queryModel.getWorkerByIdParamType
@@ -33,6 +37,22 @@ const getWorkerById = async (req, res) => {
     return sendResponse(validatePayload, res);
   }
   const result = await queryHandler.getWorkerById(validatePayload.data);
+  return sendResponse(result, res);
+};
+
+const revealWorkerContact = async (req, res) => {
+  const payload = {
+    id: req.params.id,
+    field: req.params.field || req.query.field || req.body?.field,
+  };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.revealWorkerContactParamType
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+  const result = await queryHandler.revealWorkerContact(validatePayload.data);
   return sendResponse(result, res);
 };
 
@@ -76,7 +96,21 @@ const updateOneWorker = async (req, res) => {
 
   // Avatar must be attached before validation so it is included in validated payload
   if (req.file) {
-    payload.avatar_url = `/uploads/avatars/worker/${req.file.filename}`;
+    try {
+      const stored = await objectStorage.persistUploadedFile(req.file, {
+        folder: "avatars/worker",
+      });
+      if (objectStorage.isObjectStored(stored) && objectStorage.hasPublicBaseUrl()) {
+        payload.avatar_url = await objectStorage.resolveUrl(stored, { signed: false });
+      } else {
+        payload.avatar_url = stored;
+      }
+    } catch (err) {
+      return sendResponse(
+        wrapper.error(new InternalServerError(err.message || "Avatar upload failed")),
+        res
+      );
+    }
   }
 
   const validatePayload = validator.isValidPayload(
@@ -97,7 +131,21 @@ const updateSelfWorker = async (req, res) => {
     user_id: req.userMeta.id,
   };
   if (req.file) {
-    payload.avatar_url = `/uploads/avatars/worker/${req.file.filename}`;
+    try {
+      const stored = await objectStorage.persistUploadedFile(req.file, {
+        folder: "avatars/worker",
+      });
+      if (objectStorage.isObjectStored(stored) && objectStorage.hasPublicBaseUrl()) {
+        payload.avatar_url = await objectStorage.resolveUrl(stored, { signed: false });
+      } else {
+        payload.avatar_url = stored;
+      }
+    } catch (err) {
+      return sendResponse(
+        wrapper.error(new InternalServerError(err.message || "Avatar upload failed")),
+        res
+      );
+    }
   }
   const validatePayload = validator.isValidPayload(
     payload,
@@ -111,4 +159,11 @@ const updateSelfWorker = async (req, res) => {
   return sendResponse(result, res);
 };
 
-module.exports = { getWorkerByUserId, getWorkerById, getWorkers, updateOneWorker, updateSelfWorker };
+module.exports = {
+  getWorkerByUserId,
+  getWorkerById,
+  revealWorkerContact,
+  getWorkers,
+  updateOneWorker,
+  updateSelfWorker,
+};

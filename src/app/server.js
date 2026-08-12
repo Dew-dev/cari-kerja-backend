@@ -43,6 +43,22 @@ class AppServer {
 
     pgConnectionPool.init(pgConfig);
     redisConnection.init();
+
+    // Ensure MinIO/R2/S3 bucket exists (no-op when STORAGE_DRIVER=local)
+    const objectStorageDriver = String(process.env.STORAGE_DRIVER || "local").toLowerCase();
+    if (["minio", "r2", "s3"].includes(objectStorageDriver)) {
+      const s3Oss = require("../helpers/databases/s3_compatible/oss");
+      s3Oss.ensureBucket().then((result) => {
+        if (result?.err) {
+          console.error("[storage] ensureBucket failed:", result.err);
+        } else if (result?.ok) {
+          console.log(
+            `[storage] bucket ready: ${result.bucket}${result.created ? " (created)" : ""}`
+          );
+        }
+      });
+    }
+
     emailWorker.start();
     telegramWorker.start();
     matchingWorker.start();

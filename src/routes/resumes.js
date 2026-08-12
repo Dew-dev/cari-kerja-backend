@@ -15,6 +15,12 @@ module.exports = (server) => {
     resumeHandler.getAllResumes
   );
   server.get(
+    "/api/v1/workers/resumes/:id/signed-url",
+    verifyToken,
+    verifyRole(workerRoles),
+    resumeHandler.getResumeSignedUrl
+  );
+  server.get(
     "/api/v1/workers/resumes/:id",
     verifyToken,
     verifyRole(workerRoles),

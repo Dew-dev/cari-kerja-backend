@@ -4,8 +4,9 @@ const commandHandler = require("../repositories/commands/command_handler");
 const commandModel = require("../repositories/commands/command_model");
 const validator = require("../../../helpers/utils/validator");
 const wrapper = require("../../../helpers/utils/wrapper");
-const { ForbiddenError } = require("../../../helpers/errors");
+const { ForbiddenError, InternalServerError } = require("../../../helpers/errors");
 const { sendResponse, paginationResponse } = require("../../../helpers/utils/response");
+const objectStorage = require("../../../helpers/storage/object_storage");
 
 const SUPER_ADMIN_ROLE_ID = 3;
 
@@ -81,7 +82,21 @@ const updateOneRecruiterSelf = async (req, res) => {
     ...req.body,
   };
   if (req.file) {
-    payload.avatar_url = `/uploads/avatars/recruiter/${req.file.filename}`;
+    try {
+      const stored = await objectStorage.persistUploadedFile(req.file, {
+        folder: "avatars/recruiter",
+      });
+      if (objectStorage.isObjectStored(stored) && objectStorage.hasPublicBaseUrl()) {
+        payload.avatar_url = await objectStorage.resolveUrl(stored, { signed: false });
+      } else {
+        payload.avatar_url = stored;
+      }
+    } catch (err) {
+      return sendResponse(
+        wrapper.error(new InternalServerError(err.message || "Logo upload failed")),
+        res
+      );
+    }
   }
   const validatePayload = validator.isValidPayload(
     payload,
