@@ -4,6 +4,10 @@ const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError } = require("../../../../helpers/errors");
 const WorkerSkillsQuery = require("../../../worker-skills/repositories/queries/query");
 const { resolveLocale } = require("../../../../helpers/i18n/locale");
+const {
+  searchJobIds,
+  isJobSearchEnabled,
+} = require("../../services/elasticsearch_job_search");
 const ctx = "Jobposts-Query-Domain";
 
 const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
@@ -243,36 +247,63 @@ class Jobposts {
       idx += 1;
     }
 
-    // 🔍 Full-text search on title & description
+    // 🔍 Full-text search on title & description (Elasticsearch when enabled)
+    let esOrderedIds = null;
     if (
       search !== undefined &&
       search !== null &&
       search !== "" &&
       search.length >= 2
     ) {
-      if (search.length >= 3) {
-        conditions.push(`
+      let usedElasticsearch = false;
+
+      if (isJobSearchEnabled()) {
+        const esResult = await searchJobIds(search, { size: 1000 });
+        if (esResult?.ok) {
+          usedElasticsearch = true;
+          if (!esResult.ids.length) {
+            return wrapper.paginationData(
+              [],
+              wrapper.buildPaginationMeta(page, limit, 0),
+            );
+          }
+          conditions.push(` AND j.id = ANY($${idx}::uuid[])`);
+          values.push(esResult.ids);
+          idx += 1;
+          esOrderedIds = esResult.ids;
+        } else if (esResult?.err) {
+          logger.error(
+            ctx,
+            "getJobPostsLogic",
+            "Elasticsearch search failed; falling back to Postgres FTS",
+            esResult.err,
+          );
+        }
+      }
+
+      if (!usedElasticsearch) {
+        if (search.length >= 3) {
+          conditions.push(`
           AND (
-            -- ✅ Full-text search (stemmed)
             (
               to_tsvector('english', COALESCE(j.title, '') || ' ' || COALESCE(j.description, ''))
               @@ websearch_to_tsquery('english', lower($${idx}) || ':*')
             )
             OR
-            -- ✅ Fallback: ILIKE (substring) untuk semua kasus, terutama yang pendek
             (
               LOWER(j.title || ' ' || COALESCE(j.description, '')) ILIKE '%' || lower($${idx}) || '%'
             )
           )
         `);
-        values.push(search);
-        idx += 1;
-      } else {
-        conditions.push(`
+          values.push(search);
+          idx += 1;
+        } else {
+          conditions.push(`
           AND LOWER(j.title || ' ' || COALESCE(j.description, '')) ILIKE '%' || lower($${idx}) || '%'
         `);
-        values.push(search);
-        idx += 1;
+          values.push(search);
+          idx += 1;
+        }
       }
     }
 
@@ -400,13 +431,22 @@ class Jobposts {
       created_at: "j.created_at",
     };
 
-    const orderColumn = sortableColumns[sort_by] || sortableColumns.created_at;
-    const orderDirection = sort_order.toLowerCase() === "asc" ? "ASC" : "DESC";
+    let orderColumn = sortableColumns[sort_by] || sortableColumns.created_at;
+    let orderDirection = sort_order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
     let conditionsString = conditions.join("\n");
 
     let count = await this.query.countAllJobPosts(conditionsString, values);
-    let totalData = count.data.rowCount;
+    if (count?.err || !count?.data) {
+      logger.error(
+        ctx,
+        "getJobPostsLogic",
+        "Failed to count job posts",
+        count?.err || "empty count result",
+      );
+      return wrapper.error(new NotFoundError("Can not find jobposts"));
+    }
+    let totalData = Number(count.data.rowCount ?? 0);
 
     // Fallback: if inferred HOT relevance yields nothing, show all hot again
     if (appliedHotRelevance && Number(totalData) === 0 && hotRelevanceStartIdx !== null) {
@@ -421,7 +461,28 @@ class Jobposts {
       }
       conditionsString = conditions.join("\n");
       count = await this.query.countAllJobPosts(conditionsString, values);
-      totalData = count.data.rowCount;
+      if (count?.err || !count?.data) {
+        logger.error(
+          ctx,
+          "getJobPostsLogic",
+          "Failed to recount job posts after HOT fallback",
+          count?.err || "empty count result",
+        );
+        return wrapper.error(new NotFoundError("Can not find jobposts"));
+      }
+      totalData = Number(count.data.rowCount ?? 0);
+    }
+
+    // Preserve Elasticsearch relevance when caller did not pick an explicit non-default sort
+    if (
+      esOrderedIds &&
+      esOrderedIds.length > 0 &&
+      (!sort_by || sort_by === "created_at" || sort_by === "relevance")
+    ) {
+      orderColumn = `array_position($${idx}::uuid[], j.id)`;
+      orderDirection = "ASC NULLS LAST";
+      values.push(esOrderedIds);
+      idx += 1;
     }
 
     const data = {
