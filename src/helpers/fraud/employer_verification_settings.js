@@ -3,7 +3,14 @@ const config = require("../../config/global_config");
 const logger = require("../utils/logger");
 
 const ctx = "Employer-Verification-Settings";
-const db = new DB(config.get("/postgresqlUrl"));
+
+let dbInstance = null;
+const getDb = () => {
+  if (!dbInstance) {
+    dbInstance = new DB(config.get("/postgresqlUrl"));
+  }
+  return dbInstance;
+};
 
 let cache = { graceDays: 7, autoBlock: true, expiresAt: 0 };
 const CACHE_MS = 30_000;
@@ -15,7 +22,7 @@ const readEmployerVerificationSettings = async () => {
   }
 
   try {
-    const result = await db.executeQuery(
+    const result = await getDb().executeQuery(
       `SELECT setting_key, setting_value FROM system_settings
        WHERE setting_key IN ('employer_verification_grace_days', 'employer_verification_auto_block')`
     );
