@@ -23,7 +23,14 @@ class AdminCommand {
     const user = await this.db.findOne({ id }, { id: 1 }, "users");
     if (user.err) return wrapper.error(new NotFoundError("User not found"));
 
-    const updateQuery = `UPDATE users SET is_suspended = $1 WHERE id = $2 RETURNING *`;
+    const updateQuery = `
+      UPDATE users
+      SET is_suspended = $1,
+          suspension_reason = CASE WHEN $1 IS TRUE THEN suspension_reason ELSE NULL END,
+          updated_at = NOW()
+      WHERE id = $2
+      RETURNING *
+    `;
     const result = await this.db.executeQuery(updateQuery, [is_suspended, id]);
     
     return wrapper.data(result.rows[0]);
@@ -34,8 +41,37 @@ class AdminCommand {
     const employer = await this.db.findOne({ id }, { id: 1 }, "recruiters");
     if (employer.err) return wrapper.error(new NotFoundError("Employer not found"));
 
-    const updateQuery = `UPDATE recruiters SET is_verified = $1 WHERE id = $2 RETURNING *`;
+    const updateQuery = `
+      UPDATE recruiters
+      SET is_verified = $1,
+          verification_status = CASE
+            WHEN $1 IS TRUE THEN 'verified'
+            ELSE CASE
+              WHEN verification_status = 'verified' THEN 'grace'
+              ELSE verification_status
+            END
+          END,
+          verification_deadline_at = CASE
+            WHEN $1 IS TRUE THEN NULL
+            ELSE verification_deadline_at
+          END,
+          updated_at = NOW()
+      WHERE id = $2
+      RETURNING *
+    `;
     const result = await this.db.executeQuery(updateQuery, [is_verified, id]);
+
+    if (is_verified && result?.rows?.[0]?.user_id) {
+      await this.db.executeQuery(
+        `UPDATE users
+         SET is_suspended = FALSE,
+             suspension_reason = NULL,
+             updated_at = NOW()
+         WHERE id = $1
+           AND suspension_reason = 'verification_incomplete'`,
+        [result.rows[0].user_id]
+      );
+    }
 
     return wrapper.data(result.rows[0]);
   }
@@ -88,6 +124,12 @@ class AdminCommand {
     try {
       const { invalidateMaintenanceCache } = require("../../../../middlewares/maintenanceMode");
       invalidateMaintenanceCache();
+    } catch (_) {}
+    try {
+      const {
+        invalidateEmployerVerificationSettingsCache,
+      } = require("../../../../helpers/fraud/employer_verification_settings");
+      invalidateEmployerVerificationSettingsCache();
     } catch (_) {}
     return wrapper.data("System settings updated successfully");
   }
@@ -299,11 +341,21 @@ class AdminCommand {
           tiktok_url = COALESCE($9, tiktok_url),
           is_vip = COALESCE($10, is_vip),
           is_verified = COALESCE($11, is_verified),
+          verification_status = CASE
+            WHEN $11 IS TRUE THEN 'verified'
+            WHEN $11 IS FALSE AND verification_status = 'verified' THEN 'grace'
+            ELSE verification_status
+          END,
+          verification_deadline_at = CASE
+            WHEN $11 IS TRUE THEN NULL
+            ELSE verification_deadline_at
+          END,
           industry_id = COALESCE($12, industry_id),
           updated_at = NOW()
       WHERE id = $13 AND deleted_at IS NULL
       RETURNING id, user_id, company_name, contact_name, contact_phone, company_website, address, description,
-                avatar_url, employee_count, instagram_url, tiktok_url, industry_id, is_vip, is_verified, updated_at
+                avatar_url, employee_count, instagram_url, tiktok_url, industry_id, is_vip, is_verified,
+                verification_status, verification_deadline_at, updated_at
     `;
     const result = await this.db.executeQuery(updateQuery, [
       company_name, contact_name, contact_phone, finalWebsite,
@@ -311,6 +363,20 @@ class AdminCommand {
       is_vip, is_verified, industry_id, id
     ]);
     if (result.rowCount === 0) return wrapper.error(new NotFoundError("Employer not found"));
+
+    // Keep users.suspension in sync when admin verifies via generic update
+    if (is_verified === true && result.rows[0]?.user_id) {
+      await this.db.executeQuery(
+        `UPDATE users
+         SET is_suspended = FALSE,
+             suspension_reason = NULL,
+             updated_at = NOW()
+         WHERE id = $1
+           AND suspension_reason = 'verification_incomplete'`,
+        [result.rows[0].user_id]
+      );
+    }
+
     return wrapper.data(result.rows[0]);
   }
 

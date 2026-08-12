@@ -35,6 +35,8 @@ class Query {
                         recruiters.vip_start_at,
                         recruiters.vip_end_at,
                     recruiters.is_verified,
+                    recruiters.verification_status,
+                    recruiters.verification_deadline_at,
                     recruiters.created_at,
                     recruiters.updated_at FROM recruiters 
                     LEFT JOIN industries ON industries.id = recruiters.industry_id

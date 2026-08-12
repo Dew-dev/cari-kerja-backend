@@ -786,6 +786,94 @@ const deleteCity = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const employerVerificationCommandHandler = require("../../employer_verification/repositories/commands/command_handler");
+const employerVerificationQueryHandler = require("../../employer_verification/repositories/queries/query_handler");
+const employerVerificationCommandModel = require("../../employer_verification/repositories/commands/command_model");
+const employerVerificationQueryModel = require("../../employer_verification/repositories/queries/query_model");
+
+const listEmployerVerificationApplications = async (req, res) => {
+  const payload = {
+    status: req.query.status,
+    page: parseInt(req.query.page, 10) || 1,
+    limit: parseInt(req.query.limit, 10) || 20,
+  };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    employerVerificationQueryModel.listApplicationsParamType
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  const result = await employerVerificationQueryHandler.listApplications(
+    validatePayload.data
+  );
+  return sendResponse(result, res);
+};
+
+const getEmployerVerificationApplicationById = async (req, res) => {
+  const payload = { id: req.params.id };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    employerVerificationQueryModel.getApplicationByIdParamType
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  const result = await employerVerificationQueryHandler.getApplicationById(
+    validatePayload.data
+  );
+  return sendResponse(result, res);
+};
+
+const reviewEmployerVerificationApplication = async (req, res) => {
+  const payload = {
+    id: req.params.id,
+    action: req.body.action,
+    admin_note: req.body.admin_note,
+    rejection_reason: req.body.rejection_reason,
+    reviewed_by: req.userMeta.id,
+  };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    employerVerificationCommandModel.reviewApplicationParamType
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  const result = await employerVerificationCommandHandler.reviewApplication(
+    validatePayload.data
+  );
+  return sendResponse(result, res);
+};
+
+const markEmployerVerificationUnderReview = async (req, res) => {
+  const payload = {
+    id: req.params.id,
+    reviewed_by: req.userMeta.id,
+  };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    employerVerificationCommandModel.markUnderReviewParamType
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  const result = await employerVerificationCommandHandler.markUnderReview(
+    validatePayload.data
+  );
+  return sendResponse(result, res);
+};
+
+const listAccountReactivationRequests = async (req, res) => {
+  const payload = {
+    status: req.query.status,
+    page: parseInt(req.query.page, 10) || 1,
+    limit: parseInt(req.query.limit, 10) || 20,
+  };
+  const validatePayload = validator.isValidPayload(
+    payload,
+    employerVerificationQueryModel.listReactivationRequestsParamType
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  const result =
+    await employerVerificationQueryHandler.listReactivationRequests(
+      validatePayload.data
+    );
+  return sendResponse(result, res);
+};
+
 module.exports = {
   getDashboardStats,
   getDashboardTrustStats,
@@ -885,4 +973,9 @@ module.exports = {
   deleteConversationMessage,
   bulkDeleteConversationMessages,
   updateConversationStatus,
+  listEmployerVerificationApplications,
+  getEmployerVerificationApplicationById,
+  reviewEmployerVerificationApplication,
+  markEmployerVerificationUnderReview,
+  listAccountReactivationRequests,
 };

@@ -202,7 +202,8 @@ class AdminQuery {
     const offset = limit * (page - 1);
 
     const rawQuery = `
-      SELECT r.id, r.user_id, r.company_name, r.contact_name, r.contact_phone, r.is_vip, r.is_verified, r.created_at, r.updated_at, r.deleted_at,
+      SELECT r.id, r.user_id, r.company_name, r.contact_name, r.contact_phone, r.is_vip, r.is_verified,
+             r.verification_status, r.verification_deadline_at, r.created_at, r.updated_at, r.deleted_at,
              u.email as user_email, u.username as user_username,
              EXISTS (${openFraudExistsSql}) AS needs_review,
              (
@@ -1126,7 +1127,8 @@ class AdminQuery {
     const { id } = payload;
     const rawQuery = `
       SELECT r.id, r.user_id, r.company_name, r.contact_name, r.contact_phone, r.company_website, r.address, r.description, r.avatar_url,
-             r.employee_count, r.instagram_url, r.tiktok_url, r.industry_id, r.is_vip, r.is_verified, r.created_at,
+             r.employee_count, r.instagram_url, r.tiktok_url, r.industry_id, r.is_vip, r.is_verified,
+             r.verification_status, r.verification_deadline_at, r.created_at,
              EXISTS (
                SELECT 1 FROM fraud_events fe
                WHERE fe.status IN ('open', 'reviewing')
