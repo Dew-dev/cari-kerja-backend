@@ -22,8 +22,39 @@ const getToken = (authHeader) => {
   return token;
 };
 
+/**
+ * Slim JWT claims for cookies/headers. Spreading full user rows (encrypted emails,
+ * company flags, etc.) blows past nginx's default proxy header buffer → 502.
+ */
+const buildAccessTokenPayload = (user = {}) => {
+  const payload = {
+    id: user.id,
+    user_id: user.user_id || user.id,
+    email: user.email || null,
+    username: user.username || null,
+    role_id: user.role_id,
+    role: user.role || null,
+    name: user.name || null,
+    avatar_url: user.avatar_url || null,
+    login_provider: user.login_provider || "local",
+    provider_id: user.provider_id || null,
+    email_verified_at: user.email_verified_at || null,
+    is_suspended: user.is_suspended || false,
+    suspension_reason: user.suspension_reason || null,
+  };
+  if (user.worker_id) payload.worker_id = user.worker_id;
+  if (user.recruiter_id) payload.recruiter_id = user.recruiter_id;
+  if (user.company_id) payload.company_id = user.company_id;
+  if (user.company_role) payload.company_role = user.company_role;
+  return payload;
+};
+
 const generateAccessToken = async (payload) => {
-  return jwt.sign(payload, accessSecret, signOptions);
+  const slim =
+    payload && (payload.role_id != null || payload.id)
+      ? buildAccessTokenPayload(payload)
+      : payload;
+  return jwt.sign(slim, accessSecret, signOptions);
 };
 
 const generateRefreshToken = async (payload) => {
@@ -60,6 +91,7 @@ const verifyRefreshToken = async (token) => {
 
 module.exports = {
   getToken,
+  buildAccessTokenPayload,
   generateAccessToken,
   generateRefreshToken,
   verifyAccessToken,
