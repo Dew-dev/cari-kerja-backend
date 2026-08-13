@@ -1,4 +1,5 @@
 const { getToken, verifyAccessToken } = require("../helpers/auth/jwt_helper");
+const { assertUserNotSuspendedById } = require("../helpers/auth/account_guards");
 
 const optionalVerifyToken = async (req, res, next) => {
   try {
@@ -25,7 +26,14 @@ const optionalVerifyToken = async (req, res, next) => {
       return next();
     }
 
-    // 6. Token valid → inject user
+    // 6. Suspended → treat as unauthenticated (jangan inject userMeta)
+    const suspension = await assertUserNotSuspendedById(checkedToken.data?.id);
+    if (suspension.err) {
+      req.userMeta = null;
+      return next();
+    }
+
+    // 7. Token valid → inject user
     req.userMeta = checkedToken.data;
     return next();
   } catch (err) {

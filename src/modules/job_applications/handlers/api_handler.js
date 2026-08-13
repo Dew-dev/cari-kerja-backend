@@ -49,8 +49,8 @@ const getJobpostsByRecruiterId = async (req, res) => {
   addCondition("el.name = ?", experience_level);
   addCondition("st.name = ?", salary_type);
   addCondition("j.location ILIKE ?", location ? `%${location}%` : null);
-  addCondition("j.salary_min >= ?", salary_min);
-  addCondition("j.salary_max <= ?", salary_max);
+  addCondition("j.salary_max >= ?", salary_min);
+  addCondition("j.salary_min <= ?", salary_max);
   addCondition("c.name = ?", currency);
   addCondition("j.created_at >= ?", created_after);
   addCondition("j.created_at <= ?", created_before);

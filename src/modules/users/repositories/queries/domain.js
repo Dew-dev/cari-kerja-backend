@@ -17,7 +17,6 @@ class User {
       return wrapper.error(new NotFoundError("Can not find user"));
     }
 
-    logger.info(ctx, "getUser", "get detail user", payload);
     return wrapper.data(user.data);
   }
 }

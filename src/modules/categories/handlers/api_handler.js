@@ -10,7 +10,7 @@ const {
 
 // query
 const getCategory = async (req, res) => {
-  const payload = { ...req.params };
+  const payload = { ...req.params, ...req.query };
   const validatePayload = validator.isValidPayload(
     payload,
     queryModel.getOneCategoryType
@@ -39,8 +39,10 @@ const getAllCategories = async (req, res) => {
 };
 
 const getAllCategoriesWithJobcount = async (req, res) => {
-  const result = await queryHandler.getAllCategoriesWithJobcount();
-  return paginationResponse(result, res);
+  const result = await queryHandler.getAllCategoriesWithJobcount({
+    locale: req.query.locale,
+  });
+  return sendResponse(result, res);
 };
 
 //command

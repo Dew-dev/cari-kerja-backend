@@ -1,6 +1,13 @@
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+require("dotenv").config();
+
+/** Absolute/relative root for disk uploads. Override via UPLOADS_PATH in .env */
+const getUploadsRoot = () =>
+  process.env.UPLOADS_PATH
+    ? path.resolve(process.env.UPLOADS_PATH)
+    : path.join(__dirname, "../uploads");
 
 // Utility pembuat uploader
 function createUploader(
@@ -9,8 +16,7 @@ function createUploader(
   allowedMimeTypes,
   maxSizeMB = 2,
 ) {
-  // const uploadPath = path.join(__dirname, "../uploads", subPath);
-  const uploadPath = path.join("/var/www/uploads", subPath);
+  const uploadPath = path.join(getUploadsRoot(), subPath);
 
   // pastikan folder ada
   if (!fs.existsSync(uploadPath)) {
@@ -29,7 +35,18 @@ function createUploader(
   });
 
   const fileFilter = (req, file, cb) => {
-    if (!allowedMimeTypes.includes(file.mimetype)) {
+    const ext = path.extname(file.originalname || "").toLowerCase();
+    const allowedByMime = allowedMimeTypes.includes(file.mimetype);
+    // Browsers/OS sometimes send DOCX/PDF as application/octet-stream
+    const allowedByExt =
+      (ext === ".pdf" && allowedMimeTypes.includes("application/pdf")) ||
+      (ext === ".docx" &&
+        allowedMimeTypes.includes(
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )) ||
+      (ext === ".doc" && allowedMimeTypes.includes("application/msword"));
+
+    if (!allowedByMime && !allowedByExt) {
       return cb(new Error("File type not allowed"), false);
     }
     cb(null, true);
@@ -79,9 +96,40 @@ const uploadPortfolio = createUploader(
   10 // max 10MB
 );
 
+// CV parsing → PDF or DOCX, max 5 MB
+const uploadCV = createUploader(
+  "cv-temp",
+  "cv",
+  [
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ],
+  5
+);
+
+// News cover → JPG/PNG/WebP, max 5MB
+const uploadNewsCover = createUploader(
+  "news/covers",
+  "news-cover",
+  ["image/jpeg", "image/jpg", "image/png", "image/webp"],
+  5
+);
+
+// Employer KYC docs → PDF/JPG/PNG, max 10MB
+const uploadVerificationDoc = createUploader(
+  "employer-verification",
+  "evdoc",
+  ["application/pdf", "image/jpeg", "image/jpg", "image/png"],
+  10
+);
+
 module.exports = {
   uploadAvatarRecruiter,
   uploadAvatarWorker,
   uploadResume,
   uploadPortfolio,
+  uploadCV,
+  uploadNewsCover,
+  uploadVerificationDoc,
 };

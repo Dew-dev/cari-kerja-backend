@@ -8,7 +8,10 @@ const {
   ConflictError,
   InternalServerError,
   BadRequestError,
+  ForbiddenError,
 } = require("../../../../helpers/errors");
+const PaymentQuery = require("../../../payments/repositories/queries/query");
+const CandidatePipelineQuery = require("../../../candidate_pipeline/repositories/queries/query");
 const ctx = "Jobposts-Command-Domain";
 const joi = require("joi");
 const commandModel = require("../../repositories/commands/command_model");
@@ -20,19 +23,47 @@ const {
 const jobPostQuestionParamType = require("./command_model.js");
 // const commandModel = require("../../job_tags/repositories/commands/command_model");
 const tagsModel = require("../../../job_tags/repositories/commands/command_model.js");
-const { sendMail } = require("../../../../helpers/utils/mailer");
-const   statusEmailTemplate = require("../../../../helpers/utils/statusEmailTemplate");
+const statusEmailTemplate = require("../../../../helpers/utils/statusEmailTemplate");
+const {
+  assertRecruiterVerifiedForPublish,
+  isOpenJobStatus,
+} = require("../../../../helpers/fraud/employer_verification");
+const { assertApplyVelocity } = require("../../../../helpers/fraud/velocity");
+const {
+  scoreJobPost,
+  PENDING_JOB_STATUS_ID,
+} = require("../../../../helpers/fraud/score_job_post");
+const { upsertOpenFraudEvent } = require("../../../../helpers/fraud/fraud_events");
+const {
+  enqueueComputeApplicationMatch,
+  enqueueOrComputeApplicationMatch,
+  enqueueRecomputeJobMatches,
+} = require("../../../../helpers/queues/matching.queue");
+const {
+  syncJobPostSafe,
+  deleteJobPostSafe,
+} = require("../../services/elasticsearch_job_search");
+const {
+  resolveJobTitle,
+  JobTitleResolveError,
+} = require("../../../job_titles/helpers/resolve_job_title");
 
 class Jobpost {
   constructor(db) {
     this.command = new Command(db);
     this.query = new Query(db);
+    this.paymentQuery = new PaymentQuery(db);
+    this.candidatePipelineQuery = new CandidatePipelineQuery(db);
   }
 
   async createJobPost(payload) {
     const {
       recruiter_id,
+      company_id,
+      created_by_user_id,
       title,
+      job_title_id,
+      job_title,
       description,
       employment_type_id,
       experience_level_id,
@@ -53,16 +84,72 @@ class Jobpost {
       skills,
       province,
       city,
-      is_vip,
-      vip_start_at,
-      vip_end_at,
       is_remote,
     } = payload;
+
+    // ======================================
+    // SUBSCRIPTION QUOTA ENFORCEMENT (company-wide)
+    // ======================================
+    const quotaCheckResult = await this._checkPostingQuota(company_id || recruiter_id);
+    if (quotaCheckResult.err) {
+      return wrapper.error(quotaCheckResult.err);
+    }
+    // ======================================
+
+    // Unverified employers may create DRAFT/PENDING/etc., but not OPEN.
+    if (isOpenJobStatus(status_id)) {
+      const verified = await assertRecruiterVerifiedForPublish(
+        this.command.db,
+        recruiter_id
+      );
+      if (verified.err) {
+        return verified;
+      }
+    }
+
+    let effectiveStatusId = status_id;
+    let moderation = null;
+    if (isOpenJobStatus(status_id)) {
+      const score = scoreJobPost({
+        title,
+        description,
+        location,
+        requirements,
+        benefits,
+        responsibilities,
+      });
+      if (score.needs_review) {
+        effectiveStatusId = PENDING_JOB_STATUS_ID;
+        moderation = score;
+      }
+    }
+
+    let resolvedTitle;
+    try {
+      resolvedTitle = await resolveJobTitle(
+        { id: job_title_id, name: job_title || title, category_id },
+        this.command.db
+      );
+    } catch (err) {
+      if (err instanceof JobTitleResolveError || err?.name === "JobTitleResolveError") {
+        return wrapper.error(new BadRequestError(err.message));
+      }
+      throw err;
+    }
+    // Keep marketing headline unless client only sent taxonomy name with empty title
+    const headline =
+      (!title || !String(title).trim()) && job_title && resolvedTitle
+        ? resolvedTitle.name
+        : title;
 
     const jobPostId = uuidv4();
     const data = {
       recruiter_id,
-      title,
+      company_id: company_id || null,
+      created_by_recruiter_id: recruiter_id,
+      created_by_user_id: created_by_user_id || null,
+      title: headline,
+      job_title_id: resolvedTitle?.id || null,
       description,
       employment_type_id,
       experience_level_id,
@@ -71,14 +158,11 @@ class Jobpost {
       salary_min,
       salary_max,
       currency_id,
-      status_id,
+      status_id: effectiveStatusId,
       deadline,
       category_id,
       province,
       city,
-      is_vip: is_vip ?? false,
-      vip_start_at: is_vip ? (vip_start_at ?? new Date()) : null,
-      vip_end_at: is_vip ? (vip_end_at ?? null) : null,
       is_remote: is_remote ?? false,
     };
 
@@ -89,6 +173,16 @@ class Jobpost {
     }
 
     const actualJobPostId = result.id || jobPostId;
+
+    const failNestedCreate = async (message, err) => {
+      logger.error(ctx, message, "Job Posts Commands", err);
+      try {
+        await this.command.deleteJobPost(actualJobPostId);
+      } catch (rollbackErr) {
+        logger.error(ctx, "Rollback job post after nested insert failure", "Job Posts Commands", rollbackErr);
+      }
+      return wrapper.error(new InternalServerError(message));
+    };
 
     // Insert requirements if provided
     if (requirements && Array.isArray(requirements) && requirements.length > 0) {
@@ -101,7 +195,7 @@ class Jobpost {
       
       const reqResult = await this.command.insertMany(requirementsData, "job_post_requirements");
       if (reqResult.err) {
-        logger.error(ctx, "Create job post requirements", "Job Posts Commands", reqResult.err);
+        return failNestedCreate("Create job post requirements failed", reqResult.err);
       }
     }
 
@@ -116,7 +210,7 @@ class Jobpost {
       
       const benResult = await this.command.insertMany(benefitsData, "job_post_benefits");
       if (benResult.err) {
-        logger.error(ctx, "Create job post benefits", "Job Posts Commands", benResult.err);
+        return failNestedCreate("Create job post benefits failed", benResult.err);
       }
     }
 
@@ -131,7 +225,7 @@ class Jobpost {
       
       const respResult = await this.command.insertMany(responsibilitiesData, "job_post_responsibilities");
       if (respResult.err) {
-        logger.error(ctx, "Create job post responsibilities", "Job Posts Commands", respResult.err);
+        return failNestedCreate("Create job post responsibilities failed", respResult.err);
       }
     }
 
@@ -146,9 +240,8 @@ class Jobpost {
       }));
       
       const skillResult = await this.command.insertMany(skillsData, "job_post_skills");
-      //console.log("skillResult:", skillResult);
       if (skillResult.err) {
-        logger.error(ctx, "Create job post skills", "Job Posts Commands", skillResult.err);
+        return failNestedCreate("Create job post skills failed", skillResult.err);
       }
     }
 
@@ -157,7 +250,6 @@ class Jobpost {
       : Array.isArray(questions)
         ? questions
         : null;
-    //console.log("questionPayload:", questionPayload);
     if (questionPayload && questionPayload.length > 0) {
       const questionResult = await this.createJobPostQuestions(
         questionPayload,
@@ -165,16 +257,31 @@ class Jobpost {
         ctx,
       );
       if (questionResult.err) {
-        logger.error(
-          ctx,
-          "Create job post questions",
-          "Job Posts Commands",
-          questionResult.err,
-        );
+        return failNestedCreate("Create job post questions failed", questionResult.err);
       }
     }
 
-    return wrapper.data(data);
+    if (moderation) {
+      await upsertOpenFraudEvent(this.command.db, {
+        entity_type: "job_post",
+        entity_id: actualJobPostId,
+        source: "job_content_heuristics",
+        risk_score: moderation.risk_score,
+        flags: moderation.flags,
+        summary: `Job content flagged (score ${moderation.risk_score}): ${moderation.flags
+          .map((f) => f.code)
+          .join(", ")}`,
+        metadata: { title, recruiter_id },
+      });
+      syncJobPostSafe(this.command.db, actualJobPostId);
+      return wrapper.data(
+        { ...data, id: actualJobPostId, moderation },
+        "CONTENT_FLAGGED: Job held for review due to content risk"
+      );
+    }
+
+    syncJobPostSafe(this.command.db, actualJobPostId);
+    return wrapper.data({ ...data, id: actualJobPostId });
   }
 
   async createJobPostQuestions(payloadArray, id, ctx) {
@@ -366,9 +473,61 @@ class Jobpost {
         throw new Error("Field 'id' wajib ada untuk update");
       }
 
+      const recruiterId = payload.recruiter_id;
+      if (!recruiterId) {
+        return wrapper.error(
+          new ForbiddenError("Recruiter context required to update job status"),
+        );
+      }
+
+      const job = await this.query.findOneJobPost({
+        id,
+        recruiter_id: recruiterId,
+        company_id: payload.company_id,
+      });
+      if (job.err || !job.data) {
+        return wrapper.error(
+          new NotFoundError("Job not found or not owned by recruiter"),
+        );
+      }
+
+      if (isOpenJobStatus(value.status_id)) {
+        const verified = await assertRecruiterVerifiedForPublish(
+          this.command.db,
+          recruiterId
+        );
+        if (verified.err) {
+          return verified;
+        }
+      }
+
+      let effectiveStatusId = value.status_id;
+      let moderation = null;
+      if (isOpenJobStatus(value.status_id)) {
+        const contentResult = await this.command.db.executeQuery(
+          `SELECT title, description, location FROM job_posts WHERE id = $1 LIMIT 1`,
+          [id]
+        );
+        const content = contentResult?.rows?.[0] || {};
+        const score = scoreJobPost(content);
+        if (score.needs_review) {
+          effectiveStatusId = PENDING_JOB_STATUS_ID;
+          moderation = score;
+          await upsertOpenFraudEvent(this.command.db, {
+            entity_type: "job_post",
+            entity_id: id,
+            source: "job_content_heuristics",
+            risk_score: score.risk_score,
+            flags: score.flags,
+            summary: `Publish blocked by content heuristics (score ${score.risk_score})`,
+            metadata: { recruiter_id: recruiterId, title: content.title },
+          });
+        }
+      }
+
       const parameter = { id: id };
       const updateQuery = {
-        status_id: value.status_id,
+        status_id: effectiveStatusId,
       };
 
       const result = await this.command.updateOneNew(
@@ -387,6 +546,15 @@ class Jobpost {
         return wrapper.error(new InternalServerError(result.err));
       }
 
+      if (moderation) {
+        syncJobPostSafe(this.command.db, id);
+        return wrapper.data(
+          { ...result.data, moderation },
+          "CONTENT_FLAGGED: Job held for review due to content risk"
+        );
+      }
+
+      syncJobPostSafe(this.command.db, id);
       return wrapper.data(result.data);
     } catch (err) {
       logger.error(ctx, "Update job post status", "Job Posts Commands", err);
@@ -404,7 +572,6 @@ class Jobpost {
         worker_id,
         resume_id,
         cover_letter,
-        application_status_id,
         answers, // array of { question_id, answer_text }
       } = payload;
 
@@ -416,7 +583,49 @@ class Jobpost {
         "job_applications", // nama tabel
       );
       if (existing.data) {
-        return wrapper.error(new Error("Anda sudah melamar pekerjaan ini."));
+        return wrapper.error(
+          new ConflictError(
+            "DUPLICATE_SUBMISSION: Anda sudah melamar pekerjaan ini."
+          ),
+        );
+      }
+
+      const velocity = await assertApplyVelocity(this.command.db, worker_id);
+      if (velocity.err) {
+        return velocity;
+      }
+
+      // application_status_id selalu di-resolve oleh backend, tidak pernah
+      // dipercayakan ke client. Pastikan stage default (6 stage) sudah
+      // ter-seed untuk job post ini, lalu ambil stage dengan stage_type='applied'.
+      const stagesResult = await this.candidatePipelineQuery.ensureStagesForJobPost(
+        job_post_id,
+      );
+      if (stagesResult.err) {
+        logger.error(
+          ctx,
+          "Create Job Application",
+          "Failed to ensure stages for job post",
+          stagesResult.err,
+        );
+        return wrapper.error(
+          new InternalServerError("Failed to resolve application stage"),
+        );
+      }
+
+      const appliedStage = (stagesResult.data || []).find(
+        (stage) => stage.stage_type === "applied",
+      );
+      if (!appliedStage) {
+        logger.error(
+          ctx,
+          "Create Job Application",
+          "Applied stage not found for job post",
+          { job_post_id },
+        );
+        return wrapper.error(
+          new InternalServerError("Applied stage not configured for this job post"),
+        );
       }
 
       const data = {
@@ -425,7 +634,7 @@ class Jobpost {
         worker_id,
         resume_id,
         cover_letter,
-        application_status_id,
+        application_status_id: appliedStage.id,
         applied_at: new Date(),
         updated_at: new Date(),
       };
@@ -433,6 +642,17 @@ class Jobpost {
       // insert ke job_applications
       const result = await this.command.insertOne(data, "job_applications");
       if (result.err) {
+        const message = result.err.message || "";
+        const isDuplicate =
+          result.err.code === "23505" ||
+          /duplicate key|unique constraint/i.test(message);
+        if (isDuplicate) {
+          return wrapper.error(
+            new ConflictError(
+              "DUPLICATE_SUBMISSION: Anda sudah melamar pekerjaan ini."
+            ),
+          );
+        }
         logger.error(ctx, "Create Job Application", ctx, result.err);
         return wrapper.error(
           new InternalServerError("Create Job Application Failed"),
@@ -489,6 +709,8 @@ class Jobpost {
         );
         if (resultAnswer.err) {
           logger.error(ctx, "Insert Job Post Answers", ctx, resultAnswer.err);
+          // Rollback application insert when answers fail
+          await this.command.deleteOne({ id: data.id }, "job_applications");
           return wrapper.error(
             new InternalServerError("Create Job Post Answers Failed"),
           );
@@ -496,6 +718,8 @@ class Jobpost {
       }
 
       // await client.query("COMMIT");
+
+      await enqueueOrComputeApplicationMatch(data.id);
 
       return wrapper.data({
         job_application: data,
@@ -576,14 +800,16 @@ class Jobpost {
     });
 
     if (result.rowCount === 0) {
-      return wrapper.error("Application not found or already withdrawn");
+      return wrapper.error(
+        new NotFoundError("Application not found or already withdrawn"),
+      );
     }
 
     return wrapper.data("Application withdrawn successfully");
   }
 
   async updateApplicationStatus(payload) {
-    const { id, application_status_id, recruiter_id } = payload;
+    const { id, application_status_id, recruiter_id, company_id } = payload;
 
     // 1. Ambil application + job_post
     const application = await this.query.findOneJobApplication({
@@ -594,12 +820,31 @@ class Jobpost {
       return wrapper.error(new NotFoundError("Application not found"));
     }
 
-    // 2. Pastikan recruiter pemilik job
-    if (application.data.recruiter_id !== recruiter_id) {
+    // 2. Pastikan company/recruiter pemilik job
+    const ownsByCompany =
+      company_id &&
+      application.data.company_id &&
+      application.data.company_id === company_id;
+    const ownsByRecruiter = application.data.recruiter_id === recruiter_id;
+    if (!ownsByCompany && !ownsByRecruiter) {
       return wrapper.error(
         new ForbiddenError("You are not allowed to update this application"),
       );
     }
+
+    // 2.5. Pastikan stage tujuan milik job post yang sama dengan aplikasi ini
+    const stage = await this.query.findStageForValidation({
+      id: application_status_id,
+      job_post_id: application.data.job_post_id,
+    });
+
+    if (stage.err || !stage.data) {
+      return wrapper.error(
+        new BadRequestError("Stage tidak ditemukan untuk job post ini"),
+      );
+    }
+
+    const previousStatusId = application.data.application_status_id;
 
     // 3. Update status
     const result = await this.command.updateJobApplicationStatus({
@@ -619,27 +864,72 @@ class Jobpost {
       );
     }
 
+    // 3.5. Catat riwayat perpindahan stage
+    await this.command.insertApplicationStageHistory({
+      application_id: id,
+      from_stage_id: previousStatusId,
+      to_stage_id: application_status_id,
+      changed_by_recruiter_id: recruiter_id,
+      note: null,
+    });
+
     const app = await this.query.findApplicationWithUser(id);
     if (app.err || !app.data) {
       return wrapper.error(new NotFoundError("Application not found"));
     }
 
-    // kirim email (NON-BLOCKING OPTIONAL)
+    // Multi-channel notify (email + telegram). Channels are independent.
     try {
-      await sendMail({
-        to: app.data.email,
-        subject: `Application status updated — ${app.data.job_title}`,
-        html: statusEmailTemplate({
-          name: app.data.user_name,
+      const config = require("../../../../config/global_config");
+      const notificationService = require("../../../../helpers/notifications/NotificationService");
+      const feUrl = (config.get("/frontendUrl") || "").replace(/\/$/, "");
+      const actionUrl = feUrl
+        ? `${feUrl}/jobposts/${app.data.job_post_id}`
+        : undefined;
+
+      const stageName = String(app.data.status_name || "");
+      const isInterview = /interview|wawancara/i.test(stageName);
+      const notifyType = isInterview
+        ? "interview_invitation"
+        : "application_status";
+
+      const hasEmail = Boolean(app.data.email && String(app.data.email).trim());
+      const emailPayload = hasEmail
+        ? {
+            to: app.data.email,
+            subject: `Update lamaran — ${app.data.job_title}`,
+            html: statusEmailTemplate({
+              name: app.data.worker_name || app.data.user_name,
+              jobTitle: app.data.job_title,
+              status: app.data.status_name,
+              stageName: app.data.status_name,
+              companyName: app.data.company_name,
+              actionUrl,
+            }),
+          }
+        : null;
+
+      await notificationService.notify({
+        user: {
+          id: app.data.user_id,
+          email: app.data.email,
+          login_provider: app.data.login_provider,
+          telegram_chat_id: app.data.telegram_chat_id,
+          name: app.data.worker_name || app.data.user_name,
+        },
+        type: notifyType,
+        data: {
+          name: app.data.worker_name || app.data.user_name,
           jobTitle: app.data.job_title,
           status: app.data.status_name,
-        }),
+          stageName: app.data.status_name,
+          companyName: app.data.company_name,
+          actionUrl,
+        },
+        email: emailPayload,
       });
     } catch (e) {
-      logger.error(ctx, "changeApplicationStatus", "Send email failed", e);
-      return wrapper.error(
-        new InternalServerError(e.message),
-      );
+      logger.error(ctx, "changeApplicationStatus", "Notify failed", e);
     }
 
     return wrapper.data("Application status updated successfully");
@@ -648,12 +938,13 @@ class Jobpost {
   async updateJobPost(payload) {
     
     console.log("skillResult (update):", payload);
-    const { id, recruiter_id, user_id, tags, job_post_questions, questions, skills, province, city, is_vip, vip_start_at, vip_end_at, is_remote, ...jobData } = payload;
+    const { id, recruiter_id, user_id, tags, job_post_questions, questions, skills, province, city, is_remote, job_title_id, job_title, ...jobData } = payload;
 
     // 1️⃣ cek job milik recruiter
     const job = await this.query.findOneJobPost({
       id,
       recruiter_id,
+      company_id: payload.company_id,
     });
 
     if (job.err || !job.data) {
@@ -662,16 +953,79 @@ class Jobpost {
       );
     }
 
+    if (isOpenJobStatus(jobData.status_id)) {
+      const verified = await assertRecruiterVerifiedForPublish(
+        this.command.db,
+        recruiter_id
+      );
+      if (verified.err) {
+        return verified;
+      }
+
+      const contentResult = await this.command.db.executeQuery(
+        `SELECT title, description, location FROM job_posts WHERE id = $1 LIMIT 1`,
+        [id]
+      );
+      const existing = contentResult?.rows?.[0] || {};
+      const score = scoreJobPost({
+        title: jobData.title ?? existing.title,
+        description: jobData.description ?? existing.description,
+        location: jobData.location ?? job.data.location ?? existing.location,
+        requirements,
+        benefits,
+        responsibilities,
+      });
+      if (score.needs_review) {
+        jobData.status_id = PENDING_JOB_STATUS_ID;
+        await upsertOpenFraudEvent(this.command.db, {
+          entity_type: "job_post",
+          entity_id: id,
+          source: "job_content_heuristics",
+          risk_score: score.risk_score,
+          flags: score.flags,
+          summary: `Update-to-OPEN blocked by content heuristics (score ${score.risk_score})`,
+          metadata: { recruiter_id, title: jobData.title ?? existing.title },
+        });
+        payload = {
+          ...payload,
+          status_id: PENDING_JOB_STATUS_ID,
+          moderation: score,
+        };
+      }
+    }
+
+    let resolvedTitle;
+    try {
+      resolvedTitle = await resolveJobTitle(
+        {
+          id: job_title_id,
+          name: job_title || jobData.title,
+          category_id: jobData.category_id ?? job.data.category_id,
+        },
+        this.command.db
+      );
+    } catch (err) {
+      if (err instanceof JobTitleResolveError || err?.name === "JobTitleResolveError") {
+        return wrapper.error(new BadRequestError(err.message));
+      }
+      throw err;
+    }
+    if (
+      (!jobData.title || !String(jobData.title).trim()) &&
+      job_title &&
+      resolvedTitle
+    ) {
+      jobData.title = resolvedTitle.name;
+    }
+
     // 2️⃣ update job_posts - preserve existing values for fields not provided
     const updateResult = await this.command.updateJobPost({
       id,
       ...jobData,
+      job_title_id: resolvedTitle?.id ?? job_title_id ?? null,
       location: jobData.location ?? job.data.location,
       province: province ?? job.data.province,
       city: city ?? job.data.city,
-      is_vip: is_vip ?? job.data.is_vip,
-      vip_start_at: is_vip === undefined ? job.data.vip_start_at : (is_vip ? (vip_start_at ?? new Date()) : null),
-      vip_end_at: is_vip === undefined ? job.data.vip_end_at : (is_vip ? (vip_end_at ?? null) : null),
       is_remote: is_remote ?? job.data.is_remote,
     });
 
@@ -746,35 +1100,26 @@ class Jobpost {
       }
     }
 
-    return wrapper.data(payload);
-  }
+    const shouldRecomputeMatches =
+      skills !== undefined ||
+      jobData.description !== undefined ||
+      jobData.title !== undefined ||
+      jobData.experience_level_id !== undefined;
 
-  async updateJobPostVip(payload) {
-    const { id, recruiter_id, is_vip, vip_start_at, vip_end_at } = payload;
-
-    const job = await this.query.findOneJobPost({ id, recruiter_id });
-
-    if (job.err || !job.data) {
-      return wrapper.error(
-        new NotFoundError("Job not found or not owned by recruiter"),
-      );
+    if (shouldRecomputeMatches) {
+      await enqueueRecomputeJobMatches(id);
     }
 
-    const updateData = {
-      is_vip,
-      vip_start_at: is_vip ? (vip_start_at ?? new Date()) : null,
-      vip_end_at: is_vip ? (vip_end_at ?? null) : null,
-    };
-
-    const result = await this.command.updateOneNew({ id }, updateData, "job_posts");
-
-    if (result.err) {
-      logger.error(ctx, "updateJobPostVip", "Update VIP job failed", result.err);
-      return wrapper.error(new InternalServerError("Failed to update job VIP status"));
-    }
-
-    return wrapper.data({ id, ...updateData });
+    syncJobPostSafe(this.command.db, id);
+    return wrapper.data(
+      payload,
+      payload?.moderation
+        ? "CONTENT_FLAGGED: Job held for review due to content risk"
+        : null
+    );
   }
+
+
 
   async duplicateJobPost(payload) {
     const { id, recruiter_id } = payload;
@@ -783,6 +1128,7 @@ class Jobpost {
     const job = await this.query.findJobWithTags({
       id,
       recruiter_id,
+      company_id: payload.company_id,
     });
 
     if (job.err || !job.data) {
@@ -791,28 +1137,46 @@ class Jobpost {
       );
     }
 
+    // Kuota posting berlaku juga untuk duplicate (sebelumnya bypass)
     const original = job.data;
+    const quotaCheckResult = await this._checkPostingQuota(
+      original.company_id || recruiter_id
+    );
+    if (quotaCheckResult.err) {
+      return wrapper.error(quotaCheckResult.err);
+    }
+
 
     // 2️⃣ create job baru (DRAFT)
-    const newJob = await this.command.insertJobPost({
-      recruiter_id,
-      title: `${original.title} (Copy)`,
-      description: original.description,
-      employment_type_id: original.employment_type_id,
-      experience_level_id: original.experience_level_id,
-      salary_type_id: original.salary_type_id,
-      salary_min: original.salary_min,
-      salary_max: original.salary_max,
-      currency_id: original.currency_id,
-      location: original.location,
-      deadline: original.deadline,
-      status_id: 3, // DRAFT
-      category_id: original.category_id,
-    });
+    // is_remote is NOT NULL — must pass a boolean (explicit NULL bypasses DB default).
+    let newJob;
+    try {
+      newJob = await this.command.insertJobPost({
+        recruiter_id,
+        title: `${original.title} (Copy)`,
+        job_title_id: original.job_title_id ?? null,
+        description: original.description,
+        employment_type_id: original.employment_type_id,
+        experience_level_id: original.experience_level_id,
+        salary_type_id: original.salary_type_id,
+        salary_min: original.salary_min,
+        salary_max: original.salary_max,
+        currency_id: original.currency_id,
+        location: original.location,
+        deadline: original.deadline,
+        status_id: 3, // DRAFT
+        category_id: original.category_id,
+        province: original.province ?? null,
+        city: original.city ?? null,
+        is_remote: original.is_remote ?? false,
+      });
+    } catch (err) {
+      logger.error(ctx, "duplicateJobPost", "Insert job failed", err);
+      return wrapper.error(new InternalServerError("Failed to duplicate job"));
+    }
 
-    if (newJob.err) {
-      //console.log("ini newJob.err", newJob.err);
-      logger.error(ctx, "duplicateJobPost", "Insert job failed", newJob.err);
+    if (!newJob || newJob.err || !newJob.id) {
+      logger.error(ctx, "duplicateJobPost", "Insert job failed", newJob?.err || newJob);
       return wrapper.error(new InternalServerError("Failed to duplicate job"));
     }
 
@@ -890,13 +1254,14 @@ class Jobpost {
       await this.command.insertMany(questionsData, "job_post_questions");
     }
 
+    syncJobPostSafe(this.command.db, newJobId);
     return wrapper.data({
       id: newJobId,
       message: "Job duplicated successfully",
     });
   }
-  async archiveJobPost({ id, recruiter_id }) {
-    const job = await this.query.findOneJobPost({ id, recruiter_id });
+  async archiveJobPost({ id, recruiter_id, company_id }) {
+    const job = await this.query.findOneJobPost({ id, recruiter_id, company_id });
 
     if (job.err || !job.data) {
       return wrapper.error(
@@ -905,11 +1270,12 @@ class Jobpost {
     }
 
     await this.command.archiveJobPost(id);
+    syncJobPostSafe(this.command.db, id);
     return wrapper.data("Job archived");
   }
 
-  async restoreJobPost({ id, recruiter_id }) {
-    const job = await this.query.findOneJobPost({ id, recruiter_id });
+  async restoreJobPost({ id, recruiter_id, company_id }) {
+    const job = await this.query.findOneJobPost({ id, recruiter_id, company_id });
 
     if (job.err || !job.data) {
       return wrapper.error(
@@ -918,11 +1284,12 @@ class Jobpost {
     }
 
     await this.command.restoreJobPost(id);
+    syncJobPostSafe(this.command.db, id);
     return wrapper.data("Job restored");
   }
 
-  async deleteJobPost({ id, recruiter_id }) {
-    const job = await this.query.findOneJobPost({ id, recruiter_id });
+  async deleteJobPost({ id, recruiter_id, company_id }) {
+    const job = await this.query.findOneJobPost({ id, recruiter_id, company_id });
 
     if (job.err || !job.data) {
       return wrapper.error(
@@ -931,8 +1298,43 @@ class Jobpost {
     }
 
     await this.command.deleteJobPost(id);
+    deleteJobPostSafe(id);
     return wrapper.data("Job deleted successfully");
   }
-}   
+
+  /**
+   * Cek kuota posting company-wide berdasarkan subscription plan aktif.
+   * Default: Paket Free = 1 job post aktif.
+   */
+  async _checkPostingQuota(company_id) {
+    try {
+      const subResult = await this.paymentQuery.getActiveSubscription(company_id);
+      const activeSubscription = subResult?.rows?.[0] || null;
+
+      const maxActivePosts = activeSubscription ? parseInt(activeSubscription.max_active_posts, 10) : 1;
+
+      const countResult = await this.paymentQuery.countActiveJobPostsFallback(company_id);
+      const currentActive = parseInt(countResult?.rows?.[0]?.count || 0, 10);
+
+      if (currentActive >= maxActivePosts) {
+        const planName = activeSubscription ? activeSubscription.plan_display_name : "Paket Free";
+        return wrapper.error(
+          new ForbiddenError(
+            `Batas posting perusahaan sudah penuh (${currentActive}/${maxActivePosts} iklan aktif pada ${planName}). ` +
+            `Upgrade paket perusahaan untuk menambah lebih banyak iklan.`
+          )
+        );
+      }
+
+      return wrapper.data({ allowed: true, currentActive, maxActivePosts });
+    } catch (err) {
+      logger.error(ctx, "_checkPostingQuota", "Error checking quota", err);
+      return wrapper.error(
+        new InternalServerError("Failed to verify posting quota. Please try again.")
+      );
+    }
+  }
+}
 
 module.exports = Jobpost;
+

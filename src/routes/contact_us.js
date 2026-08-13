@@ -1,15 +1,41 @@
+const verifyToken = require("../middlewares/verifyToken");
+const verifyRole = require("../middlewares/verifyRole");
 const contactUsHandler = require("../modules/contact_us/handlers/api_handlers");
+const contactUsLimiter = require("../middlewares/rateLimitContactUs");
+
+// Public create — no auth.
+// Admin read/delete — super_admin (3) or admin (4).
+const adminRoles = [3, 4];
+
+function verifyAdminRole(req, res, next) {
+  return verifyRole(adminRoles)(req, res, next);
+}
 
 module.exports = (server) => {
-  // Create contact message (public, no auth required)
-  server.post("/api/v1/contact-us", contactUsHandler.createContactMessage);
+  server.post(
+    "/api/v1/contact-us",
+    contactUsLimiter,
+    contactUsHandler.createContactMessage
+  );
 
-  // Get all contact messages (admin only - add verification if needed)
-  server.get("/api/v1/contact-us", contactUsHandler.getContactMessages);
+  server.get(
+    "/api/v1/contact-us",
+    verifyToken,
+    verifyAdminRole,
+    contactUsHandler.getContactMessages
+  );
 
-  // Get contact message by ID (admin only - add verification if needed)
-  server.get("/api/v1/contact-us/:id", contactUsHandler.getContactMessageById);
+  server.get(
+    "/api/v1/contact-us/:id",
+    verifyToken,
+    verifyAdminRole,
+    contactUsHandler.getContactMessageById
+  );
 
-  // Delete contact message (admin only - add verification if needed)
-  server.delete("/api/v1/contact-us/:id", contactUsHandler.deleteContactMessage);
+  server.delete(
+    "/api/v1/contact-us/:id",
+    verifyToken,
+    verifyAdminRole,
+    contactUsHandler.deleteContactMessage
+  );
 };

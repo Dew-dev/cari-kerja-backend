@@ -1,0 +1,63 @@
+name: Deploy Staging
+
+on:
+  push:
+    branches:
+      - develop
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy be-stage to VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_PRIVATE_KEY }}
+          port: ${{ secrets.VPS_PORT }}
+          protocol: tcp
+          timeout: 2m
+          script_stop: true
+          command_timeout: 25m
+          script: |
+            set -euo pipefail
+            PROJECT_DIR="/var/www/cari-kerja"
+            BACKEND_DIR="be-stage-cari-kerja"
+            SCRIPT_SRC="${PROJECT_DIR}/${BACKEND_DIR}/scripts/deploy/staging-be-remote.sh"
+
+            cd "$PROJECT_DIR"
+            # Ensure latest develop (includes deploy script) is on disk before invoking it.
+            git -C "$BACKEND_DIR" fetch origin
+            git -C "$BACKEND_DIR" checkout develop
+            git -C "$BACKEND_DIR" pull --ff-only origin develop
+
+            if [[ -f "$SCRIPT_SRC" ]]; then
+              chmod +x "$SCRIPT_SRC"
+              # Script pulls again + builds; skip duplicate pull inside by trusting ff-only above.
+              bash "$SCRIPT_SRC"
+            else
+              echo "Deploy script missing after pull; running inline fallback"
+              docker compose up -d --build be-stage
+              docker image prune -f
+              for i in $(seq 1 12); do
+                if curl -fsS https://be-stage.cari-kerja.co.id/api/v1/health >/dev/null; then
+                  echo "Health OK"
+                  exit 0
+                fi
+                sleep 5
+              done
+              echo "Health check failed"
+              exit 1
+            fi

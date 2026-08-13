@@ -1,4 +1,4 @@
-const collection = "languages";
+const collection = "worker_languages";
 const errorEmptyMessage = "Data Not Found Please Try Another Input";
 const errorQueryMessage = "Error querying PostgreSQL";
 const logger = require("../../../../helpers/utils/logger");
@@ -16,6 +16,24 @@ class Query {
     return this.db.findOne(parameter, projection, collection);
   }
 
+  // Get All master languages (lookup table `languages`) untuk dropdown
+  async findAllMasterLanguages(search) {
+    try {
+      const searchQuery = search ? `%${search}%` : "%%";
+      const query = `
+        SELECT id, name
+        FROM languages
+        WHERE name ILIKE $1
+        ORDER BY name ASC;
+      `;
+      const result = await this.db.executeQuery(query, [searchQuery]);
+      return wrapper.data(result?.rows || []);
+    } catch (error) {
+      logger.error(ctx, errorQueryMessage, "findAllMasterLanguages", error);
+      return wrapper.error(errorQueryMessage);
+    }
+  }
+
   // Get All Languages By Worker Id
   async getAllByWorkerId(worker_id) {
     try {
@@ -23,6 +41,8 @@ class Query {
         SELECT 
           l.id,
           l.language_name,
+          l.language_id,
+          l.proficiency_level_id,
           pl.name AS proficiency_level_name,
           l.is_primary,
           l.updated_at

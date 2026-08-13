@@ -1,11 +1,12 @@
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const config = require("../../config/global_config");
+const { sanitizeOauthRoleId } = require("./account_guards");
+const { buildOauthLoginErrorRedirect } = require("./oauth_redirect");
 
 const clientId = config.get("/googleAuth/clientId");
 const secretKey = config.get("/googleAuth/secretKey");
 const urlApp = config.get("/host");
-const feUrl = config.get("/frontendUrl");
 
 passport.use(
   new GoogleStrategy(
@@ -26,19 +27,59 @@ passport.use(
   )
 );
 
+const redirectOauthFailure = (res, { origin, roleId, message }) => {
+  return res.redirect(
+    buildOauthLoginErrorRedirect({
+      origin,
+      roleId,
+      err: { message: message || "Google OAuth failed" },
+      fallbackMessage: "Google OAuth failed",
+    })
+  );
+};
+
 const authGoogle = (req, res, next) => {
-  const { role_id } = req.query;
-  passport.authenticate("google", { scope: ["email", "profile"], state: JSON.stringify({ role_id }) })(req, res, next);
+  const { role_id, origin } = req.query;
+  const safeRole = sanitizeOauthRoleId(role_id);
+  // Tolak attempt privilege escalation (role admin) sebelum redirect ke Google
+  if (role_id !== undefined && role_id !== null && role_id !== "" && safeRole === null) {
+    return redirectOauthFailure(res, {
+      origin,
+      roleId: 1,
+      message: "Invalid OAuth role",
+    });
+  }
+  passport.authenticate("google", {
+    scope: ["email", "profile"],
+    state: JSON.stringify({ role_id: safeRole ?? 1, origin }),
+  })(req, res, next);
 };
 
 const authGoogleCallback = (req, res, next) => {
-  passport.authenticate("google", { session: false, failureRedirect: `${feUrl}/error` }, (err, user, info) => {
+  let state = {};
+  try {
+    state = req.query.state ? JSON.parse(req.query.state) : {};
+  } catch (e) {
+    state = {};
+  }
+  const { role_id, origin } = state;
+  const safeRole = sanitizeOauthRoleId(role_id);
+  if (role_id !== undefined && role_id !== null && role_id !== "" && safeRole === null) {
+    return redirectOauthFailure(res, {
+      origin,
+      roleId: 1,
+      message: "Invalid OAuth role",
+    });
+  }
+  passport.authenticate("google", { session: false }, (err, user) => {
     if (err || !user) {
-      return res.redirect(`${feUrl}/error`);
+      return redirectOauthFailure(res, {
+        origin,
+        roleId: safeRole ?? 1,
+        message: "Google OAuth failed",
+      });
     }
-    const state = req.query.state ? JSON.parse(req.query.state) : {};
-    const { role_id } = state;
-    req.user = { ...user, role_id };
+    req.user = { ...user, role_id: safeRole ?? 1, origin };
     next();
   })(req, res, next);
 };

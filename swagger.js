@@ -9,7 +9,11 @@ const doc = {
   },
   servers: [
     {
-      url: 'http://localhost:5000',
+      url: 'https://be-stage.cari-kerja.co.id',
+      description: 'Staging Server (VPS)'
+    },
+    {
+      url: 'http://localhost:5001',
       description: 'Local server'
     }
   ],

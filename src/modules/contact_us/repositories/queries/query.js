@@ -48,7 +48,7 @@ class Query {
 
   async countAll(search = null) {
     try {
-      let query = `SELECT COUNT(id) FROM ${collection} WHERE 1=1`;
+      let query = `SELECT COUNT(id)::int AS total FROM ${collection} WHERE 1=1`;
       const values = [];
 
       if (search) {
@@ -57,7 +57,7 @@ class Query {
       }
 
       const result = await this.db.executeQuery(query, values);
-      return wrapper.data(result.rows[0].count);
+      return wrapper.data(parseInt(result.rows[0].total, 10) || 0);
     } catch (error) {
       logger.error(ctx, errorQueryMessage, "countAll", error);
       return wrapper.error(errorQueryMessage);

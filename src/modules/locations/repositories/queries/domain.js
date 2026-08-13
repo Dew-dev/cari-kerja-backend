@@ -1,8 +1,11 @@
 const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError } = require("../../../../helpers/errors");
+const { NotFoundError, BadRequestError } = require("../../../../helpers/errors");
 const ctx = "Locations-Query-Domain";
+
+const isEmptyResult = (err) =>
+  typeof err === "string" && /data not found/i.test(err);
 
 class Locations {
   constructor(db) {
@@ -13,24 +16,31 @@ class Locations {
     const provinces = await this.query.getAllProvinces();
 
     if (provinces.err) {
+      if (isEmptyResult(provinces.err)) {
+        return wrapper.data([]);
+      }
       logger.error(ctx, "getAllProvinces", "Cannot find provinces", provinces.err);
       return wrapper.error(new NotFoundError("Cannot find provinces"));
     }
 
-    logger.info(ctx, "getAllProvinces", "Get all provinces");
     return wrapper.data(provinces.data);
   }
 
   async getProvinceById(payload) {
     const { id } = payload;
-    const province = await this.query.getProvinceById(id);
+    const numericId = Number(id);
+
+    if (!Number.isInteger(numericId) || Number.isNaN(numericId)) {
+      return wrapper.error(new BadRequestError("Province id must be a number"));
+    }
+
+    const province = await this.query.getProvinceById(numericId);
 
     if (province.err) {
       logger.error(ctx, "getProvinceById", "Province not found", province.err);
       return wrapper.error(new NotFoundError("Province not found"));
     }
 
-    logger.info(ctx, "getProvinceById", "Get province", payload);
     return wrapper.data(province.data);
   }
 
@@ -45,11 +55,13 @@ class Locations {
     }
 
     if (cities.err) {
+      if (isEmptyResult(cities.err)) {
+        return wrapper.data([]);
+      }
       logger.error(ctx, "getAllCities", "Cannot find cities", cities.err);
       return wrapper.error(new NotFoundError("Cannot find cities"));
     }
 
-    logger.info(ctx, "getAllCities", "Get cities", payload);
     return wrapper.data(cities.data);
   }
 
@@ -62,7 +74,6 @@ class Locations {
       return wrapper.error(new NotFoundError("City not found"));
     }
 
-    logger.info(ctx, "getCityById", "Get city", payload);
     return wrapper.data(city.data);
   }
 
@@ -70,7 +81,7 @@ class Locations {
     const { search, type = "all", province_id } = payload;
 
     if (!search || search.trim() === "") {
-      return wrapper.error(new NotFoundError("Search term is required"));
+      return wrapper.error(new BadRequestError("Search term is required"));
     }
 
     const results = {};
@@ -85,7 +96,6 @@ class Locations {
       results.cities = !cities.err ? cities.data : [];
     }
 
-    logger.info(ctx, "searchLocations", "Search locations", payload);
     return wrapper.data(results);
   }
 }

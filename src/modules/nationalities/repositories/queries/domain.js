@@ -1,8 +1,10 @@
 const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError } = require("../../../../helpers/errors");
+const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
 const ctx = "Nationalities-Query-Domain";
+
+const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
 
 class Nationality {
   constructor(db) {
@@ -38,9 +40,11 @@ class Nationality {
     );
     const count = await this.query.countAllNationalities(search);
 
-    ////console.log(nationalities);
-
     if (nationalities.err) {
+      if (nationalities.err === EMPTY_RESULT_MESSAGE) {
+        const emptyMeta = wrapper.buildPaginationMeta(page, limit, count?.data ?? 0);
+        return wrapper.paginationData([], emptyMeta);
+      }
       logger.error(
         ctx,
         "getAllNationalities",
@@ -50,14 +54,12 @@ class Nationality {
       return wrapper.error(new NotFoundError("Can not find nationalities"));
     }
 
-    const totalData = count.data;
-    const totalPages = Math.ceil(totalData / limit);
-    const meta = {
-      page: page,
-      per_page: limit,
-      total_data: Math.max(totalData, 0),
-      total_pages: totalPages,
-    };
+    if (count.err) {
+      logger.error(ctx, "getAllNationalities", "Can not count nationalities", count.err);
+      return wrapper.error(new InternalServerError("Can not count nationalities"));
+    }
+
+    const meta = wrapper.buildPaginationMeta(page, limit, count.data);
 
     return wrapper.paginationData(nationalities.data, meta);
   }

@@ -12,6 +12,10 @@ const loginWithGoogle = async (payload) => {
   return domain.loginWithGoogle(payload);
 };
 
+const loginWithTelegram = async (payload) => {
+  return domain.loginWithTelegram(payload);
+};
+
 const registerWorker = async (payload) => {
   return domain.registerWorker(payload);
 };
@@ -48,6 +52,10 @@ const changePassword = async (payload) => {
   return domain.changePassword(payload);
 };
 
+const changeEmail = async (payload) => {
+  return domain.changeEmail(payload);
+};
+
 const sendVerifyEmail = async (payload) => domain.sendVerifyEmail(payload);
 const verifyEmail = async (payload) => domain.verifyEmail(payload);
 const resendVerifyEmail = async (payload) => domain.resendVerifyEmail(payload);
@@ -56,6 +64,7 @@ const resendVerifyEmail = async (payload) => domain.resendVerifyEmail(payload);
 module.exports = {
   login,
   loginWithGoogle,
+  loginWithTelegram,
   registerWorker,
   registerRecruiter,
   updateOneUser,
@@ -65,6 +74,7 @@ module.exports = {
   forgotPassword,
   resetPassword,
   changePassword,
+  changeEmail,
   sendVerifyEmail,
   verifyEmail,
   resendVerifyEmail,

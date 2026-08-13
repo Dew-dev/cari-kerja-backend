@@ -28,7 +28,13 @@ class Query {
              w.address, w.profile_summary, w.current_salary, w.expected_salary,
              c1.id AS current_salary_currency_id, c1.code AS current_salary_currency_code, c1.name AS current_salary_currency_name, c1.symbol AS current_salary_currency_symbol,
              c2.id AS expected_salary_currency_id, c2.code AS expected_salary_currency_code, c2.name AS expected_salary_currency_name, c2.symbol AS expected_salary_currency_symbol,
-             u.email
+             u.email,
+             u.login_provider,
+             u.email_verified_at,
+             u.username AS user_username,
+             u.telegram_chat_id,
+             u.telegram_notify_username,
+             u.telegram_bot_linked_at
       FROM ${collection} w
       LEFT JOIN genders g ON w.gender_id = g.id
       LEFT JOIN users u ON w.user_id = u.id
@@ -43,7 +49,11 @@ class Query {
 
       const workerResult = await this.db.executeQuery(workerQuery, [user_id]);
 
-      if (!workerResult || workerResult.rows.length === 0) {
+      // executeQuery returns null on SQL/driver errors — do not treat as "not found"
+      if (!workerResult) {
+        return wrapper.error(errorQueryMessage);
+      }
+      if (workerResult.rows.length === 0) {
         return wrapper.error(errorEmptyMessage);
       }
 
@@ -82,8 +92,8 @@ class Query {
         ),
         this.db.executeQuery(
           `
-        SELECT l.id, l.language_name, pl.name, l.is_primary
-        FROM languages l
+        SELECT l.id, l.language_name, l.language_id, l.proficiency_level_id, pl.name, l.is_primary
+        FROM worker_languages l
         JOIN proficiency_levels pl ON l.proficiency_level_id = pl.id
         WHERE l.worker_id = $1
       `,
@@ -138,7 +148,11 @@ class Query {
              w.address, w.profile_summary, w.current_salary, w.expected_salary,
              c1.id AS current_salary_currency_id, c1.code AS current_salary_currency_code, c1.name AS current_salary_currency_name, c1.symbol AS current_salary_currency_symbol,
              c2.id AS expected_salary_currency_id, c2.code AS expected_salary_currency_code, c2.name AS expected_salary_currency_name, c2.symbol AS expected_salary_currency_symbol,
-             u.email
+             u.email,
+             u.login_provider,
+             u.username AS user_username,
+             u.telegram_chat_id,
+             u.telegram_notify_username
       FROM ${collection} w
       LEFT JOIN genders g ON w.gender_id = g.id
       LEFT JOIN users u ON w.user_id = u.id
@@ -153,7 +167,10 @@ class Query {
 
       const workerResult = await this.db.executeQuery(workerQuery, [id]);
 
-      if (!workerResult || workerResult.rows.length === 0) {
+      if (!workerResult) {
+        return wrapper.error(errorQueryMessage);
+      }
+      if (workerResult.rows.length === 0) {
         return wrapper.error(errorEmptyMessage);
       }
 
@@ -191,8 +208,8 @@ class Query {
         ),
         this.db.executeQuery(
           `
-        SELECT l.id, l.language_name, pl.name, l.is_primary
-        FROM languages l
+        SELECT l.id, l.language_name, l.language_id, l.proficiency_level_id, pl.name, l.is_primary
+        FROM worker_languages l
         JOIN proficiency_levels pl ON l.proficiency_level_id = pl.id
         WHERE l.worker_id = $1
       `,
@@ -281,10 +298,13 @@ class Query {
             'id', we.id,
             'company_name', we.company_name,
             'job_title', we.job_title,
+            'job_title_id', we.job_title_id,
+            'category_id', jt.category_id,
             'start_date', we.start_date,
             'end_date', we.end_date
           ) ORDER BY we.start_date DESC), '[]'::json)
            FROM work_experiences we
+           LEFT JOIN job_titles jt ON jt.id = we.job_title_id AND jt.deleted_at IS NULL
            WHERE we.worker_id = w.id
           ) AS work_experiences,
           (SELECT COALESCE(json_agg(json_build_object(
@@ -311,7 +331,6 @@ class Query {
 
       values.push(parseInt(limit, 10));
       values.push((parseInt(page, 10) - 1) * parseInt(limit, 10));
-      console.log("workersQuery", workersQuery, values);
       const workersResult = await this.db.executeQuery(workersQuery, values);
 
       const result = workersResult.rows.map((row) => ({

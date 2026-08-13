@@ -1,0 +1,32 @@
+---
+description: Git workflow standards (branching, granular commits, conventional commits, no direct push to develop)
+alwaysApply: true
+---
+
+# Git Workflow
+
+Wajib dipatuhi untuk setiap perubahan kode atau penambahan fitur.
+
+## Aturan
+
+1. **Selalu buat branch baru** dari `develop` sebelum menulis/mengubah kode. Gunakan format:
+   - `feature/nama-fitur`, `fix/nama-perbaikan`, `chore/nama-task`.
+2. **Commit granular**: commit berkala per perubahan fungsional yang selesai, bukan satu commit raksasa di akhir.
+3. **Conventional Commits** untuk pesan commit:
+   - `feat:` fitur baru
+   - `fix:` perbaikan bug
+   - `docs:` perubahan dokumentasi
+   - `style:` formatting tanpa mengubah logika
+   - `refactor:` perubahan kode tanpa menambah fitur/perbaikan bug
+   - `chore:` build/tooling
+4. **Jangan push langsung ke `develop`**. Push hanya ke branch fitur, lalu berikan instruksi ke user untuk merge/review (atau buat pull request jika diminta).
+
+## Contoh
+
+```bash
+git checkout develop
+git checkout -b feature/job-search-filter
+# ... kerjakan perubahan ...
+git commit -m "feat: add salary range filter to job search"
+git push -u origin feature/job-search-filter
+```

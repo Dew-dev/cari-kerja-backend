@@ -4,6 +4,16 @@ const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
 const ctx = "ContactUs-Query-Domain";
 
+const CONTACT_MESSAGE_PROJECTION = {
+  id: 1,
+  name: 1,
+  email: 1,
+  subject: 1,
+  message: 1,
+  phone: 1,
+  created_at: 1,
+};
+
 class ContactUsQueryDomain {
   constructor(db) {
     this.query = new Query(db);
@@ -24,22 +34,15 @@ class ContactUsQueryDomain {
       return wrapper.error(new InternalServerError(countResult.err));
     }
 
-    const total = parseInt(countResult.data, 10);
-    return wrapper.data({
-      data: result.data,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
+    const meta = wrapper.buildPaginationMeta(page, limit, countResult.data);
+
+    return wrapper.paginationData(result.data, meta);
   }
 
   async getContactMessageById(payload) {
     const { id } = payload;
 
-    const result = await this.query.findOne({ id }, { "*": 1 });
+    const result = await this.query.findOne({ id }, CONTACT_MESSAGE_PROJECTION);
     if (result.err) {
       logger.error(ctx, "getContactMessageById", "Contact message not found", result.err);
       return wrapper.error(new NotFoundError("Contact message not found"));

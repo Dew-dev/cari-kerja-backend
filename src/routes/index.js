@@ -23,9 +23,25 @@ const jobPostResponsibilities = require('./job_post_responsibilities');
 const jobPostBenefits = require('./job_post_benefits');
 const contact_us = require('./contact_us');
 const locations = require('./locations');
+const admin = require('./admin');
+const payments = require('./payments');
+const cvParsing = require('./cv_parsing');
+const chat = require('./chat');
+const candidatePipeline = require('./candidate_pipeline');
+const communication = require('./communication');
+const jobAlerts = require('./job_alerts');
+const candidateMatching = require('./candidate_matching');
+const news = require('./news');
+const telegram = require('./telegram');
+const jobTitles = require('./job_titles');
+const employerVerification = require('./employer_verification');
+const companies = require('./companies');
+
 
 module.exports = (server) => {
   users(server);
+  telegram(server);
+  companies(server);
   recruiters(server);
   jobposts(server);
   resume(server);
@@ -34,6 +50,7 @@ module.exports = (server) => {
   certifications(server);
   workerSkills(server);
   skills(server);
+  jobTitles(server);
   education(server);
   language(server);
   portfolio(server);
@@ -50,4 +67,15 @@ module.exports = (server) => {
   jobPostBenefits(server);
   contact_us(server);
   locations(server);
+  admin(server);
+  payments(server);
+  cvParsing(server);
+  chat(server);
+  candidatePipeline(server);
+  communication(server);
+  jobAlerts(server);
+  candidateMatching(server);
+  news(server);
+  employerVerification(server);
 };
+

@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require("uuid");
 const {
   NotFoundError,
   InternalServerError,
-  BadRequestError,
+  ForbiddenError,
 } = require("../../../../helpers/errors");
 const ctx = "Portofolios-Domain";
 
@@ -16,7 +16,6 @@ class Portofolios {
     this.query = new Query(db);
   }
 
-  // INSERT one portofolio
   async insertOne(payload) {
     const document = {
       id: uuidv4(),
@@ -35,12 +34,20 @@ class Portofolios {
     return wrapper.data(result.data);
   }
 
-  // UPDATE one portofolio
   async updateOne(payload) {
     const { id, worker_id } = payload;
-    const existing = await this.query.findOne({ id }, { id: 1 });
-    if (existing.err) {
+    const existing = await this.query.findOne(
+      { id, worker_id },
+      { id: 1, worker_id: 1 }
+    );
+    if (existing.err || !existing.data) {
       return wrapper.error(new NotFoundError("Portofolio not found"));
+    }
+
+    if (existing.data.worker_id && existing.data.worker_id !== worker_id) {
+      return wrapper.error(
+        new ForbiddenError("You are not allowed to update this portfolio")
+      );
     }
 
     const document = {
@@ -60,13 +67,12 @@ class Portofolios {
     return wrapper.data({ id });
   }
 
-  // DELETE one portofolio
   async deleteOne(payload) {
     const existing = await this.query.findOne(
       { id: payload.id, worker_id: payload.worker_id },
       { id: 1 }
     );
-    if (existing.err) {
+    if (existing.err || !existing.data) {
       return wrapper.error(new NotFoundError("Portofolio not found"));
     }
 

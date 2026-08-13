@@ -4,23 +4,26 @@ const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError } = require("../../../../helpers/errors");
 const ctx = "Portofolios-Query-Domain";
 
+const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
+
 class Portofolios {
   constructor(db) {
     this.query = new Query(db);
   }
 
-  // Get All Portofolios By Worker Id
   async getAllPortfoliosByWorkerId(payload) {
     const { worker_id } = payload;
 
     const result = await this.query.getAllByWorkerId(worker_id);
 
     if (result.err) {
+      if (result.err === EMPTY_RESULT_MESSAGE) {
+        return wrapper.data([]);
+      }
       logger.error(ctx, "getAllPortofoliosByWorkerId", "No portofolio found", result.err);
       return wrapper.error(new NotFoundError("No portofolio found"));
     }
 
-    logger.info(ctx, "getAllPortofoliosByWorkerId", "Success get portofolio", payload);
     return wrapper.data(result.data);
   }
 }

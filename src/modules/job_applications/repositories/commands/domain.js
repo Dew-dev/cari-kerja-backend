@@ -310,7 +310,11 @@ class Jobpost {
         "job_applications", // nama tabel
       );
       if (existing.data) {
-        return wrapper.error(new Error("Anda sudah melamar pekerjaan ini."));
+        return wrapper.error(
+          new ConflictError(
+            "DUPLICATE_SUBMISSION: Anda sudah melamar pekerjaan ini."
+          ),
+        );
       }
 
       const data = {
@@ -327,6 +331,17 @@ class Jobpost {
       // insert ke job_applications
       const result = await this.command.insertOne(data, "job_applications");
       if (result.err) {
+        const message = result.err.message || "";
+        const isDuplicate =
+          result.err.code === "23505" ||
+          /duplicate key|unique constraint/i.test(message);
+        if (isDuplicate) {
+          return wrapper.error(
+            new ConflictError(
+            "DUPLICATE_SUBMISSION: Anda sudah melamar pekerjaan ini."
+          ),
+          );
+        }
         logger.error(ctx, "Create Job Application", ctx, result.err);
         return wrapper.error(
           new InternalServerError("Create Job Application Failed"),
@@ -349,6 +364,8 @@ class Jobpost {
         );
         if (resultAnswer.err) {
           logger.error(ctx, "Insert Job Post Answers", ctx, resultAnswer.err);
+          // Rollback application insert when answers fail
+          await this.command.deleteOne({ id: data.id }, "job_applications");
           return wrapper.error(
             new InternalServerError("Create Job Post Answers Failed"),
           );

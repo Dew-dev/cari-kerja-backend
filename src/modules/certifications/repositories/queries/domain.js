@@ -1,8 +1,10 @@
 const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError } = require("../../../../helpers/errors");
+const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
 const ctx = "Certification-Query-Domain";
+
+const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
 
 class Certification {
   constructor(db) {
@@ -45,7 +47,17 @@ class Certification {
 
     const certifications = await this.query.findAll(worker_id, page, limit);
     const count = await this.query.countAll(worker_id);
+
     if (certifications.err) {
+      if (certifications.err === EMPTY_RESULT_MESSAGE) {
+        if (count.err) {
+          logger.error(ctx, "getAllCertifications", "Can not count certifications", count.err);
+          return wrapper.error(new InternalServerError("Can not count certifications"));
+        }
+        const meta = wrapper.buildPaginationMeta(page, limit, count.data);
+        return wrapper.paginationData([], meta);
+      }
+
       logger.error(
         ctx,
         "getCertifications",
@@ -55,14 +67,12 @@ class Certification {
       return wrapper.error(new NotFoundError("Can not find certifications"));
     }
 
-    const totalData = count.data;
-    const totalPages = Math.ceil(totalData / limit);
-    const meta = {
-      page: page,
-      per_page: limit,
-      total_data: Math.max(totalData, 0),
-      total_pages: totalPages,
-    };
+    if (count.err) {
+      logger.error(ctx, "getAllCertifications", "Can not count certifications", count.err);
+      return wrapper.error(new InternalServerError("Can not count certifications"));
+    }
+
+    const meta = wrapper.buildPaginationMeta(page, limit, count.data);
 
     return wrapper.paginationData(certifications.data, meta);
   }

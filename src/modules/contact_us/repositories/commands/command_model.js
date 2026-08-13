@@ -7,6 +7,9 @@ const createContactMessageParamType = joi.object({
   subject: joi.string().max(255).required(),
   message: joi.string().required(),
   phone: joi.string().optional().allow(null),
+  // Honeypot — bots fill this; humans leave empty. Must stay empty.
+  website: joi.string().optional().allow("", null),
+  captcha_token: joi.string().optional().allow("", null),
   created_at: joi.date().optional().default(() => new Date()),
 });
 

@@ -1,17 +1,28 @@
 const Command = require("./command");
+const Query = require("../queries/query");
 const { v4: uuidv4 } = require("uuid");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const {
   InternalServerError,
   BadRequestError,
+  NotFoundError,
 } = require("../../../../helpers/errors");
-const { sendMail } = require("../../../../helpers/utils/mailer");
+const { addEmailJob } = require("../../../../helpers/queues/email.queue");
 const ctx = "ContactUs-Command-Domain";
+
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 
 class ContactUsDomain {
   constructor(db) {
     this.command = new Command(db);
+    this.query = new Query(db);
   }
 
   async createContactMessage(payload) {
@@ -46,27 +57,31 @@ class ContactUsDomain {
       );
     }
 
-    // Send email to admin
     try {
+      const safeName = escapeHtml(name);
+      const safeEmail = escapeHtml(email);
+      const safePhone = escapeHtml(phone || "Not provided");
+      const safeSubject = escapeHtml(subject);
+      const safeMessage = escapeHtml(message).replace(/\n/g, "<br>");
+
       const emailHtml = `
         <h2>New Contact Us Message</h2>
-        <p><strong>From:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Phone:</strong> ${phone || "Not provided"}</p>
-        <p><strong>Subject:</strong> ${subject}</p>
+        <p><strong>From:</strong> ${safeName}</p>
+        <p><strong>Email:</strong> ${safeEmail}</p>
+        <p><strong>Phone:</strong> ${safePhone}</p>
+        <p><strong>Subject:</strong> ${safeSubject}</p>
         <hr>
         <p><strong>Message:</strong></p>
-        <p>${message.replace(/\n/g, "<br>")}</p>
+        <p>${safeMessage}</p>
       `;
 
-      await sendMail({
+      await addEmailJob({
         to: process.env.MAIL_USER,
         subject: `[Contact Us] ${subject}`,
         html: emailHtml,
       });
     } catch (err) {
       logger.error(ctx, "sendMail", "Error sending email", err);
-      // Don't throw error, just log it
     }
 
     return wrapper.data(result.data);
@@ -77,6 +92,14 @@ class ContactUsDomain {
 
     if (!id) {
       return wrapper.error(new BadRequestError("id wajib diisi"));
+    }
+
+    const existing = await this.query.findOne(
+      { id },
+      { id: 1, name: 1, email: 1 }
+    );
+    if (existing.err || !existing.data) {
+      return wrapper.error(new NotFoundError("Contact message not found"));
     }
 
     const result = await this.command.deleteOne({ id });

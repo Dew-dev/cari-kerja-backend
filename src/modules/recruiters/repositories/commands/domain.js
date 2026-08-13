@@ -5,6 +5,7 @@ const logger = require("../../../../helpers/utils/logger");
 const {
   NotFoundError,
   InternalServerError,
+  ForbiddenError,
 } = require("../../../../helpers/errors");
 const ctx = "Recruiter-Command-Domain";
 
@@ -15,11 +16,17 @@ class Recruiter {
   }
 
   async updateOneRecruiter(payload) {
-    const { id } = payload;
-    const recruiter = await this.query.findOne({ id }, { id: 1 });
+    const { id, user_id } = payload;
+    const recruiter = await this.query.findOne({ id }, { id: 1, user_id: 1 });
 
-    if (recruiter.err) {
+    if (recruiter.err || !recruiter.data) {
       return wrapper.error(new NotFoundError("Recruiter Not Found!"));
+    }
+
+    if (recruiter.data.user_id && recruiter.data.user_id !== user_id) {
+      return wrapper.error(
+        new ForbiddenError("You are not allowed to update this recruiter profile")
+      );
     }
 
     const updatableFields = [
@@ -41,10 +48,9 @@ class Recruiter {
         updateData[field] = payload[field];
       }
     }
-    // ////console.log("update data", updateData);
+
     const updateResult = await this.command.updateOneNew({ id }, updateData);
     if (updateResult.err) {
-      ////console.log("update err", updateResult.err);
       logger.error(
         ctx,
         "Failed to update",
@@ -53,19 +59,16 @@ class Recruiter {
       );
       return wrapper.error(new InternalServerError("Update Recruiter Failed"));
     }
-    logger.info(
-      ctx,
-      "Update Succeed",
-      "Domain Recruiter",
-      wrapper.data({ id })
-    );
     return wrapper.data({ id });
   }
 
   async updateRecruiterVip(payload) {
     const { id, user_id, is_vip, vip_start_at, vip_end_at } = payload;
 
-    const recruiter = await this.query.findOne({ id, user_id }, { id: 1 });
+    const recruiter = await this.query.findOne(
+      { id, user_id },
+      { id: 1, company_id: 1 }
+    );
 
     if (recruiter.err || !recruiter.data) {
       return wrapper.error(new NotFoundError("Recruiter Not Found!"));
@@ -85,9 +88,28 @@ class Recruiter {
       return wrapper.error(new InternalServerError("Update Recruiter VIP Failed"));
     }
 
-    logger.info(ctx, "Update recruiter VIP succeed", "Domain Recruiter", wrapper.data({ id }));
+    if (recruiter.data.company_id) {
+      await this.command.db.executeQuery(
+        `
+        UPDATE companies
+        SET is_vip = $2,
+            vip_start_at = $3,
+            vip_end_at = $4,
+            updated_at = NOW()
+        WHERE id = $1
+        `,
+        [
+          recruiter.data.company_id,
+          updateData.is_vip,
+          updateData.vip_start_at,
+          updateData.vip_end_at,
+        ]
+      );
+    }
+
     return wrapper.data({
       id,
+      company_id: recruiter.data.company_id || null,
       ...updateData,
     });
   }

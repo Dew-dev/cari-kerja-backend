@@ -65,6 +65,28 @@ class Command {
     return result;
   }
 
+  async insertApplicationStageHistory({
+    application_id,
+    from_stage_id,
+    to_stage_id,
+    changed_by_recruiter_id,
+    note,
+  }) {
+    const query = `
+      INSERT INTO application_stage_history (application_id, from_stage_id, to_stage_id, changed_by_recruiter_id, note)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id;
+    `;
+
+    return this.db.executeQuery(query, [
+      application_id,
+      from_stage_id ?? null,
+      to_stage_id,
+      changed_by_recruiter_id ?? null,
+      note ?? null,
+    ]);
+  }
+
   async updateJobPost({
     id,
     title,
@@ -79,10 +101,8 @@ class Command {
     deadline,
     province,
     city,
-    is_vip,
-    vip_start_at,
-    vip_end_at,
     is_remote,
+    job_title_id,
   }) {
     const query = `
       UPDATE job_posts
@@ -99,10 +119,8 @@ class Command {
         deadline = $11,
         province = $12,
         city = $13,
-        is_vip = $14,
-        vip_start_at = $15,
-        vip_end_at = $16,
-        is_remote = $17,
+        is_remote = $14,
+        job_title_id = $15,
         updated_at = NOW()
       WHERE id = $1
       RETURNING id;
@@ -122,10 +140,8 @@ class Command {
       deadline,
       province,
       city,
-      is_vip,
-      vip_start_at,
-      vip_end_at,
       is_remote,
+      job_title_id ?? null,
     ];
 
     const result = await this.db.executeQuery(query, values);
@@ -157,6 +173,9 @@ class Command {
   }
   async insertJobPost({
     recruiter_id,
+    company_id,
+    created_by_recruiter_id,
+    created_by_user_id,
     title,
     description,
     employment_type_id,
@@ -171,14 +190,15 @@ class Command {
     category_id,
     province,
     city,
-    is_vip,
-    vip_start_at,
-    vip_end_at,
     is_remote,
+    job_title_id,
   }) {
     const query = `
       INSERT INTO job_posts (
         recruiter_id,
+        company_id,
+        created_by_recruiter_id,
+        created_by_user_id,
         title,
         description,
         employment_type_id,
@@ -193,18 +213,19 @@ class Command {
         category_id,
         province,
         city,
-        is_vip,
-        vip_start_at,
-        vip_end_at,
-        is_remote
+        is_remote,
+        job_title_id
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20
       )
       RETURNING id;
     `;
 
     const values = [
       recruiter_id,
+      company_id || null,
+      created_by_recruiter_id || recruiter_id || null,
+      created_by_user_id || null,
       title,
       description,
       employment_type_id,
@@ -217,12 +238,10 @@ class Command {
       deadline,
       status_id,
       category_id,
-      province,
-      city,
-      is_vip,
-      vip_start_at,
-      vip_end_at,
-      is_remote,
+      province ?? null,
+      city ?? null,
+      is_remote ?? false,
+      job_title_id ?? null,
     ];
 
     const result = await this.db.executeQuery(query, values);

@@ -46,8 +46,8 @@ class SavedJobs {
     addCondition("el.name = ?", experience_level);
     addCondition("st.name = ?", salary_type);
     addCondition("j.location ILIKE ?", location ? `%${location}%` : null);
-    addCondition("j.salary_min >= ?", salary_min);
-    addCondition("j.salary_max <= ?", salary_max);
+    addCondition("j.salary_max >= ?", salary_min);
+    addCondition("j.salary_min <= ?", salary_max);
     addCondition("c.name = ?", currency);
     addCondition("sj.created_at >= ?", created_after);
     addCondition("sj.created_at <= ?", created_before);
@@ -93,7 +93,6 @@ class SavedJobs {
       return wrapper.error(new NotFoundError("Can not find savedJobs"));
     }
 
-    logger.info(ctx, "getSavedJobsByWorkerId", "Get SavedJobs", payload);
     return wrapper.paginationData(savedJobs.data, savedJobs.meta);
   }
 
@@ -106,7 +105,6 @@ class SavedJobs {
       return wrapper.error(new NotFoundError("Can not find the SavedJobs"));
     }
 
-    logger.info(ctx, "getSavedJobsById", "Saved Jobs Query", payload);
     return wrapper.data(savedJobs.data);
   }
 
@@ -138,7 +136,11 @@ class SavedJobs {
       idx += 1;
     }
 
-    if (employment_type !== undefined && status !== null && status !== "") {
+    if (
+      employment_type !== undefined &&
+      employment_type !== null &&
+      employment_type !== ""
+    ) {
       conditions.push(` AND et.name = $${idx}`);
       values.push(employment_type);
       idx += 1;
@@ -166,18 +168,18 @@ class SavedJobs {
 
     if (location !== undefined && location !== null && location !== "") {
       conditions.push(` AND j.location ILIKE $${idx}`);
-      values.push(location);
+      values.push(`%${location}%`);
       idx += 1;
     }
 
     if (salary_min !== undefined && salary_min !== null && salary_min !== "") {
-      conditions.push(` AND j.salary_min >= $${idx}`);
+      conditions.push(` AND j.salary_max >= $${idx}`);
       values.push(salary_min);
       idx += 1;
     }
 
     if (salary_max !== undefined && salary_max !== null && salary_max !== "") {
-      conditions.push(` AND j.salary_max <= $${idx}`);
+      conditions.push(` AND j.salary_min <= $${idx}`);
       values.push(salary_max);
       idx += 1;
     }
@@ -251,7 +253,6 @@ class SavedJobs {
       return wrapper.error(new NotFoundError("Can not find Saved Jobs"));
     }
 
-    logger.info(ctx, "getSavedJobs", "Get SavedJobs", data);
     return wrapper.paginationData(savedJobs.data, savedJobs.meta);
   }
 
@@ -288,7 +289,11 @@ class SavedJobs {
       idx += 1;
     }
 
-    if (employment_type !== undefined && status !== null && status !== "") {
+    if (
+      employment_type !== undefined &&
+      employment_type !== null &&
+      employment_type !== ""
+    ) {
       conditions.push(` AND et.name = $${idx}`);
       values.push(employment_type);
       idx += 1;
@@ -316,18 +321,18 @@ class SavedJobs {
 
     if (location !== undefined && location !== null && location !== "") {
       conditions.push(` AND j.location ILIKE $${idx}`);
-      values.push(location);
+      values.push(`%${location}%`);
       idx += 1;
     }
 
     if (salary_min !== undefined && salary_min !== null && salary_min !== "") {
-      conditions.push(` AND j.salary_min >= $${idx}`);
+      conditions.push(` AND j.salary_max >= $${idx}`);
       values.push(salary_min);
       idx += 1;
     }
 
     if (salary_max !== undefined && salary_max !== null && salary_max !== "") {
-      conditions.push(` AND j.salary_max <= $${idx}`);
+      conditions.push(` AND j.salary_min <= $${idx}`);
       values.push(salary_max);
       idx += 1;
     }
@@ -401,7 +406,6 @@ class SavedJobs {
       return wrapper.error(new NotFoundError("Can not find savedJobs"));
     }
 
-    logger.info(ctx, "getSavedJobs", "Get Saved Jobs", data);
     return wrapper.paginationData(savedJobs.data, savedJobs.meta);
   }
 }

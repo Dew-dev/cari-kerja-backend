@@ -15,6 +15,10 @@ class DB {
     try {
       const getDatabase = await pgConnection.getConnection(this.pgConfig);
       const result = await getDatabase.query(query, values);
+      if (result && result.rows) {
+        const { decryptRows } = require("../../utils/crypto_helper");
+        result.rows = decryptRows(result.rows);
+      }
       return result;
     } catch (err) {
       logger.error(ctx, errorQueryMessage, "executeQuery", err);
@@ -31,6 +35,8 @@ class DB {
     timescope = false
   ) {
     try {
+      const { encryptDocument } = require("../../utils/crypto_helper");
+      parameter = encryptDocument(parameter);
       const projectionKeys = Object.keys(projection);
       const parameterKey = Object.keys(parameter);
       const projectionPlaceholders = projectionKeys
@@ -66,6 +72,8 @@ class DB {
 
   async insertOne(document, collectionName) {
     try {
+      const { encryptDocument } = require("../../utils/crypto_helper");
+      document = encryptDocument(document);
       const keys = Object.keys(document);
       const values = Object.values(document);
       const placeholders = keys.map((_, i) => `$${i + 1}`).join(", ");
@@ -91,6 +99,9 @@ class DB {
       if (!Array.isArray(documents) || documents.length === 0) {
         throw new Error("Documents must be a non-empty array");
       }
+
+      const { encryptDocument } = require("../../utils/crypto_helper");
+      documents = documents.map(encryptDocument);
 
       // Ambil field keys dari dokumen pertama
       const keys = Object.keys(documents[0]);
@@ -137,6 +148,9 @@ class DB {
 
   async updateOne(parameter, updateQuery, collectionName) {
     try {
+      const { encryptDocument } = require("../../utils/crypto_helper");
+      parameter = encryptDocument(parameter);
+      updateQuery = encryptDocument(updateQuery);
       const updateQueryKey = Object.keys(updateQuery);
       const parameterKey = Object.keys(parameter);
       const updateQueryKeyPlaceholders = updateQueryKey
@@ -165,6 +179,9 @@ class DB {
 
   async updateOneNew(parameter, updateQuery, collectionName) {
     try {
+      const { encryptDocument } = require("../../utils/crypto_helper");
+      parameter = encryptDocument(parameter);
+      updateQuery = encryptDocument(updateQuery);
       const updateQueryKey = Object.keys(updateQuery);
       const parameterKey = Object.keys(parameter);
       const updateQueryKeyPlaceholders = updateQueryKey
@@ -197,6 +214,8 @@ class DB {
 
   async countData(parameter, collectionName, isDeleted = false) {
     try {
+      const { encryptDocument } = require("../../utils/crypto_helper");
+      parameter = encryptDocument(parameter);
       const parameterKey = Object.keys(parameter);
       const parameterPlaceholders = parameterKey
         .map((key, index) => `"${collectionName}"."${key}" = $${index + 1}`)
@@ -204,10 +223,17 @@ class DB {
       const deleted = isDeleted
         ? `AND "${collectionName}"."deleted_at" IS NULL`
         : "";
+      
+      // LOGIKA PERBAIKAN:
+      let whereClause = "";
+      if (parameterPlaceholders || deleted) {
+        whereClause = `WHERE ${parameterPlaceholders ? parameterPlaceholders + " " + deleted : deleted.replace(/^AND /, "")}`;
+      }
+
       const query = `
         SELECT COUNT(*)
         FROM "${collectionName}"
-        WHERE ${parameterPlaceholders} ${deleted};
+        ${whereClause};
       `;
       const values = parameterKey.map((key) => parameter[key]);
       const result = await this.executeQuery(query, values);
@@ -232,6 +258,8 @@ class DB {
     timescope = false
   ) {
     try {
+      const { encryptDocument } = require("../../utils/crypto_helper");
+      parameter = encryptDocument(parameter);
       const projectionKeys = Object.keys(projection);
       const parameterKey = Object.keys(parameter);
       const projectionPlaceholders = projectionKeys

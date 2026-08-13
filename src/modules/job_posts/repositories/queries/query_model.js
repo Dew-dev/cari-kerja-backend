@@ -8,11 +8,15 @@ const getJobpostsByRecruiterIdParamType = joi.object({
   location: joi.string().optional(),
    province_name: joi.string().optional(),
   cities_name: joi.string().optional(),
-  is_vip: joi.boolean().optional(),
+  boost_type: joi.string().valid("hot", "top10").optional(),
+  is_hot: joi.boolean().optional(),
   is_remote: joi.boolean().optional(),
   salary_min: joi.number().optional(),
   salary_max: joi.number().optional(),
   currency: joi.string().optional(),
+  category: joi.string().optional(),
+  category_id: joi.number().integer().positive().optional(),
+  locale: joi.string().trim().max(16).optional(),
   created_after: joi.string().optional(),
   created_before: joi.string().optional(),
   search: joi.string().optional(),
@@ -29,12 +33,15 @@ const getJobpostsParamType = joi.object({
   location: joi.string().optional(),
   province_name: joi.string().optional(),
   cities_name: joi.string().optional(),
-  is_vip: joi.boolean().optional(),
+  boost_type: joi.string().valid("hot", "top10").optional(),
+  is_hot: joi.boolean().optional(),
   is_remote: joi.boolean().optional(),
   salary_min: joi.number().optional(),
   salary_max: joi.number().optional(),
   currency: joi.string().optional(),
   category: joi.string().optional(),
+  category_id: joi.number().integer().positive().optional(),
+  locale: joi.string().trim().max(16).optional(),
   created_after: joi.string().optional(),
   created_before: joi.string().optional(),
   search: joi.string().optional(),
@@ -46,10 +53,12 @@ const getJobpostsParamType = joi.object({
   user_id: joi.string().optional(),
   exclude_id: joi.string().uuid().optional(),
   recommendations: joi.boolean().optional(),
+  listing: joi.string().valid("public", "hot").optional(),
 });
 
 const getJobpostsSelfParamType = joi.object({
   recruiter_id: joi.string().required(),
+  company_id: joi.string().uuid().optional().allow(null, ""),
   status: joi.string().optional(),
   employment_type: joi.string().optional(),
   experience_level: joi.string().optional(),
@@ -57,10 +66,14 @@ const getJobpostsSelfParamType = joi.object({
   province_name: joi.string().optional(),
   cities_name: joi.string().optional(),
   is_remote: joi.boolean().optional(),
-  is_vip: joi.boolean().optional(),
+  boost_type: joi.string().valid("hot", "top10").optional(),
+  is_hot: joi.boolean().optional(),
   salary_min: joi.number().optional(),
   salary_max: joi.number().optional(),
   currency: joi.string().optional(),
+  category: joi.string().optional(),
+  category_id: joi.number().integer().positive().optional(),
+  locale: joi.string().trim().max(16).optional(),
   created_after: joi.string().optional(),
   created_before: joi.string().optional(),
   search: joi.string().optional(),
@@ -82,7 +95,8 @@ const getAppliedJobpostsParamType = joi.object({
   province_name: joi.string().optional(),
   cities_name: joi.string().optional(),
   is_remote: joi.boolean().optional(),
-  is_vip: joi.boolean().optional(),
+  boost_type: joi.string().valid("hot", "top10").optional(),
+  is_hot: joi.boolean().optional(),
   salary_min: joi.number().optional(),
   salary_max: joi.number().optional(),
   currency: joi.string().optional(),
@@ -98,10 +112,7 @@ const getAppliedJobpostsParamType = joi.object({
 const getJobpostByIdParamType = joi.object({
   id: joi.string().required(),
   user_id: joi.string().optional(),
-});
-
-const getCategoriesByNameParamType = joi.object({
-  name: joi.string().required(),
+  locale: joi.string().trim().max(16).optional(),
 });
 
 const getJobpostQuestionsParamType = joi.object({
@@ -169,7 +180,6 @@ module.exports = {
   getJobPostAnswersParamType,
   getJobApplicationsParamType,
   getOneCurrencyParamType,
-  getCategoriesByNameParamType,
   getJobApplicantsParamType,
   getWorkerByApplicationParamType,
 };

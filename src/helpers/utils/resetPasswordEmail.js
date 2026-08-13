@@ -1,38 +1,46 @@
+const {
+  emailLayout,
+  primaryButton,
+  escapeHtml,
+  BRAND,
+} = require("./emailLayout");
+
+/**
+ * Password reset template.
+ * @param {{ name?: string, resetUrl: string }} params
+ */
 module.exports = function resetPasswordEmail({ name, resetUrl }) {
-  return `
-    <div style="font-family: Arial, sans-serif; line-height: 1.6">
-      <h2>Password Reset Request</h2>
-      <p>Hi ${name || "there"},</p>
+  const displayName = escapeHtml(name || "di sana");
 
-      <p>
-        We received a request to reset your password.
-        Click the button below to set a new password.
-      </p>
-
-      <p style="margin: 20px 0">
-        <a
-          href="${resetUrl}"
-          style="
-            background: #2563eb;
-            color: #fff;
-            padding: 10px 16px;
-            text-decoration: none;
-            border-radius: 6px;
-            display: inline-block;
-          "
-        >
-          Reset Password
-        </a>
-      </p>
-
-      <p>
-        This link will expire in 30 minutes.
-        If you did not request a password reset, please ignore this email.
-      </p>
-
-      <p style="margin-top: 30px; font-size: 12px; color: #666">
-        © Job Portal
-      </p>
+  const bodyHtml = `
+    <h1 style="margin:0 0 12px 0;font-size:22px;line-height:1.3;color:${BRAND.text};">
+      Reset kata sandi
+    </h1>
+    <p style="margin:0 0 16px 0;font-size:15px;line-height:1.7;color:${BRAND.muted};">
+      Halo <strong style="color:${BRAND.text};">${displayName}</strong>,
+    </p>
+    <p style="margin:0 0 20px 0;font-size:15px;line-height:1.7;color:${BRAND.muted};">
+      Kami menerima permintaan untuk mengatur ulang kata sandi akun Cari Kerja Anda.
+      Klik tombol di bawah untuk membuat kata sandi baru.
+    </p>
+    <div style="text-align:center;margin:28px 0;">
+      ${primaryButton({ href: resetUrl, label: "Atur Ulang Kata Sandi" })}
     </div>
+    <p style="margin:0 0 12px 0;font-size:13px;line-height:1.6;color:${BRAND.muted};">
+      Tautan ini berlaku selama <strong>30 menit</strong>. Jika tombol tidak berfungsi, salin tautan berikut:
+    </p>
+    <p style="margin:0;font-size:12px;line-height:1.6;word-break:break-all;color:${BRAND.primary};">
+      ${escapeHtml(resetUrl)}
+    </p>
+    <p style="margin:24px 0 0 0;font-size:13px;line-height:1.6;color:${BRAND.muted};">
+      Jika Anda tidak meminta reset kata sandi, abaikan email ini. Akun Anda tetap aman.
+    </p>
   `;
+
+  return emailLayout({
+    title: "Reset Kata Sandi — Cari Kerja",
+    preheader: "Atur ulang kata sandi akun Cari Kerja Anda.",
+    bodyHtml,
+    footerNote: "Email reset kata sandi dikirim otomatis oleh Cari Kerja.",
+  });
 };

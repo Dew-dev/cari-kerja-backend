@@ -4,6 +4,9 @@ const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError } = require("../../../../helpers/errors");
 const ctx = "Recruiter-Query-Domain";
 
+const isEmptyResult = (err) =>
+  typeof err === "string" && /data not found/i.test(err);
+
 class Recruiter {
   constructor(db) {
     this.query = new Query(db);
@@ -22,7 +25,6 @@ class Recruiter {
       return wrapper.error(new NotFoundError("Can not find recruiter"));
     }
 
-    logger.info(ctx, "getRecruiter", "Get detail recruiter", payload);
     return wrapper.data(recruiter.data);
   }
 
@@ -30,6 +32,9 @@ class Recruiter {
     const recruiters = await this.query.findAllRecruitersWithIndustry();
 
     if (recruiters.err) {
+      if (isEmptyResult(recruiters.err)) {
+        return wrapper.data([]);
+      }
       logger.error(ctx, "getAllRecruitersByIndustry", "Cannot find recruiters", recruiters.err);
       return wrapper.error(new NotFoundError("Cannot find recruiters"));
     }
@@ -66,7 +71,6 @@ class Recruiter {
       ),
     }));
 
-    logger.info(ctx, "getAllRecruitersByIndustry", "Get recruiters grouped by industry");
     return wrapper.data(grouped);
   }
 
@@ -75,6 +79,14 @@ class Recruiter {
 
     const companies = await this.query.findAllCompanies({ search, page, limit });
     if (companies.err) {
+      if (isEmptyResult(companies.err)) {
+        return wrapper.paginationData([], {
+          page: Number(page),
+          limit: Number(limit),
+          total: 0,
+          totalPage: 0,
+        });
+      }
       logger.error(ctx, "getAllCompanies", "Cannot find companies", companies.err);
       return wrapper.error(new NotFoundError("Cannot find companies"));
     }
@@ -94,7 +106,6 @@ class Recruiter {
       totalPage,
     };
 
-    logger.info(ctx, "getAllCompanies", "Get all companies", payload);
     return wrapper.paginationData(companies.data, pagination);
   }
 }

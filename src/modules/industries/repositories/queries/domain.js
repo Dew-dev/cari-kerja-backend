@@ -1,8 +1,10 @@
 const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError } = require("../../../../helpers/errors");
+const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
 const ctx = "Industries-Query-Domain";
+
+const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
 
 class Industry {
   constructor(db) {
@@ -29,9 +31,17 @@ class Industry {
     const industries = await this.query.findAllIndustries(page, limit, search);
     const count = await this.query.countAllIndustries(search);
 
-    ////console.log(industries);
+    if (count.err) {
+      logger.error(ctx, "getAllIndustries", "Can not count Industries", count.err);
+      return wrapper.error(new InternalServerError("Can not count industries"));
+    }
 
     if (industries.err) {
+      if (industries.err === EMPTY_RESULT_MESSAGE) {
+        const meta = wrapper.buildPaginationMeta(page, limit, count.data);
+        return wrapper.paginationData([], meta);
+      }
+
       logger.error(
         ctx,
         "getAllIndustries",
@@ -41,15 +51,7 @@ class Industry {
       return wrapper.error(new NotFoundError("Can not find industries"));
     }
 
-    const totalData = count.data;
-    const totalPages = Math.ceil(totalData / limit);
-    const meta = {
-      page: page,
-      per_page: limit,
-      total_data: Math.max(totalData, 0),
-      total_pages: totalPages,
-    };
-
+    const meta = wrapper.buildPaginationMeta(page, limit, count.data);
     return wrapper.paginationData(industries.data, meta);
   }
 }

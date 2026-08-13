@@ -1,0 +1,6 @@
+# Sidecar CV parser (run on host / separate container — not inside the Node API image)
+flask>=3.0.0
+waitress>=3.0.0
+pdfplumber>=0.11.0
+docx2txt>=0.8
+Pillow>=10.0.0

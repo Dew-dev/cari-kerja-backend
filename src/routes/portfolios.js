@@ -1,28 +1,36 @@
 const verifyToken = require("../middlewares/verifyToken");
+const verifyRole = require("../middlewares/verifyRole");
 const portfoliosHandler = require("../modules/portofolios/handler/api_handler");
 
+// Portfolios are worker self-scoped resources.
+const workerRoles = [1, 3]; // worker (1), super_admin (3)
+
 module.exports = (server) => {
-  /**
-   * GET all portofolios by worker_id
-   * Endpoint: /api/v1/workers/portofolios
-   */
-  server.get("/api/v1/workers/portfolios", verifyToken, portfoliosHandler.getAllPortfolios);
+  server.get(
+    "/api/v1/workers/portfolios",
+    verifyToken,
+    verifyRole(workerRoles),
+    portfoliosHandler.getAllPortfolios
+  );
 
-  /**
-   * POST insert one portofolio
-   * Endpoint: /api/v1/workers/portofolios
-   */
-  server.post("/api/v1/workers/portfolios", verifyToken, portfoliosHandler.insertPortfolios);
+  server.post(
+    "/api/v1/workers/portfolios",
+    verifyToken,
+    verifyRole(workerRoles),
+    portfoliosHandler.insertPortfolios
+  );
 
-  /**
-   * PUT update one portofolio by id
-   * Endpoint: /api/v1/workers/portofolios/:id
-   */
-  server.put("/api/v1/workers/portfolios/:id", verifyToken, portfoliosHandler.updatePortfolios);
+  server.put(
+    "/api/v1/workers/portfolios/:id",
+    verifyToken,
+    verifyRole(workerRoles),
+    portfoliosHandler.updatePortfolios
+  );
 
-  /**
-   * DELETE one portofolio by id
-   * Endpoint: /api/v1/workers/portofolios/:id
-   */
-  server.delete("/api/v1/workers/portfolios/:id", verifyToken, portfoliosHandler.deletePortfolios);
+  server.delete(
+    "/api/v1/workers/portfolios/:id",
+    verifyToken,
+    verifyRole(workerRoles),
+    portfoliosHandler.deletePortfolios
+  );
 };

@@ -1,8 +1,10 @@
 const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError } = require("../../../../helpers/errors");
+const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
 const ctx = "EmploymentTypes-Query-Domain";
+
+const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
 
 class EmploymentTypes {
   constructor(db) {
@@ -26,26 +28,31 @@ class EmploymentTypes {
     const employmentTypes = await this.query.findAllEmploymentTypes(page, limit, search);
     const count = await this.query.countAllEmploymentTypes(search);
 
-    //console.log(employmentTypes);
+    const totalData = this.#extractTotal(count);
+    if (totalData === null) {
+      logger.error(ctx, "getAllEmploymentTypes", "Can not count EmploymentTypes", count.err || "empty count rows");
+      return wrapper.error(new InternalServerError("Can not count EmploymentTypes"));
+    }
 
     if (employmentTypes.err) {
+      if (employmentTypes.err === EMPTY_RESULT_MESSAGE) {
+        const meta = wrapper.buildPaginationMeta(page, limit, totalData);
+        return wrapper.paginationData([], meta);
+      }
+
       logger.error(ctx, "getAllEmploymentTypes", "Can not find EmploymentTypes", employmentTypes.err);
       return wrapper.error(new NotFoundError("Can not find EmploymentTypes"));
     }
 
-    const totalData = count.data.rows[0].total;
-    let totalPages;
-    if (limit) {
-      totalPages = Math.ceil(totalData / limit);
-    }
-    const meta = {
-      page: page,
-      per_page: limit,
-      total_data: parseInt(totalData),
-      total_pages: totalPages,
-    };
-
+    const meta = wrapper.buildPaginationMeta(page, limit, totalData);
     return wrapper.paginationData(employmentTypes.data, meta);
+  }
+
+  #extractTotal(count) {
+    if (count.err || !count.data?.rows?.length) {
+      return null;
+    }
+    return count.data.rows[0].total;
   }
 }
 

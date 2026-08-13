@@ -3,7 +3,14 @@ const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const { NotFoundError } = require("../../../../helpers/errors");
 const WorkerSkillsQuery = require("../../../worker-skills/repositories/queries/query");
+const { resolveLocale } = require("../../../../helpers/i18n/locale");
+const {
+  searchJobIds,
+  isJobSearchEnabled,
+} = require("../../services/elasticsearch_job_search");
 const ctx = "Jobposts-Query-Domain";
+
+const EMPTY_RESULT_MESSAGE = "Data Not Found Please Try Another Input";
 
 class Jobposts {
   constructor(db) {
@@ -14,6 +21,7 @@ class Jobposts {
   async getJobPostsLogic(payload) {
     const {
       recruiter_id,
+      company_id,
       status,
       employment_type,
       experience_level,
@@ -21,12 +29,15 @@ class Jobposts {
       location,
       province_name, // 🌍 Province name filter
       cities_name, // 🌍 City name filter
-      is_vip,
+      boost_type,
+      is_hot,
       is_remote,
       salary_min,
       salary_max,
       currency,
       category,
+      category_id,
+      locale,
       created_after,
       created_before,
       search, // Full-text search term
@@ -40,13 +51,25 @@ class Jobposts {
       exclude_id,
       self = false,
       recommendations = false, // 🎯 Enable/disable skill-based recommendations (default: true)
+      // public: OPEN + exclude hot | hot: OPEN + boost_type hot | unset: recruiter/self filters
+      listing = null,
     } = payload;
+
+    const resolvedLocale = resolveLocale(locale);
 
     const conditions = [];
     const values = [];
     let idx = 1;
 
     if (
+      company_id !== undefined &&
+      company_id !== null &&
+      company_id !== ""
+    ) {
+      conditions.push(` AND j.company_id = $${idx}`);
+      values.push(company_id);
+      idx += 1;
+    } else if (
       recruiter_id !== undefined &&
       recruiter_id !== null &&
       recruiter_id !== ""
@@ -56,7 +79,32 @@ class Jobposts {
       idx += 1;
     }
 
-    if (status !== undefined && status !== null && status !== "") {
+    // Public catalogue and HOT catalogue always require OPEN (status_id = 1)
+    if (listing === "public" || listing === "hot") {
+      // Clear expired boosts so badges / boost_type don't stick forever
+      try {
+        await this.query.clearExpiredJobBoosts();
+      } catch (err) {
+        logger.error(ctx, "getJobPostsLogic", "Failed to clear expired boosts", err);
+      }
+
+      conditions.push(` AND j.status_id = 1`);
+      if (listing === "hot") {
+        // Active HOT only: type hot AND not past boost_expires_at
+        conditions.push(` AND j.boost_type = 'hot'`);
+        conditions.push(
+          ` AND j.boost_expires_at IS NOT NULL AND j.boost_expires_at > NOW()`
+        );
+      } else {
+        // Regular list: exclude currently-active hot boosts (expired fall back here)
+        conditions.push(` AND (
+          j.boost_type IS NULL
+          OR j.boost_type <> 'hot'
+          OR j.boost_expires_at IS NULL
+          OR j.boost_expires_at <= NOW()
+        )`);
+      }
+    } else if (status !== undefined && status !== null && status !== "") {
       conditions.push(` AND jps.name = $${idx}`);
       values.push(status);
       idx += 1;
@@ -118,10 +166,19 @@ class Jobposts {
       idx += 1;
     }
 
-    if (is_vip !== undefined && is_vip !== null && is_vip !== "") {
-      conditions.push(` AND j.is_vip = $${idx}`);
-      values.push(is_vip);
-      idx += 1;
+    // Client boost filters only for recruiter/self listings
+    if (listing !== "public" && listing !== "hot") {
+      if (boost_type !== undefined && boost_type !== null && boost_type !== "") {
+        conditions.push(` AND j.boost_type = $${idx}`);
+        values.push(boost_type);
+        idx += 1;
+      }
+
+      if (is_hot !== undefined && is_hot !== null && is_hot !== "") {
+        conditions.push(` AND j.is_hot = $${idx}`);
+        values.push(is_hot);
+        idx += 1;
+      }
     }
 
     if (is_remote !== undefined && is_remote !== null && is_remote !== "") {
@@ -145,25 +202,36 @@ class Jobposts {
     }
 
     if (salary_min !== undefined && salary_min !== null && salary_min !== "") {
-      conditions.push(` AND j.salary_min >= $${idx}`);
+      conditions.push(` AND j.salary_max >= $${idx}`);
       values.push(salary_min);
       idx += 1;
     }
 
     if (salary_max !== undefined && salary_max !== null && salary_max !== "") {
-      conditions.push(` AND j.salary_max <= $${idx}`);
+      conditions.push(` AND j.salary_min <= $${idx}`);
       values.push(salary_max);
       idx += 1;
     }
 
-    if (currency !== undefined && currency !== null && currency !== "") {
-      conditions.push(` AND c.name = $${idx}`);
+    if (currency !== undefined && currency !== null && currency !== "" && currency !== "ALL") {
+      conditions.push(` AND c.code = $${idx}`);
       values.push(currency);
       idx += 1;
     }
 
-    if (category !== undefined && category !== null && category !== "") {
-      conditions.push(` AND cat.name = $${idx}`);
+    if (category_id !== undefined && category_id !== null && category_id !== "") {
+      conditions.push(` AND j.category_id = $${idx}`);
+      values.push(Number(category_id));
+      idx += 1;
+    } else if (category !== undefined && category !== null && category !== "") {
+      // Legacy fallback: filter by translated category name (any locale)
+      conditions.push(`
+        AND EXISTS (
+          SELECT 1 FROM category_translations ct
+          WHERE ct.category_id = j.category_id
+            AND lower(ct.name) = lower($${idx})
+        )
+      `);
       values.push(category);
       idx += 1;
     }
@@ -188,36 +256,63 @@ class Jobposts {
       idx += 1;
     }
 
-    // 🔍 Full-text search on title & description
+    // 🔍 Full-text search on title & description (Elasticsearch when enabled)
+    let esOrderedIds = null;
     if (
       search !== undefined &&
       search !== null &&
       search !== "" &&
       search.length >= 2
     ) {
-      if (search.length >= 3) {
-        conditions.push(`
+      let usedElasticsearch = false;
+
+      if (isJobSearchEnabled()) {
+        const esResult = await searchJobIds(search, { size: 1000 });
+        if (esResult?.ok) {
+          usedElasticsearch = true;
+          if (!esResult.ids.length) {
+            return wrapper.paginationData(
+              [],
+              wrapper.buildPaginationMeta(page, limit, 0),
+            );
+          }
+          conditions.push(` AND j.id = ANY($${idx}::uuid[])`);
+          values.push(esResult.ids);
+          idx += 1;
+          esOrderedIds = esResult.ids;
+        } else if (esResult?.err) {
+          logger.error(
+            ctx,
+            "getJobPostsLogic",
+            "Elasticsearch search failed; falling back to Postgres FTS",
+            esResult.err,
+          );
+        }
+      }
+
+      if (!usedElasticsearch) {
+        if (search.length >= 3) {
+          conditions.push(`
           AND (
-            -- ✅ Full-text search (stemmed)
             (
               to_tsvector('english', COALESCE(j.title, '') || ' ' || COALESCE(j.description, ''))
               @@ websearch_to_tsquery('english', lower($${idx}) || ':*')
             )
             OR
-            -- ✅ Fallback: ILIKE (substring) untuk semua kasus, terutama yang pendek
             (
               LOWER(j.title || ' ' || COALESCE(j.description, '')) ILIKE '%' || lower($${idx}) || '%'
             )
           )
         `);
-        values.push(search);
-        idx += 1;
-      } else {
-        conditions.push(`
+          values.push(search);
+          idx += 1;
+        } else {
+          conditions.push(`
           AND LOWER(j.title || ' ' || COALESCE(j.description, '')) ILIKE '%' || lower($${idx}) || '%'
         `);
-        values.push(search);
-        idx += 1;
+          values.push(search);
+          idx += 1;
+        }
       }
     }
 
@@ -255,17 +350,74 @@ class Jobposts {
       idx += 1;
     }
 
-    // 🎯 Filter jobs by matching skills (Recommendations) when worker has skills
-    // Only apply if recommendations flag is true (default) and user_id is provided
-    if (recommendations !== false && user_id !== undefined && user_id !== null && user_id !== "") {
+    // HOT relevance: when no explicit city/province/category, infer from applications
+    // and hard-filter with OR (city match | remote | category). Empty → fallback all hot.
+    const hasExplicitGeoOrCategory = [
+      cities_name,
+      province_name,
+      category,
+      category_id,
+    ].some((v) => v !== undefined && v !== null && String(v).trim() !== "");
+
+    let appliedHotRelevance = false;
+    let hotRelevanceStartIdx = null;
+
+    if (
+      listing === "hot" &&
+      !hasExplicitGeoOrCategory &&
+      user_id !== undefined &&
+      user_id !== null &&
+      user_id !== ""
+    ) {
+      try {
+        const prefsResult = await this.query.getWorkerHotPreferences(user_id);
+        const prefs = prefsResult?.data || {};
+        const preferredCity =
+          prefs.preferred_city && String(prefs.preferred_city).trim()
+            ? String(prefs.preferred_city).trim()
+            : null;
+        const preferredCategoryId =
+          prefs.preferred_category_id !== undefined &&
+          prefs.preferred_category_id !== null &&
+          !Number.isNaN(Number(prefs.preferred_category_id))
+            ? Number(prefs.preferred_category_id)
+            : null;
+
+        if (preferredCity || preferredCategoryId !== null) {
+          hotRelevanceStartIdx = conditions.length;
+          const orParts = [];
+          if (preferredCity) {
+            orParts.push(`(j.is_remote = TRUE OR j.city ILIKE $${idx})`);
+            values.push(preferredCity);
+            idx += 1;
+          }
+          if (preferredCategoryId !== null) {
+            orParts.push(`j.category_id = $${idx}`);
+            values.push(preferredCategoryId);
+            idx += 1;
+          }
+          conditions.push(` AND (${orParts.join(" OR ")})`);
+          appliedHotRelevance = true;
+        }
+      } catch (error) {
+        logger.error(ctx, "getJobPostsLogic", "Error inferring hot preferences", error);
+      }
+    }
+
+    // Skill recommendations — skip for HOT catalogue (paid inventory must stay visible)
+    if (
+      listing !== "hot" &&
+      recommendations !== false &&
+      user_id !== undefined &&
+      user_id !== null &&
+      user_id !== ""
+    ) {
       try {
         const workerSkillsResult = await this.workerSkillsQuery.getAllByWorkerId(user_id);
-        
+
         if (!workerSkillsResult.err && workerSkillsResult.data && workerSkillsResult.data.length > 0) {
-          // Worker has skills, so filter to only show jobs that have at least one matching skill
-          const skillIds = workerSkillsResult.data.map(skill => skill.skill_id);
-          
-          // Build condition to show only jobs that have at least one skill match
+          const skillIds = workerSkillsResult.data.map((skill) => skill.skill_id);
+
           conditions.push(` AND EXISTS (
             SELECT 1 FROM job_post_skills jps_filter
             WHERE jps_filter.job_post_id = j.id 
@@ -273,15 +425,11 @@ class Jobposts {
           )`);
           values.push(skillIds);
           idx += 1;
-          
-          logger.info(ctx, "getJobPostsLogic", `Worker ${user_id} has ${skillIds.length} skills - filtering recommendations`);
         }
       } catch (error) {
         logger.error(ctx, "getJobPostsLogic", "Error fetching worker skills", error);
-        // Continue without skill filtering if there's an error
       }
     } else if (recommendations === false && user_id) {
-      logger.info(ctx, "getJobPostsLogic", `Worker ${user_id} disabled recommendations - showing all jobs`);
     }
 
     const sortableColumns = {
@@ -292,14 +440,59 @@ class Jobposts {
       created_at: "j.created_at",
     };
 
-    const orderColumn = sortableColumns[sort_by] || sortableColumns.created_at;
-    const orderDirection = sort_order.toLowerCase() === "asc" ? "ASC" : "DESC";
+    let orderColumn = sortableColumns[sort_by] || sortableColumns.created_at;
+    let orderDirection = sort_order.toLowerCase() === "asc" ? "ASC" : "DESC";
 
-    const conditionsString = conditions.join("\n");
+    let conditionsString = conditions.join("\n");
 
-    const count = await this.query.countAllJobPosts(conditionsString, values);
-    // //console.log(count);
-    const totalData = count.data.rowCount;
+    let count = await this.query.countAllJobPosts(conditionsString, values);
+    if (count?.err || !count?.data) {
+      logger.error(
+        ctx,
+        "getJobPostsLogic",
+        "Failed to count job posts",
+        count?.err || "empty count result",
+      );
+      return wrapper.error(new NotFoundError("Can not find jobposts"));
+    }
+    let totalData = Number(count.data.rowCount ?? 0);
+
+    // Fallback: if inferred HOT relevance yields nothing, show all hot again
+    if (appliedHotRelevance && Number(totalData) === 0 && hotRelevanceStartIdx !== null) {
+      const removed = conditions.splice(hotRelevanceStartIdx);
+      const relevanceValueCount = removed.reduce((n, clause) => {
+        const matches = clause.match(/\$\d+/g);
+        return n + (matches ? matches.length : 0);
+      }, 0);
+      if (relevanceValueCount > 0) {
+        values.splice(values.length - relevanceValueCount, relevanceValueCount);
+        idx -= relevanceValueCount;
+      }
+      conditionsString = conditions.join("\n");
+      count = await this.query.countAllJobPosts(conditionsString, values);
+      if (count?.err || !count?.data) {
+        logger.error(
+          ctx,
+          "getJobPostsLogic",
+          "Failed to recount job posts after HOT fallback",
+          count?.err || "empty count result",
+        );
+        return wrapper.error(new NotFoundError("Can not find jobposts"));
+      }
+      totalData = Number(count.data.rowCount ?? 0);
+    }
+
+    // Preserve Elasticsearch relevance when caller did not pick an explicit non-default sort
+    if (
+      esOrderedIds &&
+      esOrderedIds.length > 0 &&
+      (!sort_by || sort_by === "created_at" || sort_by === "relevance")
+    ) {
+      orderColumn = `array_position($${idx}::uuid[], j.id)`;
+      orderDirection = "ASC NULLS LAST";
+      values.push(esOrderedIds);
+      idx += 1;
+    }
 
     const data = {
       conditions: conditionsString,
@@ -310,26 +503,35 @@ class Jobposts {
       limit,
       page,
       totalData,
+      locale: resolvedLocale,
     };
     let finalData = data;
     if (user_id !== undefined && user_id !== null && user_id !== "") {
       finalData = { ...data, user_id };
     }
-    console.log("finalData", finalData)
     const jobposts = await this.query.findAll(finalData);
 
     if (jobposts.err) {
+      if (jobposts.err === EMPTY_RESULT_MESSAGE) {
+        return wrapper.paginationData(
+          [],
+          wrapper.buildPaginationMeta(page, limit, totalData),
+        );
+      }
       logger.error(ctx, "getJobposts", "Can not find jobposts", jobposts.err);
       return wrapper.error(new NotFoundError("Can not find jobposts"));
     }
 
-    logger.info(ctx, "getJobposts", "Get Jobposts", finalData);
     return wrapper.paginationData(jobposts.data, jobposts.meta);
   }
 
   async getJobpostById(payload) {
-    const { id, user_id } = payload;
-    const jobpost = await this.query.findOneByJobpostsId(id, user_id ?? null);
+    const { id, user_id, locale } = payload;
+    const jobpost = await this.query.findOneByJobpostsId(
+      id,
+      user_id ?? null,
+      resolveLocale(locale)
+    );
 
     if (jobpost.err) {
       logger.error(ctx, "getJobpostById", "Job Post Query", jobpost.err);
@@ -371,7 +573,6 @@ class Jobposts {
       questions: !questionsResult.err ? questionsResult.data : [],
     };
 
-    logger.info(ctx, "getJobpostById", "Job Post Query", payload);
     
     return wrapper.data(jobPostData);
   }
@@ -386,7 +587,8 @@ class Jobposts {
       location,
       province, // 🌍 Province name filter
       city, // 🌍 City name filter
-      is_vip,
+      boost_type,
+      is_hot,
       is_remote,
       salary_min,
       salary_max,
@@ -446,9 +648,15 @@ class Jobposts {
       idx += 1;
     }
 
-    if (is_vip !== undefined && is_vip !== null && is_vip !== "") {
-      conditions.push(` AND j.is_vip = $${idx}`);
-      values.push(is_vip);
+    if (boost_type !== undefined && boost_type !== null && boost_type !== "") {
+      conditions.push(` AND j.boost_type = $${idx}`);
+      values.push(boost_type);
+      idx += 1;
+    }
+
+    if (is_hot !== undefined && is_hot !== null && is_hot !== "") {
+      conditions.push(` AND j.is_hot = $${idx}`);
+      values.push(is_hot);
       idx += 1;
     }
 
@@ -473,19 +681,19 @@ class Jobposts {
     }
 
     if (salary_min !== undefined && salary_min !== null && salary_min !== "") {
-      conditions.push(` AND j.salary_min >= $${idx}`);
+      conditions.push(` AND j.salary_max >= $${idx}`);
       values.push(salary_min);
       idx += 1;
     }
 
     if (salary_max !== undefined && salary_max !== null && salary_max !== "") {
-      conditions.push(` AND j.salary_max <= $${idx}`);
+      conditions.push(` AND j.salary_min <= $${idx}`);
       values.push(salary_max);
       idx += 1;
     }
 
-    if (currency !== undefined && currency !== null && currency !== "") {
-      conditions.push(` AND c.name = $${idx}`);
+    if (currency !== undefined && currency !== null && currency !== "" && currency !== "ALL") {
+      conditions.push(` AND c.code = $${idx}`);
       values.push(currency);
       idx += 1;
     }
@@ -592,7 +800,6 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Can not find jobposts"));
     }
 
-    logger.info(ctx, "getJobposts", "Get Jobposts", data);
     return wrapper.paginationData(jobposts.data, jobposts.meta);
   }
 
@@ -712,7 +919,6 @@ class Jobposts {
         return wrapper.error(new NotFoundError("Cannot find questions"));
       }
 
-      logger.info(ctx, "getJobpostQuestions", "Get Jobpost Questions", data);
       return wrapper.paginationData(questions.data, questions.meta);
     } catch (err) {
       logger.error(ctx, "getJobpostQuestions", "Error get questions", err);
@@ -743,28 +949,10 @@ class Jobposts {
         return wrapper.error(new NotFoundError("Unable to load currencies"));
       }
 
-      logger.info(ctx, "getCurrency", "Get currencies list");
       return wrapper.data(list.data);
     }
 
-    logger.info(ctx, "getCurrencyByCode", "Get currency", payload);
     return wrapper.data(currency.data);
-  }
-
-  async getCategoriesByName(payload) {
-    const { name } = payload ?? "";
-    //console.log(name);
-    const jobtag = await this.query.findCategories(
-      { name },
-      { id: 1, name: 1 },
-    );
-    if (jobtag.err) {
-      logger.error(ctx, "getTagByName", "Can not find tag", jobtag.err);
-      return wrapper.error(new NotFoundError("Can not find tag"));
-    }
-
-    logger.info(ctx, "getTagByName", "Get job tag", payload);
-    return wrapper.data(jobtag.data);
   }
 
   async getJobApplicants(payload) {
@@ -784,11 +972,10 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Applicants not found"));
     }
 
-    logger.info(ctx, "getJobApplicants", "Get job applicants", payload);
     return wrapper.data(applicants.data);
   }
   async getWorkerByApplication(payload) {
-    const { id, recruiter_id } = payload;
+    const { id, recruiter_id, company_id } = payload;
 
     // 1. Ambil application + recruiter owner
     const application = await this.query.findOneJobApplication({
@@ -799,7 +986,12 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Application not found"));
     }
 
-    if (application.data.recruiter_id !== recruiter_id) {
+    const ownsByCompany =
+      company_id &&
+      application.data.company_id &&
+      application.data.company_id === company_id;
+    const ownsByRecruiter = application.data.recruiter_id === recruiter_id;
+    if (!ownsByCompany && !ownsByRecruiter) {
       return wrapper.error(
         new ForbiddenError("You are not allowed to access this worker"),
       );
@@ -808,7 +1000,7 @@ class Jobposts {
     // 2. Ambil worker detail
     const worker = await this.query.findWorkerByApplicationId({ id });
 
-    if (worker.err) {
+    if (worker.err || !worker.data) {
       logger.error(
         ctx,
         "getWorkerByApplication",
@@ -818,7 +1010,7 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Worker not found"));
     }
 
-    // 3. Ambil answers untuk application ini
+    // 3. Ambil answers untuk application ini (non-blocking for empty failures)
     const answersResult = await this.query.findAnswersByApplicationId({ id });
     
     const workerData = {
@@ -826,7 +1018,6 @@ class Jobposts {
       answers: !answersResult.err && answersResult.data ? answersResult.data : [],
     };
 
-    logger.info(ctx, "getWorkerByApplication", "Get worker detail", payload);
     return wrapper.data(workerData);
   }
 }

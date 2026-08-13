@@ -3,7 +3,11 @@ const Query = require("../queries/query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
 const { v4: uuidv4 } = require("uuid");
-const { NotFoundError, InternalServerError } = require("../../../../helpers/errors");
+const {
+  NotFoundError,
+  InternalServerError,
+  ForbiddenError,
+} = require("../../../../helpers/errors");
 const ctx = "Languages-Domain";
 
 class Languages {
@@ -12,12 +16,25 @@ class Languages {
     this.query = new Query(db);
   }
 
+  // Resolve id master `languages` dari nama (upsert bila belum ada)
+  async resolveLanguageId(languageName) {
+    try {
+      const result = await this.command.upsertMasterLanguage(languageName);
+      return result?.rows?.[0]?.id || null;
+    } catch (error) {
+      logger.error(ctx, "resolveLanguageId", "Failed to resolve language id", error);
+      return null;
+    }
+  }
+
   // INSERT one language
   async insertOne(payload) {
+    const language_id = payload.language_id || (await this.resolveLanguageId(payload.language_name));
     const document = {
       id: uuidv4(),
       worker_id: payload.worker_id,
       language_name: payload.language_name,
+      language_id,
       proficiency_level_id: payload.proficiency_level_id,
       is_primary: payload.is_primary || false,
     };
@@ -33,13 +50,24 @@ class Languages {
   async updateOne(payload) {
     const { id, worker_id } = payload;
 
-    const existing = await this.query.findOne({ id }, { id: 1 });
-    if (existing.err) {
+    const existing = await this.query.findOne(
+      { id, worker_id },
+      { id: 1, worker_id: 1 }
+    );
+    if (existing.err || !existing.data) {
       return wrapper.error(new NotFoundError("Language not found"));
     }
 
+    if (existing.data.worker_id && existing.data.worker_id !== worker_id) {
+      return wrapper.error(
+        new ForbiddenError("You are not allowed to update this language")
+      );
+    }
+
+    const language_id = payload.language_id || (await this.resolveLanguageId(payload.language_name));
     const document = {
       language_name: payload.language_name,
+      language_id,
       proficiency_level_id: payload.proficiency_level_id,
       is_primary: payload.is_primary || false,
     };
@@ -56,7 +84,7 @@ class Languages {
   async deleteOne(payload) {
     const { id, worker_id } = payload;
     const existing = await this.query.findOne({ id, worker_id }, { id: 1 });
-    if (existing.err) {
+    if (existing.err || !existing.data) {
       return wrapper.error(new NotFoundError("Language not found"));
     }
 

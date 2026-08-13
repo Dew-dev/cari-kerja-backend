@@ -62,6 +62,9 @@ const loginParamType = joi.object({
       "string.max": "Password Maximum: {#limit} character",
       "string.pattern.name": "Password must contain at least 1 {#name}",
     }),
+  ip_address: joi.string().optional().allow("", null),
+  user_agent: joi.string().optional().allow("", null),
+  captcha_token: joi.string().optional().allow("", null),
 });
 
 const loginWithGoogleParamType = joi.object({
@@ -73,7 +76,18 @@ const loginWithGoogleParamType = joi.object({
     .message("Email format must be true"),
   name: joi.string().optional(),
   picture: joi.string().optional(),
-  role_id: joi.number().required(),
+  role_id: joi.number().integer().valid(1, 2).default(1),
+  ip_address: joi.string().optional().allow("", null),
+  user_agent: joi.string().optional().allow("", null),
+});
+
+const loginWithTelegramParamType = joi.object({
+  code: joi.string().required(),
+  state: joi.string().optional().allow("", null),
+  role_id: joi.number().integer().valid(1, 2).optional().default(1),
+  origin: joi.string().optional().allow("", null),
+  ip_address: joi.string().optional().allow("", null),
+  user_agent: joi.string().optional().allow("", null),
 });
 
 const registerParamType = joi.object({
@@ -104,6 +118,7 @@ const registerParamType = joi.object({
     .regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
     .message("Email format must be true"),
   name: joi.string().required(),
+  captcha_token: joi.string().optional().allow("", null),
 });
 
 const registerRecruiterParamType = joi.object({
@@ -133,9 +148,15 @@ const registerRecruiterParamType = joi.object({
     .required()
     .regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
     .message("Email format must be true"),
-  company_name: joi.string().required(),
+  company_name: joi.string().when("invite_token", {
+    is: joi.exist().not(null).not(""),
+    then: joi.optional().allow("", null),
+    otherwise: joi.required(),
+  }),
   contact_name: joi.string().required(),
   contact_phone: joi.string().required(),
+  invite_token: joi.string().min(16).optional().allow("", null),
+  captcha_token: joi.string().optional().allow("", null),
 });
 
 const deleteParamType = joi.object({
@@ -207,9 +228,23 @@ const verifyEmailParamType = joi.object({
   token: joi.string().required(),
 });
 
+const changeEmailParamType = joi.object({
+  user_id: joi.string().uuid().required(),
+  email: joi
+    .string()
+    .email({ tlds: { allow: false } })
+    .required()
+    .messages({
+      "string.empty": "Email must not be empty",
+      "string.email": "Invalid email format",
+      "any.required": "Email is required",
+    }),
+});
+
 module.exports = {
   loginParamType,
   loginWithGoogleParamType,
+  loginWithTelegramParamType,
   registerParamType,
   updateUserParamType,
   deleteParamType,
@@ -221,4 +256,5 @@ module.exports = {
   changePasswordParamType,
   sendVerifyEmailParamType,
   verifyEmailParamType,
+  changeEmailParamType,
 };

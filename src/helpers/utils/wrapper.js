@@ -8,12 +8,35 @@ const {
   GatewayTimeoutError,
   ServiceUnavailableError,
   UnauthorizedError,
+  TooManyRequestsError,
 } = require("../errors");
 const { ERROR: httpError } = require("../http-status/status_code");
 
-const data = (data) => ({ err: null, data });
+const data = (data, message = null, code = null) => {
+  const result = { err: null, data };
+  if (message != null) {
+    result.message = message;
+  }
+  if (code != null) {
+    result.code = code;
+  }
+  return result;
+};
 
 const paginationData = (data, meta) => ({ err: null, data, meta });
+
+const buildPaginationMeta = (page, limit, totalData) => {
+  const pageNum = Number(page) || 1;
+  const limitNum = Number(limit) || 10;
+  const total = Math.max(parseInt(totalData, 10) || 0, 0);
+
+  return {
+    page: pageNum,
+    per_page: limitNum,
+    total_data: total,
+    total_pages: limitNum > 0 ? Math.ceil(total / limitNum) : 0,
+  };
+};
 
 const error = (err) => ({ err, data: null });
 
@@ -22,9 +45,13 @@ const response = (res, type, result, message = "", code = 200) => {
   let data = result.data;
   if (type === "fail") {
     status = false;
-    data = "";
     message = result.err.message || message;
     code = checkErrorCode(result.err);
+    data = "";
+    if (result.err?.retry_after_seconds != null) {
+      data = { retry_after_seconds: Number(result.err.retry_after_seconds) };
+      res.setHeader("Retry-After", String(data.retry_after_seconds));
+    }
   }
   return res.status(code).send({
     success: status,
@@ -36,18 +63,26 @@ const response = (res, type, result, message = "", code = 200) => {
 
 const paginationResponse = (res, type, result, message = "", code = 200) => {
   let status = true;
-  let data = result.data;
+  let data = Array.isArray(result?.data) ? result.data : [];
+  let meta = result?.meta || {
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPage: 0,
+  };
   if (type === "fail") {
     status = false;
-    data = "";
-    message = result.err;
+    data = [];
+    message = result?.err?.message || result?.err || message;
+    code = checkErrorCode(result?.err) || code;
   }
+  // Always 200 for successful list responses (including empty lists). Never 204.
   return res.status(code).send({
     success: status,
     data,
-    meta: result.meta,
+    meta,
     code,
-    message,
+    message: message || "Your Request Has Been Processed",
   });
 };
 
@@ -94,6 +129,8 @@ const checkErrorCode = (error) => {
       return httpError.SERVICE_UNAVAILABLE;
     case UnauthorizedError:
       return httpError.UNAUTHORIZED;
+    case TooManyRequestsError:
+      return httpError.TOO_MANY_REQUESTS;
     default:
       return httpError.CONFLICT;
   }
@@ -102,6 +139,7 @@ const checkErrorCode = (error) => {
 module.exports = {
   data,
   paginationData,
+  buildPaginationMeta,
   error,
   response,
   paginationResponse,

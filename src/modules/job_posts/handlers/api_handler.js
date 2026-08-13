@@ -11,6 +11,11 @@ const {
   paginationResponse,
 } = require("../../../helpers/utils/response");
 const { get } = require("../../../config/global_config");
+const { verifyCaptchaToken } = require("../../../helpers/captcha/turnstile");
+const { workerNeedsApplyCaptcha } = require("../../../helpers/fraud/apply_captcha");
+const DB = require("../../../helpers/databases/postgresql/db");
+
+const applyCaptchaDb = new DB(get("/postgresqlUrl"));
 
 const getJobpostsByRecruiterId = async (req, res) => {
   const payload = { ...req.params, ...req.query };
@@ -30,6 +35,7 @@ const getJobpostsByRecruiterId = async (req, res) => {
 const getJobpostById = async (req, res) => {
   const payload = {
     id: req.params.id,
+    locale: req.query.locale,
     ...(req.userMeta ? { user_id: req.userMeta.worker_id } : {}),
   };
   const validatePayload = validator.isValidPayload(
@@ -45,7 +51,12 @@ const getJobpostById = async (req, res) => {
 };
 
 const createJobPost = async (req, res) => {
-  const payload = { ...req.body, recruiter_id: req.userMeta.recruiter_id };
+  const payload = {
+    ...req.body,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
+    company_id: req.userMeta.company_id,
+    created_by_user_id: req.userMeta.id,
+  };
   const validatePayload = validator.isValidPayload(
     payload,
     commandModel.createJobPostParamType
@@ -58,10 +69,20 @@ const createJobPost = async (req, res) => {
 };
 
 const createJobPostQuestions = async (req, res) => {
-  const payload = req.body;
   const { id } = req.params;
-  // return payload;
-  const result = await commandHandler.createJobPostQuestions(payload, id);
+  const payloadArray = Array.isArray(req.body) ? req.body : [req.body];
+
+  for (const item of payloadArray) {
+    const validatePayload = validator.isValidPayload(
+      { ...item, job_post_id: id },
+      commandModel.jobPostQuestionParamType,
+    );
+    if (validatePayload.err) {
+      return sendResponse(validatePayload, res);
+    }
+  }
+
+  const result = await commandHandler.createJobPostQuestions(payloadArray, id);
   return sendResponse(result, res, 201);
 };
 
@@ -116,7 +137,7 @@ const getJobpostQuestions = async (req, res) => {
 };
 
 const getJobposts = async (req, res) => {
-  let payload = { ...req.query };
+  let payload = { ...req.query, listing: "public" };
   // //console.log("req.userMeta", req.userMeta);
   if (req.userMeta?.worker_id) {
     payload = { ...payload, user_id: req.userMeta.worker_id };
@@ -133,9 +154,30 @@ const getJobposts = async (req, res) => {
   return paginationResponse(result, res);
 };
 
+const getHotJobposts = async (req, res) => {
+  let payload = { ...req.query, listing: "hot" };
+  if (req.userMeta?.worker_id) {
+    payload = { ...payload, user_id: req.userMeta.worker_id };
+  }
+
+  const validatePayload = validator.isValidPayload(
+    payload,
+    queryModel.getJobpostsParamType
+  );
+  if (validatePayload.err) {
+    return sendResponse(validatePayload, res);
+  }
+  const result = await queryHandler.getHotJobposts(validatePayload.data);
+  return paginationResponse(result, res);
+};
+
 const getJobpostsSelf = async (req, res) => {
-  const payload = { ...req.query, recruiter_id: req.userMeta.recruiter_id, self:true };
-  ////console.log(payload);
+  const payload = {
+    ...req.query,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
+    company_id: req.userMeta.company_id,
+    self: true,
+  };
 
   const validatePayload = validator.isValidPayload(
     payload,
@@ -213,10 +255,16 @@ const createJobApplication = async (req, res) => {
     return sendResponse(validatePayload, res);
   }
 
+  const { captcha_token, ...applicationData } = validatePayload.data;
+  if (await workerNeedsApplyCaptcha(applyCaptchaDb, applicationData.worker_id)) {
+    const captchaResult = await verifyCaptchaToken(captcha_token, req.ip);
+    if (captchaResult.err) {
+      return sendResponse(captchaResult, res);
+    }
+  }
+
   // eksekusi command
-  const result = await commandHandler.createJobApplication(
-    validatePayload.data
-  );
+  const result = await commandHandler.createJobApplication(applicationData);
   return sendResponse(result, res);
 };
 
@@ -237,25 +285,14 @@ const getCurrencyByCode = async (req, res) => {
 };
 
 const updateJobPostStatus = async (req, res) => {
-  const payload = req.body;
+  const payload = {
+    ...req.body,
+    recruiter_id: req.userMeta?.recruiter_id, company_id: req.userMeta?.company_id,
+  };
   const { id } = req.params;
 
-  // return payload;
   const result = await commandHandler.updateJobPostStatus(payload, id);
   return sendResponse(result, res, 201);
-};
-
-const getCategoriesByName = async (req, res) => {
-  const payload = req.params;
-  const validatePayload = validator.isValidPayload(
-    payload,
-    queryModel.getCategoriesByNameParamType
-  );
-  if (validatePayload.err) {
-    return sendResponse(validatePayload, res);
-  }
-  const result = await queryHandler.getCategoriesByName(validatePayload.data);
-  return sendResponse(result, res);
 };
 
 const getJobApplicants = async (req, res) => {
@@ -278,7 +315,7 @@ const updateApplicationStatus = async (req, res) => {
   const payload = {
     id: req.params.id,
     application_status_id: req.body.application_status_id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(
@@ -299,7 +336,7 @@ const updateApplicationStatus = async (req, res) => {
 const getWorkerByApplication = async (req, res) => {
   const payload = {
     id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(
@@ -318,7 +355,7 @@ const getWorkerByApplication = async (req, res) => {
 const updateJobPost = async (req, res) => {
   const payload = {
     id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
 
     title: req.body.title,
     description: req.body.description,
@@ -339,9 +376,6 @@ const updateJobPost = async (req, res) => {
     skills: req.body.skills,
     province: req.body.province,
     city: req.body.city,
-    is_vip: req.body.is_vip,
-    vip_start_at: req.body.vip_start_at,
-    vip_end_at: req.body.vip_end_at,
   };
 
   const validatePayload = validator.isValidPayload(
@@ -357,32 +391,11 @@ const updateJobPost = async (req, res) => {
   return sendResponse(result, res);
 };
 
-const updateJobPostVip = async (req, res) => {
-  const payload = {
-    id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
-    is_vip: req.body.is_vip,
-    vip_start_at: req.body.vip_start_at,
-    vip_end_at: req.body.vip_end_at,
-  };
-
-  const validatePayload = validator.isValidPayload(
-    payload,
-    commandModel.updateJobPostVipParamType,
-  );
-
-  if (validatePayload.err) {
-    return sendResponse(validatePayload, res);
-  }
-
-  const result = await commandHandler.updateJobPostVip(validatePayload.data);
-  return sendResponse(result, res);
-};
 
 const duplicateJobPost = async (req, res) => {
   const payload = {
     id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(
@@ -400,7 +413,7 @@ const duplicateJobPost = async (req, res) => {
 const archiveJobPost = async (req, res) => {
   const payload = {
     id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(
@@ -419,7 +432,7 @@ const archiveJobPost = async (req, res) => {
 const restoreJobPost = async (req, res) => {
   const payload = {
     id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(
@@ -438,7 +451,7 @@ const restoreJobPost = async (req, res) => {
 const deleteJobPost = async (req, res) => {
   const payload = {
     id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(
@@ -462,6 +475,7 @@ module.exports = {
   createJobPostQuestions,
   updateJobPostQuestions,
   getJobposts,
+  getHotJobposts,
   getJobpostsSelf,
   getJobpostQuestions,
   createJobPostAnswers,
@@ -470,12 +484,10 @@ module.exports = {
   updateJobPostStatus,
   getAppliedJobposts,
   deleteAppliedJobpost,
-  getCategoriesByName,
   getJobApplicants,
   updateApplicationStatus,
   getWorkerByApplication,
   updateJobPost,
-  updateJobPostVip,
   duplicateJobPost,
   restoreJobPost,
   archiveJobPost,

@@ -16,8 +16,13 @@ const getWorkers = async (payload) => {
   return domain.getWorkers(payload);
 };
 
+const revealWorkerContact = async (payload) => {
+  return domain.revealWorkerContact(payload);
+};
+
 module.exports = {
   getWorkerByUserId,
   getWorkerById,
   getWorkers,
+  revealWorkerContact,
 };

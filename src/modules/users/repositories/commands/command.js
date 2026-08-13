@@ -119,6 +119,27 @@ class Command {
       [user_id],
     );
   }
+
+  async clearEmailVerified(user_id) {
+    return this.db.executeQuery(
+      `
+    UPDATE users
+    SET email_verified_at = NULL, updated_at = NOW()
+    WHERE id = $1
+    `,
+      [user_id],
+    );
+  }
+
+  async insertAuditLog({ user_id, action, ip_address, user_agent }) {
+    return this.db.executeQuery(
+      `
+      INSERT INTO audit_logs (user_id, action, ip_address, user_agent)
+      VALUES ($1, $2, $3, $4)
+      `,
+      [user_id, action, ip_address, user_agent],
+    );
+  }
 }
 
 module.exports = Command;

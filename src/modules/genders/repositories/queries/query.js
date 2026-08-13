@@ -51,7 +51,7 @@ class Query {
       WHERE gender_name ILIKE $1;
       `;
       const countResult = await this.db.executeQuery(countQuery, [searchQuery]);
-      return wrapper.data(countResult.rows[0].count);
+      return wrapper.data(parseInt(countResult.rows[0].total, 10) || 0);
     } catch (error) {
       logger.error(ctx, errorQueryMessage, "countAllGenders", error);
       return wrapper.error(errorQueryMessage);

@@ -3,7 +3,29 @@ const currencies_collection = "currencies";
 const errorQueryMessage = "Error querying PostgreSQL";
 const logger = require("../../../../helpers/utils/logger");
 const wrapper = require("../../../../helpers/utils/wrapper");
+const {
+  DEFAULT_LOCALE,
+  resolveLocale,
+} = require("../../../../helpers/i18n/locale");
 const ctx = "Job_Posts-Query";
+
+const categoryNameSql = (jobAlias, locale) => {
+  const loc = resolveLocale(locale);
+  return `COALESCE(
+    (
+      SELECT ct.name
+      FROM category_translations ct
+      WHERE ct.category_id = ${jobAlias}.category_id AND ct.locale = '${loc}'
+      LIMIT 1
+    ),
+    (
+      SELECT ct.name
+      FROM category_translations ct
+      WHERE ct.category_id = ${jobAlias}.category_id AND ct.locale = '${DEFAULT_LOCALE}'
+      LIMIT 1
+    )
+  )`;
+};
 
 class Query {
   constructor(db) {
@@ -14,7 +36,7 @@ class Query {
     return this.db.findOne(parameter, projection, collection);
   }
 
-  async findOneByJobpostsId(id, user_id = null) {
+  async findOneByJobpostsId(id, user_id = null, locale = DEFAULT_LOCALE) {
     try {
       const jobpostQuery = `
             SELECT 
@@ -27,19 +49,25 @@ class Query {
                 u.email,
                 r.description AS company_description,
                 j.title,
+                j.job_title_id,
+                (
+                  SELECT json_build_object('id', jt.id, 'name', jt.name, 'slug', jt.slug)
+                  FROM job_titles jt
+                  WHERE jt.id = j.job_title_id AND jt.deleted_at IS NULL
+                ) AS job_title_ref,
                 j.description,
                 j.location,
                 j.province,
                 j.city,
-                j.is_vip,
-                j.vip_start_at,
-                j.vip_end_at,
+                j.boost_type,
+                j.boost_expires_at,
+                j.is_hot,
                 j.is_remote,
                 et.name AS employment_type,
                 el.name AS experience_level,
                 st.name AS salary_type,
                 j.category_id,
-                cat.name AS category_name,
+                ${categoryNameSql("j", locale)} AS category_name,
                 j.experience_level_id,
                 j.employment_type_id,
                 j.salary_min,
@@ -61,12 +89,11 @@ class Query {
                  ${
                    user_id
                      ? `(
-        SELECT EXISTS (
-          SELECT id FROM saved_jobs sj
-          WHERE sj.worker_id = '${user_id}' AND sj.job_post_id = j.id
-        )
+        SELECT sj.id FROM saved_jobs sj
+        WHERE sj.worker_id = '${user_id}' AND sj.job_post_id = j.id
+        LIMIT 1
       ) AS saved_id,`
-                     : `false AS saved_id,`
+                     : `NULL AS saved_id,`
                  }
                 ${
                   user_id
@@ -119,6 +146,7 @@ class Query {
     page,
     totalData,
     user_id = null,
+    locale = DEFAULT_LOCALE,
   }) {
     try {
       // Build dynamic query using WHERE 1=1
@@ -129,18 +157,24 @@ class Query {
                 r.company_name,
                 r.avatar_url,
                 j.title,
+                j.job_title_id,
+                (
+                  SELECT json_build_object('id', jt.id, 'name', jt.name, 'slug', jt.slug)
+                  FROM job_titles jt
+                  WHERE jt.id = j.job_title_id AND jt.deleted_at IS NULL
+                ) AS job_title_ref,
                 j.description,
                 j.location,
                 j.province,
                 j.city,
-                j.is_vip,
-                j.vip_start_at,
-                j.vip_end_at,
+                j.boost_type,
+                j.boost_expires_at,
+                j.is_hot,
                 j.is_remote,
                 et.name AS employment_type,
                 el.name AS experience_level,
                 st.name AS salary_type,
-                cat.name AS category,
+                ${categoryNameSql("j", locale)} AS category,
                 j.salary_min,
                 j.salary_max,
                 c.code AS currency,
@@ -163,12 +197,11 @@ class Query {
                 ${
                   user_id
                     ? `(
-        SELECT EXISTS (
-          SELECT id FROM saved_jobs sj
-          WHERE sj.worker_id = '${user_id}' AND sj.job_post_id = j.id
-        )
+        SELECT sj.id FROM saved_jobs sj
+        WHERE sj.worker_id = '${user_id}' AND sj.job_post_id = j.id
+        LIMIT 1
       ) AS saved_id,`
-                    : `false AS saved_id,`
+                    : `NULL AS saved_id,`
                 }
                 ${
                   user_id
@@ -278,13 +311,19 @@ class Query {
   r.avatar_url,
 
   j.title,
+  j.job_title_id,
+  (
+    SELECT json_build_object('id', jt.id, 'name', jt.name, 'slug', jt.slug)
+    FROM job_titles jt
+    WHERE jt.id = j.job_title_id AND jt.deleted_at IS NULL
+  ) AS job_title_ref,
   j.description,
   j.location,
   j.province,
   j.city,
-  j.is_vip,
-  j.vip_start_at,
-  j.vip_end_at,
+  j.boost_type,
+  j.boost_expires_at,
+  j.is_hot,
   j.is_remote,
 
   et.name AS employment_type,
@@ -376,7 +415,26 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
 
   async findJobApplicants({ job_post_id }) {
     try {
-      const query = `
+      const buildQuery = (includeMatchScores) => {
+        const matchJoin = includeMatchScores
+          ? `LEFT JOIN application_match_scores ams ON ams.application_id = ja.id`
+          : "";
+        const matchSelect = includeMatchScores
+          ? `COALESCE(ams.match_score, 0) AS match_score,
+        COALESCE(ams.match_status, 'pending') AS match_status,
+        ams.match_breakdown,
+        COALESCE(ams.match_reasons, '[]'::jsonb) AS match_reasons,
+        ams.computed_at AS match_computed_at`
+          : `0 AS match_score,
+        'pending'::varchar AS match_status,
+        NULL::jsonb AS match_breakdown,
+        '[]'::jsonb AS match_reasons,
+        NULL::timestamptz AS match_computed_at`;
+        const orderBy = includeMatchScores
+          ? `ORDER BY COALESCE(ams.match_score, 0) DESC, ja.applied_at DESC`
+          : `ORDER BY ja.applied_at DESC`;
+
+        return `
       SELECT
         ja.id AS application_id,
         ja.applied_at,
@@ -388,26 +446,50 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
         u.email,
 
         ast.name AS status,
+        ast.id AS stage_id,
+        ast.stage_type,
 
         re.resume_url,
-        re.title AS resume_title
+        re.title AS resume_title,
+
+        ${matchSelect}
 
       FROM job_applications ja
       JOIN workers w ON w.id = ja.worker_id
-      JOIN users u ON u.id = w.user_id
+      LEFT JOIN users u ON u.id = w.user_id
 
       LEFT JOIN application_statuses ast ON ast.id = ja.application_status_id
       LEFT JOIN resumes re ON re.id = ja.resume_id
+      ${matchJoin}
 
       WHERE ja.job_post_id = $1
-      ORDER BY ja.applied_at DESC;
+      ${orderBy};
     `;
-      // console.log("Executing query to find job applicants:", query, [
-      //   job_post_id,
-      // ]);
-      const result = await this.db.executeQuery(query, [job_post_id]);
+      };
 
-      return wrapper.data(result.rows);
+      let result = await this.db.executeQuery(buildQuery(true), [job_post_id]);
+      if (!result) {
+        logger.error(
+          ctx,
+          "findJobApplicants",
+          "match-score query failed; retrying without application_match_scores",
+          "executeQuery returned null",
+        );
+        result = await this.db.executeQuery(buildQuery(false), [job_post_id]);
+      }
+
+      if (!result) {
+        return wrapper.error("Failed to fetch applicants");
+      }
+
+      const rows = (result.rows || []).map((row) => ({
+        ...row,
+        match_score: row.match_score == null ? 0 : Number(row.match_score),
+        match_status: row.match_status || "pending",
+        match_reasons: row.match_reasons || [],
+      }));
+
+      return wrapper.data(rows);
     } catch (error) {
       logger.error(ctx, "findJobApplicants", "Query failed", error);
       return wrapper.error("Failed to fetch applicants");
@@ -419,7 +501,10 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       const query = `
       SELECT
         ja.id,
-        j.recruiter_id
+        ja.job_post_id,
+        ja.application_status_id,
+        j.recruiter_id,
+        j.company_id
       FROM job_applications ja
       JOIN job_posts j ON j.id = ja.job_post_id
       WHERE ja.id = $1
@@ -435,17 +520,24 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
     }
   }
 
-  async findCategories(parameter, projection) {
-    return this.db.findManyLike(
-      { name: parameter.name },
-      projection,
-      { name: "ASC" },
-      1,
-      10,
-      "categories",
-      "OR",
-    );
+  async findStageForValidation({ id, job_post_id }) {
+    try {
+      const query = `
+      SELECT id
+      FROM application_statuses
+      WHERE id = $1 AND job_post_id = $2
+      LIMIT 1;
+    `;
+
+      const result = await this.db.executeQuery(query, [id, job_post_id]);
+
+      return wrapper.data(result.rows[0]);
+    } catch (error) {
+      logger.error(ctx, "findStageForValidation", "Query failed", error);
+      return wrapper.error("Failed to validate stage");
+    }
   }
+
   async findAllByJobPostId({
     job_post_id,
     conditions = "",
@@ -573,36 +665,47 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
 
       FROM job_applications ja
       JOIN workers w ON w.id = ja.worker_id
-      JOIN users u ON u.id = w.user_id
+      LEFT JOIN users u ON u.id = w.user_id
       LEFT JOIN application_statuses ast ON ast.id = ja.application_status_id
       LEFT JOIN resumes re ON re.id = ja.resume_id
 
       WHERE ja.id = $1
       LIMIT 1;
     `;
-      // console.log("Executing query to find worker by application ID:", query, [
-      //   id,
-      // ]);
       const result = await this.db.executeQuery(query, [id]);
-
-      return wrapper.data(result.rows[0]);
+      const row = result?.rows?.[0];
+      if (!row) {
+        return wrapper.error("Worker not found");
+      }
+      return wrapper.data(row);
     } catch (error) {
       logger.error(ctx, "findWorkerByApplicationId", "Query failed", error);
       return wrapper.error("Failed to fetch worker");
     }
   }
 
-  async findOneJobPost({ id, recruiter_id }) {
+  async findOneJobPost({ id, recruiter_id, company_id }) {
     try {
-      const query = `
-      SELECT id, location, province, city, is_vip, vip_start_at, vip_end_at, is_remote
+      const query = company_id
+        ? `
+      SELECT id, location, province, city, boost_type, boost_expires_at, is_hot, is_remote, recruiter_id, company_id
+      FROM job_posts
+      WHERE id = $1
+        AND company_id = $2
+      LIMIT 1;
+    `
+        : `
+      SELECT id, location, province, city, boost_type, boost_expires_at, is_hot, is_remote, recruiter_id, company_id
       FROM job_posts
       WHERE id = $1
         AND recruiter_id = $2
       LIMIT 1;
     `;
 
-      const result = await this.db.executeQuery(query, [id, recruiter_id]);
+      const result = await this.db.executeQuery(query, [
+        id,
+        company_id || recruiter_id,
+      ]);
 
       return wrapper.data(result.rows[0]);
     } catch (error) {
@@ -610,7 +713,7 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       return wrapper.error("Failed to find job post");
     }
   }
-  async findJobWithTags({ id, recruiter_id }) {
+  async findJobWithTags({ id, recruiter_id, company_id }) {
     try {
       const query = `
       SELECT
@@ -622,11 +725,14 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
           WHERE jpt.job_post_id = j.id
         ) AS tags
       FROM job_posts j
-      WHERE j.id = $1 AND j.recruiter_id = $2
+      WHERE j.id = $1 AND ${company_id ? "j.company_id" : "j.recruiter_id"} = $2
       LIMIT 1;
     `;
 
-      const result = await this.db.executeQuery(query, [id, recruiter_id]);
+      const result = await this.db.executeQuery(query, [
+        id,
+        company_id || recruiter_id,
+      ]);
       return wrapper.data(result.rows[0]);
     } catch (error) {
       logger.error(ctx, "findJobWithTags", "Query failed", error);
@@ -640,14 +746,21 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
     SELECT
       ja.id,
       ja.application_status_id,
+      u.id AS user_id,
       u.email,
+      u.login_provider,
+      u.telegram_chat_id,
+      w.name AS worker_name,
       w.name AS user_name,
       j.title AS job_title,
+      j.id AS job_post_id,
+      r.company_name,
       a.name AS status_name
     FROM job_applications ja
     JOIN workers w ON w.id = ja.worker_id
     JOIN users u ON u.id = w.user_id
     JOIN job_posts j ON j.id = ja.job_post_id
+    JOIN recruiters r ON r.id = j.recruiter_id
     JOIN application_statuses a ON a.id = ja.application_status_id
     WHERE ja.id = $1
     LIMIT 1
@@ -731,6 +844,84 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
     } catch (error) {
       logger.error(ctx, "getJobPostResponsibilities", "Query failed", error);
       return wrapper.error("Failed to fetch responsibilities");
+    }
+  }
+
+  /**
+   * Clear boost_type / is_hot when boost_expires_at has passed.
+   * Prevents HOT inventory and badges from sticking forever.
+   */
+  async clearExpiredJobBoosts() {
+    try {
+      const result = await this.db.executeQuery(
+        `
+        UPDATE job_posts
+        SET
+          boost_type = NULL,
+          is_hot = FALSE,
+          boost_expires_at = NULL,
+          updated_at = NOW()
+        WHERE boost_expires_at IS NOT NULL
+          AND boost_expires_at <= NOW()
+          AND (boost_type IS NOT NULL OR is_hot = TRUE)
+        `
+      );
+      return wrapper.data({ cleared: result?.rowCount ?? 0 });
+    } catch (error) {
+      logger.error(ctx, "clearExpiredJobBoosts", "Query failed", error);
+      return wrapper.error("Failed to clear expired job boosts");
+    }
+  }
+
+  /**
+   * Infer preferred city + category from a worker's recent applications (mode).
+   * @param {string} worker_id
+   * @param {number} [limit=10]
+   * @returns {Promise<{err:*, data:{preferred_city:string|null, preferred_category_id:number|null}}>}
+   */
+  async getWorkerHotPreferences(worker_id, limit = 10) {
+    try {
+      const query = `
+      WITH recent AS (
+        SELECT j.city, j.category_id
+        FROM job_applications ja
+        JOIN job_posts j ON j.id = ja.job_post_id
+        WHERE ja.worker_id = $1
+        ORDER BY ja.applied_at DESC NULLS LAST
+        LIMIT $2
+      ),
+      city_mode AS (
+        SELECT city AS preferred_city, COUNT(*)::int AS c
+        FROM recent
+        WHERE city IS NOT NULL AND BTRIM(city) <> ''
+        GROUP BY city
+        ORDER BY c DESC, preferred_city ASC
+        LIMIT 1
+      ),
+      cat_mode AS (
+        SELECT category_id AS preferred_category_id, COUNT(*)::int AS c
+        FROM recent
+        WHERE category_id IS NOT NULL
+        GROUP BY category_id
+        ORDER BY c DESC, preferred_category_id ASC
+        LIMIT 1
+      )
+      SELECT
+        (SELECT preferred_city FROM city_mode) AS preferred_city,
+        (SELECT preferred_category_id FROM cat_mode) AS preferred_category_id
+      `;
+      const result = await this.db.executeQuery(query, [worker_id, limit]);
+      const row = result.rows?.[0] || {};
+      return wrapper.data({
+        preferred_city: row.preferred_city || null,
+        preferred_category_id:
+          row.preferred_category_id !== undefined && row.preferred_category_id !== null
+            ? Number(row.preferred_category_id)
+            : null,
+      });
+    } catch (error) {
+      logger.error(ctx, "getWorkerHotPreferences", "Query failed", error);
+      return wrapper.error("Failed to fetch worker hot preferences");
     }
   }
 }

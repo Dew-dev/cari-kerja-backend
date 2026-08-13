@@ -9,6 +9,11 @@ const getAllLanguagesByWorkerId = async (payload) => {
   return domain.getAllLanguagesByWorkerId(payload);
 };
 
+const getAllMasterLanguages = async (payload) => {
+  return domain.getAllMasterLanguages(payload);
+};
+
 module.exports = {
   getAllLanguagesByWorkerId,
+  getAllMasterLanguages,
 };

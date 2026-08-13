@@ -1,8 +1,19 @@
 const Query = require("./query");
 const wrapper = require("../../../../helpers/utils/wrapper");
 const logger = require("../../../../helpers/utils/logger");
-const { NotFoundError } = require("../../../../helpers/errors");
+const { NotFoundError, InternalServerError, BadRequestError } = require("../../../../helpers/errors");
+const { buildAuthStatus } = require("../../../../helpers/auth/login_status");
+const {
+  buildTelegramProfileFields,
+  omitSensitiveTelegramFields,
+} = require("../../../../helpers/auth/telegram_profile");
+const {
+  obfuscateContactFields,
+} = require("../../../../helpers/fraud/contact_obfuscation");
 const ctx = "Worker-Query-Domain";
+
+const isQueryFailure = (err) =>
+  typeof err === "string" && err.toLowerCase().includes("error querying");
 
 class Worker {
   constructor(db) {
@@ -15,11 +26,40 @@ class Worker {
     const worker = await this.query.findOneByUserId(user_id);
     if (worker.err) {
       logger.error(ctx, "getWorker", "Can not find worker", worker.err);
+      if (isQueryFailure(worker.err)) {
+        return wrapper.error(
+          new InternalServerError("Failed to load worker profile")
+        );
+      }
       return wrapper.error(new NotFoundError("Can not find worker"));
     }
 
-    logger.info(ctx, "getWorker", "get detail worker", payload);
-    return wrapper.data(worker.data);
+    const row = worker.data;
+    const telegramUser = {
+      id: row.user_id,
+      user_id: row.user_id,
+      login_provider: row.login_provider,
+      username: row.user_username,
+      telegram_chat_id: row.telegram_chat_id,
+      telegram_notify_username: row.telegram_notify_username,
+      name: row.name,
+    };
+
+    const clean = omitSensitiveTelegramFields({
+      ...row,
+      user_username: undefined,
+    });
+    delete clean.user_username;
+    delete clean.telegram_notify_username;
+
+    return wrapper.data({
+      ...clean,
+      ...buildAuthStatus(row),
+      ...buildTelegramProfileFields(telegramUser, {
+        forSelf: true,
+        displayName: row.name,
+      }),
+    });
   }
 
   async getWorkerById(payload) {
@@ -28,11 +68,81 @@ class Worker {
     const worker = await this.query.findOneById(id);
     if (worker.err) {
       logger.error(ctx, "getWorkerById", "Can not find worker", worker.err);
+      if (isQueryFailure(worker.err)) {
+        return wrapper.error(
+          new InternalServerError("Failed to load worker profile")
+        );
+      }
       return wrapper.error(new NotFoundError("Can not find worker"));
     }
 
-    logger.info(ctx, "getWorkerById", "get detail worker", payload);
-    return wrapper.data(worker.data);
+    const row = worker.data;
+    const telegramUser = {
+      login_provider: row.login_provider,
+      username: row.user_username,
+      telegram_chat_id: row.telegram_chat_id,
+      telegram_notify_username: row.telegram_notify_username,
+      name: row.name,
+    };
+
+    const clean = omitSensitiveTelegramFields({ ...row });
+    delete clean.user_username;
+    delete clean.telegram_notify_username;
+    delete clean.login_provider;
+
+    const forSelf =
+      payload.viewer_user_id &&
+      String(payload.viewer_user_id) === String(row.user_id);
+
+    const base = {
+      ...clean,
+      ...buildTelegramProfileFields(telegramUser, {
+        forSelf: false,
+        displayName: row.name,
+      }),
+    };
+
+    if (forSelf) {
+      return wrapper.data(base);
+    }
+
+    // Public / recruiter view: never emit raw email/phone (click-to-reveal instead)
+    const obfuscated = obfuscateContactFields(base);
+    delete obfuscated.email;
+    delete obfuscated.telephone;
+    return wrapper.data(obfuscated);
+  }
+
+  /**
+   * Click-to-reveal contact field (anti-scraping). Requires authenticated viewer.
+   */
+  async revealWorkerContact(payload) {
+    const { id, field } = payload;
+    const allowed = ["email", "telephone"];
+    if (!allowed.includes(field)) {
+      return wrapper.error(new BadRequestError("Unknown contact field"));
+    }
+
+    const worker = await this.query.findOneById(id);
+    if (worker.err) {
+      if (isQueryFailure(worker.err)) {
+        return wrapper.error(
+          new InternalServerError("Failed to load worker contact")
+        );
+      }
+      return wrapper.error(new NotFoundError("Can not find worker"));
+    }
+
+    const value = worker.data?.[field] || null;
+    if (!value) {
+      return wrapper.error(new NotFoundError("Contact field not available"));
+    }
+
+    return wrapper.data({
+      worker_id: id,
+      field,
+      value,
+    });
   }
 
   async getWorkers(payload) {
@@ -45,6 +155,8 @@ class Worker {
       max_salary,
       experience_years,
       education_level,
+      category_id,
+      min_years,
       sort_by = "created_at",
       sort_order = "desc",
       page = 1,
@@ -54,6 +166,9 @@ class Worker {
     const conditions = [];
     const values = [];
     let idx = 1;
+
+    // Soft-deleted workers must never appear in public/list results
+    conditions.push(` AND w.deleted_at IS NULL`);
 
     // Search by name or profile summary
     if (search !== undefined && search !== null && search !== "" && search.length >= 2) {
@@ -145,6 +260,42 @@ class Worker {
       idx += 1;
     }
 
+    // Filter by tenure in a specific job category.
+    // min_years is optional and defaults to 0 (any experience in that category).
+    // Use epoch seconds so timestamptz - timestamptz always yields a numeric year value.
+    const hasCategoryId =
+      category_id !== undefined && category_id !== null && category_id !== "";
+    if (hasCategoryId) {
+      const minYearsValue =
+        min_years !== undefined && min_years !== null && min_years !== ""
+          ? Number(min_years)
+          : 0;
+      conditions.push(`
+        AND EXISTS (
+          SELECT 1
+          FROM work_experiences we
+          INNER JOIN job_titles jt
+            ON jt.id = we.job_title_id
+           AND jt.deleted_at IS NULL
+           AND COALESCE(jt.is_active, TRUE) IS TRUE
+           AND jt.category_id = $${idx}
+          WHERE we.worker_id = w.id
+            AND we.start_date IS NOT NULL
+          GROUP BY we.worker_id
+          HAVING COALESCE(
+            SUM(
+              EXTRACT(EPOCH FROM (
+                COALESCE(we.end_date, CURRENT_TIMESTAMP) - we.start_date
+              )) / 31557600.0
+            ),
+            0
+          ) >= $${idx + 1}
+        )
+      `);
+      values.push(Number(category_id), minYearsValue);
+      idx += 2;
+    }
+
     const sortableColumns = {
       name: "w.name",
       created_at: "w.created_at",
@@ -157,7 +308,11 @@ class Worker {
     const conditionsString = conditions.join("\n");
 
     const count = await this.query.countAllWorkers(conditionsString, values);
-    const totalData = count.data.rowCount;
+    if (count.err) {
+      logger.error(ctx, "getWorkers", "Cannot count workers", count.err);
+      return wrapper.error(new InternalServerError("Cannot count workers"));
+    }
+    const totalData = Number(count.data?.rowCount || 0);
 
     const data = {
       conditions: conditionsString,
@@ -174,11 +329,17 @@ class Worker {
 
     if (workers.err) {
       logger.error(ctx, "getWorkers", "Cannot find workers", workers.err);
-      return wrapper.error(new NotFoundError("Cannot find workers"));
+      return wrapper.error(new InternalServerError("Cannot find workers"));
     }
 
-    logger.info(ctx, "getWorkers", "Get Workers", data);
-    return wrapper.paginationData(workers.data, workers.meta);
+    // Empty list is a valid filter result — never 404.
+    const rows = (workers.data || []).map((row) => {
+      const obfuscated = obfuscateContactFields(row);
+      delete obfuscated.email;
+      delete obfuscated.telephone;
+      return obfuscated;
+    });
+    return wrapper.paginationData(rows, workers.meta);
   }
 }
 

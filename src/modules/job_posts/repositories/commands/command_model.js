@@ -12,7 +12,11 @@ const jobPostQuestionCreateParamType = joi.object({
 
 const createJobPostParamType = joi.object({
   recruiter_id: joi.string().required(),
+  company_id: joi.string().uuid().optional().allow(null, ""),
+  created_by_user_id: joi.string().uuid().optional().allow(null, ""),
   title: joi.string().required(),
+  job_title_id: joi.string().uuid().optional().allow(null),
+  job_title: joi.string().max(120).optional().allow("", null),
   description: joi.string().required(),
   employment_type_id: joi.number().required(),
   experience_level_id: joi.number().required(),
@@ -42,9 +46,6 @@ const createJobPostParamType = joi.object({
       }),
   currency_id: joi.number().required(),
   status_id: joi.number().default(3),
-  is_vip: joi.boolean().optional().default(false),
-  vip_start_at: joi.date().optional().allow(null),
-  vip_end_at: joi.date().optional().allow(null),
   is_remote: joi.boolean().optional().default(false),
   deadline: joi.string().optional().allow(""),
   tags: joi
@@ -149,8 +150,11 @@ const createJobApplicationParamType = joi.object({
   job_post_id: joi.string().uuid().required(),
   worker_id: joi.string().uuid().required(),
   resume_id: joi.string().uuid().allow(null),
-  cover_letter: joi.string().allow(null, ""),
-  application_status_id: joi.number().required(),
+  cover_letter: joi.string().max(5000).allow(null, ""),
+  captcha_token: joi.string().optional().allow("", null),
+  // application_status_id tidak lagi diterima dari client — backend selalu
+  // meng-override dengan stage stage_type='applied' milik job_post_id ini.
+  application_status_id: joi.any().strip(),
   answers: joi
     .array()
     .items(
@@ -167,7 +171,7 @@ const createJobApplicationParamType = joi.object({
 const updateJobApplicationParamType = joi.object({
   id: joi.string().uuid().required(),
   resume_id: joi.string().uuid().allow(null),
-  cover_letter: joi.string().allow(null, ""),
+  cover_letter: joi.string().max(5000).allow(null, ""),
   application_status_id: joi.number().optional(),
   updated_at: joi.date().default(() => new Date().toISOString()),
 });
@@ -194,6 +198,8 @@ const updateJobPostParamType = joi.object({
   recruiter_id: joi.string().uuid().required(),
 
   title: joi.string().required(),
+  job_title_id: joi.string().uuid().optional().allow(null),
+  job_title: joi.string().max(120).optional().allow("", null),
   description: joi.string().required(),
 
   employment_type_id: joi.number().required(),
@@ -224,9 +230,6 @@ const updateJobPostParamType = joi.object({
     otherwise: joi.string().optional()
   }),
   city: joi.string().optional(),
-  is_vip: joi.boolean().optional(),
-  vip_start_at: joi.date().optional().allow(null),
-  vip_end_at: joi.date().optional().allow(null),
   is_remote: joi.boolean().optional(),
   deadline: joi.string().optional().allow(""),
 
@@ -262,19 +265,14 @@ const updateJobPostParamType = joi.object({
 const archiveJobPostParamType = joi.object({
   id: joi.string().uuid().required(),
   recruiter_id: joi.string().uuid().required(),
+  company_id: joi.string().uuid().optional(),
 });
 
-const updateJobPostVipParamType = joi.object({
-  id: joi.string().uuid().required(),
-  recruiter_id: joi.string().uuid().required(),
-  is_vip: joi.boolean().required(),
-  vip_start_at: joi.date().optional().allow(null),
-  vip_end_at: joi.date().optional().allow(null),
-});
 
 const deleteJobPostParamType = joi.object({
   id: joi.string().uuid().required(),
   recruiter_id: joi.string().uuid().required(),
+  company_id: joi.string().uuid().optional(),
 });
 
 module.exports = {
@@ -290,7 +288,6 @@ module.exports = {
   deleteAppliedJobpostParamType,
   updateApplicationStatusParamType,
   updateJobPostParamType,
-  updateJobPostVipParamType,
   duplicateJobPostParamType,
   archiveJobPostParamType,
   deleteJobPostParamType,
