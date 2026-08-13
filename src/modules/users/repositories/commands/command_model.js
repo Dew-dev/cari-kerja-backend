@@ -148,9 +148,14 @@ const registerRecruiterParamType = joi.object({
     .required()
     .regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
     .message("Email format must be true"),
-  company_name: joi.string().required(),
+  company_name: joi.string().when("invite_token", {
+    is: joi.exist().not(null).not(""),
+    then: joi.optional().allow("", null),
+    otherwise: joi.required(),
+  }),
   contact_name: joi.string().required(),
   contact_phone: joi.string().required(),
+  invite_token: joi.string().min(16).optional().allow("", null),
   captcha_token: joi.string().optional().allow("", null),
 });
 

@@ -18,12 +18,16 @@ class CandidatePipeline {
     this.query = new Query(db);
   }
 
-  async _verifyJobPostOwnership(job_post_id, recruiter_id) {
+  async _verifyJobPostOwnership(job_post_id, recruiter_id, company_id) {
     const owner = await this.query.findJobPostOwner(job_post_id);
     if (owner.err || !owner.data) {
       return wrapper.error(new NotFoundError("Job post not found"));
     }
-    if (owner.data.recruiter_id !== recruiter_id) {
+    if (company_id && owner.data.company_id) {
+      if (owner.data.company_id !== company_id) {
+        return wrapper.error(new ForbiddenError("You are not allowed to access this job post"));
+      }
+    } else if (owner.data.recruiter_id !== recruiter_id) {
       return wrapper.error(new ForbiddenError("You are not allowed to access this job post"));
     }
     return wrapper.data(owner.data);
@@ -32,7 +36,7 @@ class CandidatePipeline {
   async getStages(payload) {
     const { job_post_id, recruiter_id } = payload;
 
-    const ownership = await this._verifyJobPostOwnership(job_post_id, recruiter_id);
+    const ownership = await this._verifyJobPostOwnership(job_post_id, recruiter_id, payload.company_id);
     if (ownership.err) return ownership;
 
     const stages = await this.query.ensureStagesForJobPost(job_post_id);
@@ -61,6 +65,7 @@ class CandidatePipeline {
 
     const result = await this.query.findPipelineCandidates({
       recruiter_id,
+      company_id: payload.company_id,
       jobPostIds,
       search,
       stage_type,
@@ -127,7 +132,7 @@ class CandidatePipeline {
     const { recruiter_id, job_post_id } = payload;
     const jobPostIds = parseJobPostIds(job_post_id);
 
-    const stageCountsResult = await this.query.findStageCounts({ recruiter_id, jobPostIds });
+    const stageCountsResult = await this.query.findStageCounts({ recruiter_id, company_id: payload.company_id, jobPostIds });
     if (stageCountsResult.err) {
       logger.error(ctx, "getPipelineAnalytics", "Failed to load stage counts", stageCountsResult.err);
       return wrapper.error(new NotFoundError("Failed to load pipeline analytics"));

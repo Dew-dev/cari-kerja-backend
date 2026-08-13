@@ -58,6 +58,7 @@ const getJobpostsParamType = joi.object({
 
 const getJobpostsSelfParamType = joi.object({
   recruiter_id: joi.string().required(),
+  company_id: joi.string().uuid().optional().allow(null, ""),
   status: joi.string().optional(),
   employment_type: joi.string().optional(),
   experience_level: joi.string().optional(),

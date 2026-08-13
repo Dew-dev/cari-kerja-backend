@@ -42,6 +42,7 @@ class PaymentCommandDomain {
    * Mendukung 3 tipe order: subscription, single_post, boost
    */
   async createInvoice({
+    company_id,
     recruiter_id,
     user_email,
     user_id,
@@ -113,9 +114,10 @@ class PaymentCommandDomain {
         if (!jobPostResult?.rows?.length) {
           return wrapper.error(new NotFoundError("Job post not found"));
         }
-        if (jobPostResult.rows[0].recruiter_id !== recruiter_id) {
+        const job = jobPostResult.rows[0];
+        if (job.company_id !== company_id && job.recruiter_id !== recruiter_id) {
           return wrapper.error(
-            new ForbiddenError("Job post ini bukan milik Anda")
+            new ForbiddenError("Job post ini bukan milik perusahaan Anda")
           );
         }
 
@@ -161,7 +163,9 @@ class PaymentCommandDomain {
 
       const insertResult = await this.command.insertPaymentOrder({
         id: orderId,
+        company_id,
         recruiter_id,
+        paid_by_user_id: user_id || null,
         order_type,
         plan_id,
         plan_type: planType,
@@ -419,7 +423,14 @@ class PaymentCommandDomain {
 
   async _activatePlan(order) {
     try {
-      const { recruiter_id, order_type, plan_id, job_post_id, id: payment_order_id } = order;
+      const {
+        company_id,
+        recruiter_id,
+        order_type,
+        plan_id,
+        job_post_id,
+        id: payment_order_id,
+      } = order;
       const now = new Date();
 
       if (order_type === "subscription") {
@@ -430,9 +441,10 @@ class PaymentCommandDomain {
         const plan = planResult.rows[0];
         const expiresAt = new Date(now.getTime() + plan.duration_days * 24 * 60 * 60 * 1000);
 
-        await this.command.deactivateOldSubscriptions(recruiter_id);
+        await this.command.deactivateOldSubscriptions(company_id);
         await this.command.insertRecruiterSubscription({
           id: uuidv4(),
+          company_id,
           recruiter_id,
           plan_id,
           payment_order_id,
@@ -449,6 +461,7 @@ class PaymentCommandDomain {
 
         await this.command.insertRecruiterSinglePost({
           id: uuidv4(),
+          company_id,
           recruiter_id,
           plan_id,
           payment_order_id,
@@ -466,6 +479,7 @@ class PaymentCommandDomain {
         await this.command.insertJobPostBoost({
           id: uuidv4(),
           job_post_id,
+          company_id,
           recruiter_id,
           boost_plan_id: plan_id,
           payment_order_id,
@@ -487,17 +501,17 @@ class PaymentCommandDomain {
     }
   }
 
-  async applySinglePostToJob({ recruiter_id, single_post_slot_id, job_post_id }) {
+  async applySinglePostToJob({ company_id, recruiter_id, single_post_slot_id, job_post_id }) {
     try {
       const query = `
-        SELECT rsp.id, rsp.recruiter_id, rsp.plan_id, rsp.is_used, rsp.is_active, rsp.expires_at,
+        SELECT rsp.id, rsp.company_id, rsp.recruiter_id, rsp.plan_id, rsp.is_used, rsp.is_active, rsp.expires_at,
                spp.is_hot, spp.duration_days
         FROM recruiter_single_posts rsp
         JOIN single_post_plans spp ON spp.id = rsp.plan_id
-        WHERE rsp.id = $1 AND rsp.recruiter_id = $2
+        WHERE rsp.id = $1 AND rsp.company_id = $2
         LIMIT 1;
       `;
-      const slotResult = await this.query.db.executeQuery(query, [single_post_slot_id, recruiter_id]);
+      const slotResult = await this.query.db.executeQuery(query, [single_post_slot_id, company_id]);
 
       if (!slotResult?.rows?.length) {
         return wrapper.error(new NotFoundError("Slot satuan tidak ditemukan"));
@@ -517,14 +531,14 @@ class PaymentCommandDomain {
         return wrapper.error(new BadRequestError("Slot sudah kadaluarsa"));
       }
 
-      // Verify job post ownership (IDOR protection)
       const jobPostResult = await this.query.getJobPostOwner(job_post_id);
       if (!jobPostResult?.rows?.length) {
         return wrapper.error(new NotFoundError("Job post not found"));
       }
-      if (jobPostResult.rows[0].recruiter_id !== recruiter_id) {
+      const job = jobPostResult.rows[0];
+      if (job.company_id !== company_id && job.recruiter_id !== recruiter_id) {
         return wrapper.error(
-          new ForbiddenError("Job post ini bukan milik Anda")
+          new ForbiddenError("Job post ini bukan milik perusahaan Anda")
         );
       }
 

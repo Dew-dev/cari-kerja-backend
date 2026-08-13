@@ -35,11 +35,13 @@ const news = require('./news');
 const telegram = require('./telegram');
 const jobTitles = require('./job_titles');
 const employerVerification = require('./employer_verification');
+const companies = require('./companies');
 
 
 module.exports = (server) => {
   users(server);
   telegram(server);
+  companies(server);
   recruiters(server);
   jobposts(server);
   resume(server);

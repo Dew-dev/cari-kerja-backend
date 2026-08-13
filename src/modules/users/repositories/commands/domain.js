@@ -51,17 +51,43 @@ const {
 const {
   buildRecruiterGraceFields,
 } = require("../../../../helpers/fraud/employer_verification_settings");
+const {
+  attachCompanyClaims,
+} = require("../../../../helpers/auth/company_permissions");
+const CompaniesCommandDomain = require("../../../companies/repositories/commands/domain");
 const COOLDOWN_SECONDS = 60;
 const MAX_PER_HOUR = 5;
 
 class User {
   constructor(db) {
+    this.db = db;
     this.command = new Command(db);
     this.workerCommand = new WorkerCommand(db);
     this.recruiterCommand = new RecruiterCommand(db);
     this.query = new Query(db);
     this.queryWorker = new QueryWorker(db);
     this.queryRecruiter = new QueryRecruiter(db);
+    this.companiesDomain = new CompaniesCommandDomain(db);
+  }
+
+  async _attachRecruiterCompanyClaims(userData) {
+    await attachCompanyClaims(this.db, userData);
+    return userData;
+  }
+
+  async _provisionOwnerCompanyForRecruiter({
+    userId,
+    recruiterId,
+    companyName,
+    contactName,
+  }) {
+    return this.companiesDomain.provisionOwnerCompany({
+      userId,
+      recruiterId,
+      companyName: companyName || contactName || "Company",
+      contactName: contactName || companyName || "Recruiter",
+      contactPhone: "NULL",
+    });
   }
 
   async login(payload) {
@@ -149,6 +175,7 @@ class User {
       user.data["name"] = result.data.contact_name;
       user.data["avatar_url"] = result.data.avatar_url;
       user.data["role"] = "recruiter";
+      await this._attachRecruiterCompanyClaims(user.data);
     } else if (user.data.role_id === 3 || user.data.role_id === 4) {
       user.data["user_id"] = user.data.id;
       user.data["name"] = user.data.username || "Super Admin";
@@ -168,6 +195,9 @@ class User {
       email: user.data.email,
       avatar_url: user.data.avatar_url,
       role: user.data["role"],
+      company_id: user.data.company_id || null,
+      company_role: user.data.company_role || null,
+      recruiter_id: user.data.recruiter_id || null,
     };
 
     const token = await generateAccessToken({
@@ -264,6 +294,15 @@ class User {
           );
         }
         data["recruiter_id"] = dataRecruiter.id;
+        const provisioned = await this._provisionOwnerCompanyForRecruiter({
+          userId: data.id,
+          recruiterId: dataRecruiter.id,
+          companyName: name,
+          contactName: name,
+        });
+        if (provisioned.err) return provisioned;
+        data.company_id = provisioned.data.company_id;
+        data.company_role = "owner";
       }
 
       if (result.err) {
@@ -295,6 +334,7 @@ class User {
           { id: 1, contact_name: 1 },
         );
         data["recruiter_id"] = resultRecruiter.data.id;
+        await this._attachRecruiterCompanyClaims(data);
       }
     }
 
@@ -446,6 +486,15 @@ class User {
           );
         }
         data["recruiter_id"] = dataRecruiter.id;
+        const provisioned = await this._provisionOwnerCompanyForRecruiter({
+          userId: data.id,
+          recruiterId: dataRecruiter.id,
+          companyName: name,
+          contactName: name,
+        });
+        if (provisioned.err) return provisioned;
+        data.company_id = provisioned.data.company_id;
+        data.company_role = "owner";
       }
 
       if (result.err) {
@@ -485,6 +534,7 @@ class User {
           { id: 1, contact_name: 1 },
         );
         data["recruiter_id"] = resultRecruiter.data.id;
+        await this._attachRecruiterCompanyClaims(data);
       }
     }
 
@@ -618,10 +668,12 @@ class User {
       company_name,
       contact_name,
       contact_phone,
+      invite_token,
     } = payload;
     const stdUsername = username.toLowerCase().trim();
+    const normalizedEmail = String(email).toLowerCase().trim();
 
-    if (isDisposableEmail(email)) {
+    if (isDisposableEmail(normalizedEmail)) {
       return wrapper.error(
         new BadRequestError("CONTENT_REJECTED: Disposable email addresses are not allowed")
       );
@@ -633,6 +685,26 @@ class User {
       );
     }
 
+    // Invite path: lock email to invitation
+    let invitePreview = null;
+    if (invite_token) {
+      invitePreview = await this.companiesDomain.previewInvitation({
+        token: invite_token,
+      });
+      if (invitePreview.err) return invitePreview;
+      if (
+        String(invitePreview.data.email).toLowerCase() !== normalizedEmail
+      ) {
+        return wrapper.error(
+          new BadRequestError(
+            "Email must match the invitation email and cannot be changed"
+          )
+        );
+      }
+    } else if (!company_name) {
+      return wrapper.error(new BadRequestError("company_name is required"));
+    }
+
     const hashPassword = await generateHash(password);
 
     const user = await this.query.findOne({ username: stdUsername }, { id: 1 });
@@ -640,7 +712,7 @@ class User {
       return wrapper.error(new ConflictError("Username already exist"));
     }
 
-    const user2 = await this.query.findOne({ email }, { id: 1 });
+    const user2 = await this.query.findOne({ email: normalizedEmail }, { id: 1 });
 
     if (user2.data) {
       return wrapper.error(new ConflictError("Email alredy exist"));
@@ -649,12 +721,38 @@ class User {
     const data = {
       id: uuidv4(),
       username: stdUsername,
-      email: email,
+      email: normalizedEmail,
       hashed_password: hashPassword,
       login_provider: "local",
       provider_id: null,
       role_id: 2,
     };
+
+    const result = await this.command.insertOne(data);
+    if (result.err) {
+      logger.error(ctx, "register", "Register Failed", result.err);
+      return wrapper.error(new InternalServerError("Register Failed"));
+    }
+    delete data.hashed_password;
+
+    if (invite_token) {
+      const joined = await this.companiesDomain.consumeInviteForNewUser({
+        token: invite_token,
+        userId: data.id,
+        contactName: contact_name,
+        contactPhone: contact_phone,
+      });
+      if (joined.err) {
+        logger.error(ctx, "register recruiter invite", joined.err);
+        return joined;
+      }
+      return wrapper.data({
+        id: data.id,
+        company_id: joined.data.company_id,
+        company_role: joined.data.company_role,
+        recruiter_id: joined.data.recruiter_id,
+      });
+    }
 
     const dataRecruiter = {
       id: uuidv4(),
@@ -664,13 +762,6 @@ class User {
       contact_phone,
       ...(await buildRecruiterGraceFields()),
     };
-
-    const result = await this.command.insertOne(data);
-    if (result.err) {
-      logger.error(ctx, "register", "Register Failed", result.err);
-      return wrapper.error(new InternalServerError("Register Failed"));
-    }
-    delete data.hashed_password;
 
     const resultRecruiter =
       await this.recruiterCommand.insertOne(dataRecruiter);
@@ -686,7 +777,21 @@ class User {
       );
     }
 
-    return wrapper.data({ id: data.id });
+    const provisioned = await this._provisionOwnerCompanyForRecruiter({
+      userId: data.id,
+      recruiterId: dataRecruiter.id,
+      companyName: company_name,
+      contactName: contact_name,
+    });
+    if (provisioned.err) return provisioned;
+
+    // Sync company grace fields already set on company insert via provisionOwnerCompany
+    return wrapper.data({
+      id: data.id,
+      company_id: provisioned.data.company_id,
+      company_role: "owner",
+      recruiter_id: dataRecruiter.id,
+    });
   }
 
   async updateOneUser(payload) {
@@ -810,6 +915,7 @@ class User {
       userData.data["recruiter_id"] = result.data.id;
       userData.data["name"] = result.data.contact_name;
       userData.data["role"] = "recruiter";
+      await this._attachRecruiterCompanyClaims(userData.data);
     } else if (userData.data.role_id === 3 || userData.data.role_id === 4) {
       userData.data["name"] = userData.data.username || "Super Admin";
       userData.data["role"] = userData.data.role_id === 3 ? "super_admin" : "admin";

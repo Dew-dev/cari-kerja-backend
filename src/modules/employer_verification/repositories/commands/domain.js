@@ -79,6 +79,7 @@ class EmployerVerificationCommand {
       application = await this.command.createApplication({
         id: uuidv4(),
         recruiter_id: recruiter.id,
+        company_id: recruiter.company_id || null,
         status: APPLICATION_STATUSES.DRAFT,
         company_legal_name,
         npwp_number,

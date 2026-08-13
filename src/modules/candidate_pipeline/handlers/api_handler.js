@@ -11,7 +11,7 @@ const {
 const getStages = async (req, res) => {
   const payload = {
     job_post_id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(payload, queryModel.getStagesParamType);
@@ -24,7 +24,7 @@ const getStages = async (req, res) => {
 const createStage = async (req, res) => {
   const payload = {
     job_post_id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
     name: req.body.name,
     stage_type: req.body.stage_type,
     position: req.body.position,
@@ -40,7 +40,7 @@ const createStage = async (req, res) => {
 const updateStage = async (req, res) => {
   const payload = {
     job_post_id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
     stage_id: Number(req.params.stageId),
     name: req.body.name,
     color: req.body.color,
@@ -57,7 +57,7 @@ const updateStage = async (req, res) => {
 const reorderStages = async (req, res) => {
   const payload = {
     job_post_id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
     stages: req.body.stages,
   };
 
@@ -71,7 +71,7 @@ const reorderStages = async (req, res) => {
 const deleteStage = async (req, res) => {
   const payload = {
     job_post_id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
     stage_id: Number(req.params.stageId),
   };
 
@@ -85,7 +85,7 @@ const deleteStage = async (req, res) => {
 const getPipelineCandidates = async (req, res) => {
   const payload = {
     ...req.query,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(payload, queryModel.getPipelineCandidatesParamType);
@@ -98,7 +98,7 @@ const getPipelineCandidates = async (req, res) => {
 const getPipelineAnalytics = async (req, res) => {
   const payload = {
     ...req.query,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(payload, queryModel.getPipelineAnalyticsParamType);
@@ -111,7 +111,7 @@ const getPipelineAnalytics = async (req, res) => {
 const getApplicationTimeline = async (req, res) => {
   const payload = {
     application_id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(payload, queryModel.getApplicationTimelineParamType);

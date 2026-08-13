@@ -59,6 +59,8 @@ class Jobpost {
   async createJobPost(payload) {
     const {
       recruiter_id,
+      company_id,
+      created_by_user_id,
       title,
       job_title_id,
       job_title,
@@ -86,10 +88,9 @@ class Jobpost {
     } = payload;
 
     // ======================================
-    // SUBSCRIPTION QUOTA ENFORCEMENT
-    // Cek apakah recruiter sudah melebihi limit posting dari paket aktifnya
+    // SUBSCRIPTION QUOTA ENFORCEMENT (company-wide)
     // ======================================
-    const quotaCheckResult = await this._checkPostingQuota(recruiter_id);
+    const quotaCheckResult = await this._checkPostingQuota(company_id || recruiter_id);
     if (quotaCheckResult.err) {
       return wrapper.error(quotaCheckResult.err);
     }
@@ -144,6 +145,9 @@ class Jobpost {
     const jobPostId = uuidv4();
     const data = {
       recruiter_id,
+      company_id: company_id || null,
+      created_by_recruiter_id: recruiter_id,
+      created_by_user_id: created_by_user_id || null,
       title: headline,
       job_title_id: resolvedTitle?.id || null,
       description,
@@ -479,6 +483,7 @@ class Jobpost {
       const job = await this.query.findOneJobPost({
         id,
         recruiter_id: recruiterId,
+        company_id: payload.company_id,
       });
       if (job.err || !job.data) {
         return wrapper.error(
@@ -804,7 +809,7 @@ class Jobpost {
   }
 
   async updateApplicationStatus(payload) {
-    const { id, application_status_id, recruiter_id } = payload;
+    const { id, application_status_id, recruiter_id, company_id } = payload;
 
     // 1. Ambil application + job_post
     const application = await this.query.findOneJobApplication({
@@ -815,8 +820,13 @@ class Jobpost {
       return wrapper.error(new NotFoundError("Application not found"));
     }
 
-    // 2. Pastikan recruiter pemilik job
-    if (application.data.recruiter_id !== recruiter_id) {
+    // 2. Pastikan company/recruiter pemilik job
+    const ownsByCompany =
+      company_id &&
+      application.data.company_id &&
+      application.data.company_id === company_id;
+    const ownsByRecruiter = application.data.recruiter_id === recruiter_id;
+    if (!ownsByCompany && !ownsByRecruiter) {
       return wrapper.error(
         new ForbiddenError("You are not allowed to update this application"),
       );
@@ -934,6 +944,7 @@ class Jobpost {
     const job = await this.query.findOneJobPost({
       id,
       recruiter_id,
+      company_id: payload.company_id,
     });
 
     if (job.err || !job.data) {
@@ -1117,6 +1128,7 @@ class Jobpost {
     const job = await this.query.findJobWithTags({
       id,
       recruiter_id,
+      company_id: payload.company_id,
     });
 
     if (job.err || !job.data) {
@@ -1126,7 +1138,9 @@ class Jobpost {
     }
 
     // Kuota posting berlaku juga untuk duplicate (sebelumnya bypass)
-    const quotaCheckResult = await this._checkPostingQuota(recruiter_id);
+    const quotaCheckResult = await this._checkPostingQuota(
+      original.company_id || recruiter_id
+    );
     if (quotaCheckResult.err) {
       return wrapper.error(quotaCheckResult.err);
     }
@@ -1247,7 +1261,7 @@ class Jobpost {
     });
   }
   async archiveJobPost({ id, recruiter_id }) {
-    const job = await this.query.findOneJobPost({ id, recruiter_id });
+    const job = await this.query.findOneJobPost({ id, recruiter_id, company_id: payload.company_id });
 
     if (job.err || !job.data) {
       return wrapper.error(
@@ -1261,7 +1275,7 @@ class Jobpost {
   }
 
   async restoreJobPost({ id, recruiter_id }) {
-    const job = await this.query.findOneJobPost({ id, recruiter_id });
+    const job = await this.query.findOneJobPost({ id, recruiter_id, company_id: payload.company_id });
 
     if (job.err || !job.data) {
       return wrapper.error(
@@ -1275,7 +1289,7 @@ class Jobpost {
   }
 
   async deleteJobPost({ id, recruiter_id }) {
-    const job = await this.query.findOneJobPost({ id, recruiter_id });
+    const job = await this.query.findOneJobPost({ id, recruiter_id, company_id: payload.company_id });
 
     if (job.err || !job.data) {
       return wrapper.error(
@@ -1289,31 +1303,25 @@ class Jobpost {
   }
 
   /**
-   * Cek apakah recruiter masih dalam batas kuota posting
-   * Berdasarkan subscription plan aktif. Default: Paket Free = 1 job post aktif.
+   * Cek kuota posting company-wide berdasarkan subscription plan aktif.
+   * Default: Paket Free = 1 job post aktif.
    */
-  async _checkPostingQuota(recruiter_id) {
+  async _checkPostingQuota(company_id) {
     try {
-      // 1. Ambil subscription aktif
-      const subResult = await this.paymentQuery.getActiveSubscription(recruiter_id);
+      const subResult = await this.paymentQuery.getActiveSubscription(company_id);
       const activeSubscription = subResult?.rows?.[0] || null;
 
-      // 2. Tentukan max_active_posts
-      // Jika tidak ada subscription aktif → paket free = 1 posting
       const maxActivePosts = activeSubscription ? parseInt(activeSubscription.max_active_posts, 10) : 1;
 
-      // 3. Hitung job post aktif saat ini (tidak termasuk archived/deleted)
-      const countResult = await this.paymentQuery.countActiveJobPostsFallback(recruiter_id);
+      const countResult = await this.paymentQuery.countActiveJobPostsFallback(company_id);
       const currentActive = parseInt(countResult?.rows?.[0]?.count || 0, 10);
 
-
-      // 4. Cek apakah sudah melebihi limit
       if (currentActive >= maxActivePosts) {
         const planName = activeSubscription ? activeSubscription.plan_display_name : "Paket Free";
         return wrapper.error(
           new ForbiddenError(
-            `Batas posting Anda sudah penuh (${currentActive}/${maxActivePosts} iklan aktif pada ${planName}). ` +
-            `Upgrade paket Anda untuk menambah lebih banyak iklan.`
+            `Batas posting perusahaan sudah penuh (${currentActive}/${maxActivePosts} iklan aktif pada ${planName}). ` +
+            `Upgrade paket perusahaan untuk menambah lebih banyak iklan.`
           )
         );
       }
@@ -1321,7 +1329,6 @@ class Jobpost {
       return wrapper.data({ allowed: true, currentActive, maxActivePosts });
     } catch (err) {
       logger.error(ctx, "_checkPostingQuota", "Error checking quota", err);
-      // Fail-closed: jangan izinkan posting jika kuota tidak bisa diverifikasi
       return wrapper.error(
         new InternalServerError("Failed to verify posting quota. Please try again.")
       );

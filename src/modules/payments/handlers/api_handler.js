@@ -26,6 +26,26 @@ const assertRecruiterAccess = (req, res) => {
     );
     return false;
   }
+  if (!req.userMeta?.company_id) {
+    sendResponse(
+      wrapper.error(new ForbiddenError("Company membership required. Please re-login.")),
+      res
+    );
+    return false;
+  }
+  return true;
+};
+
+const assertBillingOwner = (req, res) => {
+  if (!assertRecruiterAccess(req, res)) return false;
+  if (req.userMeta.role_id === SUPER_ADMIN_ROLE_ID) return true;
+  if (req.userMeta.company_role !== "owner") {
+    sendResponse(
+      wrapper.error(new ForbiddenError("Only the company owner can manage billing")),
+      res
+    );
+    return false;
+  }
   return true;
 };
 
@@ -40,12 +60,13 @@ const getAllPlans = async (req, res) => {
 };
 
 const createInvoice = async (req, res) => {
-  if (!assertRecruiterAccess(req, res)) {
+  if (!assertBillingOwner(req, res)) {
     return;
   }
 
   const payload = {
     ...req.body,
+    company_id: req.userMeta.company_id,
     recruiter_id: req.userMeta.recruiter_id,
     user_email: req.userMeta.email,
     user_id: req.userMeta.id,
@@ -63,13 +84,13 @@ const createInvoice = async (req, res) => {
 };
 
 const getPaymentOrders = async (req, res) => {
-  if (!assertRecruiterAccess(req, res)) {
+  if (!assertBillingOwner(req, res)) {
     return;
   }
 
   const payload = {
     ...req.query,
-    recruiter_id: req.userMeta.recruiter_id,
+    company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(payload, queryModel.getPaymentOrdersParamType);
@@ -82,13 +103,13 @@ const getPaymentOrders = async (req, res) => {
 };
 
 const getOrderDetail = async (req, res) => {
-  if (!assertRecruiterAccess(req, res)) {
+  if (!assertBillingOwner(req, res)) {
     return;
   }
 
   const payload = {
     id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(payload, queryModel.getOrderDetailParamType);
@@ -105,7 +126,7 @@ const getActivePlan = async (req, res) => {
     return;
   }
 
-  const payload = { recruiter_id: req.userMeta.recruiter_id };
+  const payload = { company_id: req.userMeta.company_id };
 
   const validatePayload = validator.isValidPayload(payload, queryModel.getActivePlanParamType);
   if (validatePayload.err) {
@@ -163,6 +184,7 @@ const applySinglePostToJob = async (req, res) => {
 
   const payload = {
     ...req.body,
+    company_id: req.userMeta.company_id,
     recruiter_id: req.userMeta.recruiter_id,
   };
 

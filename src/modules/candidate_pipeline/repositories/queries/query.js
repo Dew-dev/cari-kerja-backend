@@ -20,7 +20,7 @@ class Query {
   async findJobPostOwner(job_post_id) {
     try {
       const res = await this.db.executeQuery(
-        `SELECT id, recruiter_id FROM job_posts WHERE id = $1 LIMIT 1;`,
+        `SELECT id, recruiter_id, company_id FROM job_posts WHERE id = $1 LIMIT 1;`,
         [job_post_id],
       );
       return wrapper.data(res?.rows?.[0]);
@@ -120,6 +120,7 @@ class Query {
 
   async findPipelineCandidates({
     recruiter_id,
+    company_id,
     jobPostIds,
     search,
     stage_type,
@@ -130,9 +131,17 @@ class Query {
     offset,
   }) {
     const run = async ({ includeMatchScores }) => {
-      const conditions = [`jp.recruiter_id = $1`];
-      const values = [recruiter_id];
-      let idx = 2;
+      const conditions = [];
+      const values = [];
+      let idx = 1;
+      if (company_id) {
+        conditions.push(`jp.company_id = $${idx}`);
+        values.push(company_id);
+      } else {
+        conditions.push(`jp.recruiter_id = $${idx}`);
+        values.push(recruiter_id);
+      }
+      idx += 1;
 
       if (Array.isArray(jobPostIds) && jobPostIds.length > 0) {
         conditions.push(`ja.job_post_id = ANY($${idx}::uuid[])`);
@@ -278,10 +287,17 @@ class Query {
     }
   }
 
-  async findStageCounts({ recruiter_id, jobPostIds }) {
+  async findStageCounts({ recruiter_id, company_id, jobPostIds }) {
     try {
-      const conditions = [`jp.recruiter_id = $1`];
-      const values = [recruiter_id];
+      const conditions = [];
+      const values = [];
+      if (company_id) {
+        conditions.push(`jp.company_id = $1`);
+        values.push(company_id);
+      } else {
+        conditions.push(`jp.recruiter_id = $1`);
+        values.push(recruiter_id);
+      }
       let idx = 2;
 
       if (Array.isArray(jobPostIds) && jobPostIds.length > 0) {
@@ -313,10 +329,17 @@ class Query {
     }
   }
 
-  async countTotalApplications({ recruiter_id, jobPostIds }) {
+  async countTotalApplications({ recruiter_id, company_id, jobPostIds }) {
     try {
-      const conditions = [`jp.recruiter_id = $1`];
-      const values = [recruiter_id];
+      const conditions = [];
+      const values = [];
+      if (company_id) {
+        conditions.push(`jp.company_id = $1`);
+        values.push(company_id);
+      } else {
+        conditions.push(`jp.recruiter_id = $1`);
+        values.push(recruiter_id);
+      }
       let idx = 2;
 
       if (Array.isArray(jobPostIds) && jobPostIds.length > 0) {
@@ -339,10 +362,17 @@ class Query {
     }
   }
 
-  async findReachedCounts({ recruiter_id, jobPostIds }) {
+  async findReachedCounts({ recruiter_id, company_id, jobPostIds }) {
     try {
-      const conditions = [`jp.recruiter_id = $1`];
-      const values = [recruiter_id];
+      const conditions = [];
+      const values = [];
+      if (company_id) {
+        conditions.push(`jp.company_id = $1`);
+        values.push(company_id);
+      } else {
+        conditions.push(`jp.recruiter_id = $1`);
+        values.push(recruiter_id);
+      }
       let idx = 2;
 
       if (Array.isArray(jobPostIds) && jobPostIds.length > 0) {

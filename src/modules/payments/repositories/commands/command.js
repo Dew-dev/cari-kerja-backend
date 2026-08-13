@@ -3,12 +3,11 @@ class Command {
     this.db = db;
   }
 
-  /**
-   * Buat payment order baru
-   */
   async insertPaymentOrder({
     id,
+    company_id,
     recruiter_id,
+    paid_by_user_id,
     order_type,
     plan_id,
     plan_type,
@@ -23,7 +22,9 @@ class Command {
     const query = `
       INSERT INTO payment_orders (
         id,
+        company_id,
         recruiter_id,
+        paid_by_user_id,
         order_type,
         plan_id,
         plan_type,
@@ -34,12 +35,14 @@ class Command {
         status,
         invoice_expires_at,
         metadata
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
       RETURNING id, xendit_external_id, status, amount;
     `;
     const values = [
       id,
+      company_id,
       recruiter_id,
+      paid_by_user_id || null,
       order_type,
       plan_id,
       plan_type,
@@ -54,10 +57,6 @@ class Command {
     return this.db.executeQuery(query, values);
   }
 
-  /**
-   * Update status payment order.
-   * When expected_current_status is set, transition is atomic (CAS) to prevent races.
-   */
   async updateOrderStatus({
     id,
     status,
@@ -75,7 +74,7 @@ class Command {
           updated_at = NOW()
         WHERE id = $1
           AND status = $5
-        RETURNING id, status, recruiter_id, order_type, plan_id, plan_type, job_post_id, metadata;
+        RETURNING id, status, company_id, recruiter_id, order_type, plan_id, plan_type, job_post_id, metadata;
       `;
       return this.db.executeQuery(query, [
         id,
@@ -94,14 +93,11 @@ class Command {
         xendit_invoice_id = COALESCE($4, xendit_invoice_id),
         updated_at = NOW()
       WHERE id = $1
-      RETURNING id, status, recruiter_id, order_type, plan_id, plan_type, job_post_id, metadata;
+      RETURNING id, status, company_id, recruiter_id, order_type, plan_id, plan_type, job_post_id, metadata;
     `;
     return this.db.executeQuery(query, [id, status, paid_at || null, xendit_invoice_id || null]);
   }
 
-  /**
-   * Insert log webhook Xendit
-   */
   async insertPaymentLog({ id, payment_order_id, xendit_external_id, event_type, payload }) {
     const query = `
       INSERT INTO payment_logs (id, payment_order_id, xendit_external_id, event_type, payload)
@@ -117,11 +113,9 @@ class Command {
     ]);
   }
 
-  /**
-   * Aktifkan subscription recruiter
-   */
   async insertRecruiterSubscription({
     id,
+    company_id,
     recruiter_id,
     plan_id,
     payment_order_id,
@@ -130,13 +124,14 @@ class Command {
   }) {
     const query = `
       INSERT INTO recruiter_subscriptions (
-        id, recruiter_id, plan_id, payment_order_id, starts_at, expires_at, is_active
+        id, company_id, recruiter_id, plan_id, payment_order_id, starts_at, expires_at, is_active
       )
-      VALUES ($1,$2,$3,$4,$5,$6,TRUE)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,TRUE)
       RETURNING id;
     `;
     return this.db.executeQuery(query, [
       id,
+      company_id,
       recruiter_id,
       plan_id,
       payment_order_id,
@@ -145,24 +140,19 @@ class Command {
     ]);
   }
 
-  /**
-   * Nonaktifkan subscription lama (sebelum aktifkan yang baru)
-   */
-  async deactivateOldSubscriptions(recruiter_id) {
+  async deactivateOldSubscriptions(company_id) {
     const query = `
       UPDATE recruiter_subscriptions
       SET is_active = FALSE, updated_at = NOW()
-      WHERE recruiter_id = $1
+      WHERE company_id = $1
         AND is_active = TRUE;
     `;
-    return this.db.executeQuery(query, [recruiter_id]);
+    return this.db.executeQuery(query, [company_id]);
   }
 
-  /**
-   * Buat slot satuan job post untuk recruiter
-   */
   async insertRecruiterSinglePost({
     id,
+    company_id,
     recruiter_id,
     plan_id,
     payment_order_id,
@@ -170,13 +160,14 @@ class Command {
   }) {
     const query = `
       INSERT INTO recruiter_single_posts (
-        id, recruiter_id, plan_id, payment_order_id, expires_at, is_active, is_used
+        id, company_id, recruiter_id, plan_id, payment_order_id, expires_at, is_active, is_used
       )
-      VALUES ($1,$2,$3,$4,$5,TRUE,FALSE)
+      VALUES ($1,$2,$3,$4,$5,$6,TRUE,FALSE)
       RETURNING id;
     `;
     return this.db.executeQuery(query, [
       id,
+      company_id,
       recruiter_id,
       plan_id,
       payment_order_id,
@@ -184,9 +175,6 @@ class Command {
     ]);
   }
 
-  /**
-   * Tandai slot satuan sebagai telah digunakan
-   */
   async markSinglePostAsUsed({ id, job_post_id }) {
     const query = `
       UPDATE recruiter_single_posts
@@ -197,12 +185,10 @@ class Command {
     return this.db.executeQuery(query, [id, job_post_id]);
   }
 
-  /**
-   * Aktifkan boost untuk job post
-   */
   async insertJobPostBoost({
     id,
     job_post_id,
+    company_id,
     recruiter_id,
     boost_plan_id,
     payment_order_id,
@@ -211,14 +197,15 @@ class Command {
   }) {
     const query = `
       INSERT INTO job_post_boosts (
-        id, job_post_id, recruiter_id, boost_plan_id, payment_order_id, starts_at, expires_at, is_active
+        id, job_post_id, company_id, recruiter_id, boost_plan_id, payment_order_id, starts_at, expires_at, is_active
       )
-      VALUES ($1,$2,$3,$4,$5,$6,$7,TRUE)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,TRUE)
       RETURNING id;
     `;
     return this.db.executeQuery(query, [
       id,
       job_post_id,
+      company_id,
       recruiter_id,
       boost_plan_id,
       payment_order_id,
@@ -227,9 +214,6 @@ class Command {
     ]);
   }
 
-  /**
-   * Update boost_type & boost_expires_at di tabel job_posts
-   */
   async updateJobPostBoostStatus({ job_post_id, boost_type, boost_expires_at }) {
     const query = `
       UPDATE job_posts
@@ -240,9 +224,6 @@ class Command {
     return this.db.executeQuery(query, [job_post_id, boost_type, boost_expires_at]);
   }
 
-  /**
-   * Update is_hot di job_posts (untuk paket satuan hot)
-   */
   async updateJobPostHotStatus({ job_post_id, is_hot }) {
     const query = `
       UPDATE job_posts
