@@ -17,12 +17,16 @@ class CandidatePipeline {
     this.query = new Query(db);
   }
 
-  async _verifyJobPostOwnership(job_post_id, recruiter_id) {
+  async _verifyJobPostOwnership(job_post_id, recruiter_id, company_id) {
     const owner = await this.query.findJobPostOwner(job_post_id);
     if (owner.err || !owner.data) {
       return wrapper.error(new NotFoundError("Job post not found"));
     }
-    if (owner.data.recruiter_id !== recruiter_id) {
+    if (company_id && owner.data.company_id) {
+      if (owner.data.company_id !== company_id) {
+        return wrapper.error(new ForbiddenError("You are not allowed to access this job post"));
+      }
+    } else if (owner.data.recruiter_id !== recruiter_id) {
       return wrapper.error(new ForbiddenError("You are not allowed to access this job post"));
     }
     return wrapper.data(owner.data);
@@ -31,7 +35,7 @@ class CandidatePipeline {
   async createStage(payload) {
     const { job_post_id, recruiter_id, name, stage_type, position } = payload;
 
-    const ownership = await this._verifyJobPostOwnership(job_post_id, recruiter_id);
+    const ownership = await this._verifyJobPostOwnership(job_post_id, recruiter_id, payload.company_id);
     if (ownership.err) return ownership;
 
     // pastikan stage default sudah ada agar posisi baru konsisten
@@ -69,7 +73,7 @@ class CandidatePipeline {
   async updateStage(payload) {
     const { job_post_id, recruiter_id, stage_id, name, color, position } = payload;
 
-    const ownership = await this._verifyJobPostOwnership(job_post_id, recruiter_id);
+    const ownership = await this._verifyJobPostOwnership(job_post_id, recruiter_id, payload.company_id);
     if (ownership.err) return ownership;
 
     const stage = await this.query.findStageById({ stage_id, job_post_id });
@@ -95,7 +99,7 @@ class CandidatePipeline {
   async reorderStages(payload) {
     const { job_post_id, recruiter_id, stages } = payload;
 
-    const ownership = await this._verifyJobPostOwnership(job_post_id, recruiter_id);
+    const ownership = await this._verifyJobPostOwnership(job_post_id, recruiter_id, payload.company_id);
     if (ownership.err) return ownership;
 
     for (const s of stages) {
@@ -120,7 +124,7 @@ class CandidatePipeline {
   async deleteStage(payload) {
     const { job_post_id, recruiter_id, stage_id } = payload;
 
-    const ownership = await this._verifyJobPostOwnership(job_post_id, recruiter_id);
+    const ownership = await this._verifyJobPostOwnership(job_post_id, recruiter_id, payload.company_id);
     if (ownership.err) return ownership;
 
     const stage = await this.query.findStageById({ stage_id, job_post_id });

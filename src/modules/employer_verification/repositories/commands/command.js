@@ -6,12 +6,13 @@ class Command {
   async createApplication(row) {
     const result = await this.db.executeQuery(
       `INSERT INTO employer_verification_applications
-        (id, recruiter_id, status, company_legal_name, npwp_number, nib_number, applicant_notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
+        (id, recruiter_id, company_id, status, company_legal_name, npwp_number, nib_number, applicant_notes)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
       [
         row.id,
         row.recruiter_id,
+        row.company_id || null,
         row.status,
         row.company_legal_name || null,
         row.npwp_number || null,
@@ -102,6 +103,17 @@ class Command {
        RETURNING id, verification_status, verification_deadline_at, is_verified`,
       [recruiterId, status, deadlineAt]
     );
+    await this.db.executeQuery(
+      `
+      UPDATE companies c
+      SET verification_status = $2,
+          verification_deadline_at = COALESCE($3, c.verification_deadline_at),
+          updated_at = NOW()
+      FROM recruiters r
+      WHERE r.id = $1 AND c.id = r.company_id
+      `,
+      [recruiterId, status, deadlineAt]
+    );
     return result?.rows?.[0] || null;
   }
 
@@ -155,6 +167,18 @@ class Command {
        RETURNING *`,
       [recruiterId]
     );
+    await this.db.executeQuery(
+      `
+      UPDATE companies c
+      SET is_verified = TRUE,
+          verification_status = 'verified',
+          verification_deadline_at = NULL,
+          updated_at = NOW()
+      FROM recruiters r
+      WHERE r.id = $1 AND c.id = r.company_id
+      `,
+      [recruiterId]
+    );
     return result?.rows?.[0] || null;
   }
 
@@ -166,6 +190,17 @@ class Command {
            updated_at = NOW()
        WHERE id = $1 AND deleted_at IS NULL
        RETURNING *`,
+      [recruiterId]
+    );
+    await this.db.executeQuery(
+      `
+      UPDATE companies c
+      SET is_verified = FALSE,
+          verification_status = 'rejected',
+          updated_at = NOW()
+      FROM recruiters r
+      WHERE r.id = $1 AND c.id = r.company_id
+      `,
       [recruiterId]
     );
     return result?.rows?.[0] || null;
@@ -246,7 +281,15 @@ class Command {
              updated_at = NOW()
          FROM targets t
          WHERE r.id = t.recruiter_id
-         RETURNING r.id
+         RETURNING r.id, r.company_id
+       ),
+       upd_companies AS (
+         UPDATE companies c
+         SET verification_status = 'blocked_incomplete',
+             updated_at = NOW()
+         FROM upd_recruiters ur
+         WHERE c.id = ur.company_id
+         RETURNING c.id
        )
        SELECT
          (SELECT COUNT(*)::int FROM upd_users) AS users_blocked,

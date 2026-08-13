@@ -46,13 +46,13 @@ class PaymentQueryDomain {
   /**
    * Ambil riwayat order dengan pagination
    */
-  async getPaymentOrders({ recruiter_id, status, order_type, page, limit }) {
+  async getPaymentOrders({ company_id, status, order_type, page, limit }) {
     try {
       const offset = (page - 1) * limit;
 
       const [orders, countResult] = await Promise.all([
-        this.query.getPaymentOrders({ recruiter_id, status, order_type, limit, offset }),
-        this.query.countPaymentOrders({ recruiter_id, status, order_type }),
+        this.query.getPaymentOrders({ company_id, status, order_type, limit, offset }),
+        this.query.countPaymentOrders({ company_id, status, order_type }),
       ]);
 
       const total = parseInt(countResult?.rows?.[0]?.count || 0, 10);
@@ -68,9 +68,9 @@ class PaymentQueryDomain {
   /**
    * Ambil detail satu order
    */
-  async getOrderDetail({ id, recruiter_id }) {
+  async getOrderDetail({ id, company_id }) {
     try {
-      const result = await this.query.getOrderDetail({ id, recruiter_id });
+      const result = await this.query.getOrderDetail({ id, company_id });
       if (!result?.rows?.length) {
         const { NotFoundError } = require("../../../../helpers/errors");
         return wrapper.error(new NotFoundError("Order not found"));
@@ -83,13 +83,13 @@ class PaymentQueryDomain {
   }
 
   /**
-   * Ambil paket aktif recruiter (subscription + slot satuan tersedia)
+   * Ambil paket aktif company (subscription + slot satuan tersedia)
    */
-  async getActivePlan({ recruiter_id }) {
+  async getActivePlan({ company_id }) {
     try {
       const [subscriptionResult, singlePostResult] = await Promise.all([
-        this.query.getActiveSubscription(recruiter_id),
-        this.query.getAvailableSinglePosts(recruiter_id),
+        this.query.getActiveSubscription(company_id),
+        this.query.getAvailableSinglePosts(company_id),
       ]);
 
       const activeSubscription = subscriptionResult?.rows?.[0] || null;
@@ -107,6 +107,7 @@ class PaymentQueryDomain {
         available_single_posts: availableSinglePosts,
         max_active_posts: maxActivePosts,
         single_post_slots: availableSinglePosts.length,
+        max_seats: activeSubscription?.max_seats ?? 1,
       });
     } catch (err) {
       logger.error(ctx, "getActivePlan", "Failed to get active plan", err);

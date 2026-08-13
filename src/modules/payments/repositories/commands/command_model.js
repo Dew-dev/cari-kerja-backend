@@ -1,9 +1,7 @@
 const joi = require("joi");
 
-// ----------------------------
-// Create Invoice (buat pembayaran)
-// ----------------------------
 const createInvoiceParamType = joi.object({
+  company_id: joi.string().uuid().required(),
   recruiter_id: joi.string().uuid().required(),
   user_email: joi.string().email().required(),
   user_id: joi.string().uuid().optional().allow(null, ""),
@@ -12,12 +10,8 @@ const createInvoiceParamType = joi.object({
   job_post_id: joi.string().uuid().optional().allow(null, ""),
   ip_address: joi.string().optional().allow("", null),
   user_agent: joi.string().optional().allow("", null),
-  // wajib jika order_type = 'boost'
 });
 
-// ----------------------------
-// Handle Xendit Webhook
-// ----------------------------
 const xenditWebhookParamType = joi.object({
   id: joi.string().required(),
   external_id: joi.string().required(),
@@ -25,12 +19,10 @@ const xenditWebhookParamType = joi.object({
   paid_amount: joi.number().optional(),
   paid_at: joi.string().optional().allow(null, ""),
   payment_method: joi.string().optional().allow(null, ""),
-}).unknown(true); // allow extra fields dari Xendit
+}).unknown(true);
 
-// ----------------------------
-// Apply Single Post Slot ke Job Post
-// ----------------------------
 const applySinglePostParamType = joi.object({
+  company_id: joi.string().uuid().required(),
   recruiter_id: joi.string().uuid().required(),
   single_post_slot_id: joi.string().uuid().required(),
   job_post_id: joi.string().uuid().required(),

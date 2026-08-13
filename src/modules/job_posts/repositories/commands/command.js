@@ -173,6 +173,9 @@ class Command {
   }
   async insertJobPost({
     recruiter_id,
+    company_id,
+    created_by_recruiter_id,
+    created_by_user_id,
     title,
     description,
     employment_type_id,
@@ -193,6 +196,9 @@ class Command {
     const query = `
       INSERT INTO job_posts (
         recruiter_id,
+        company_id,
+        created_by_recruiter_id,
+        created_by_user_id,
         title,
         description,
         employment_type_id,
@@ -210,13 +216,16 @@ class Command {
         is_remote,
         job_title_id
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20
       )
       RETURNING id;
     `;
 
     const values = [
       recruiter_id,
+      company_id || null,
+      created_by_recruiter_id || recruiter_id || null,
+      created_by_user_id || null,
       title,
       description,
       employment_type_id,
@@ -231,7 +240,6 @@ class Command {
       category_id,
       province ?? null,
       city ?? null,
-      // Column is NOT NULL; binding undefined becomes NULL and rejects DEFAULT.
       is_remote ?? false,
       job_title_id ?? null,
     ];

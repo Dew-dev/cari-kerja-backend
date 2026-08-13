@@ -21,6 +21,7 @@ class Jobposts {
   async getJobPostsLogic(payload) {
     const {
       recruiter_id,
+      company_id,
       status,
       employment_type,
       experience_level,
@@ -61,6 +62,14 @@ class Jobposts {
     let idx = 1;
 
     if (
+      company_id !== undefined &&
+      company_id !== null &&
+      company_id !== ""
+    ) {
+      conditions.push(` AND j.company_id = $${idx}`);
+      values.push(company_id);
+      idx += 1;
+    } else if (
       recruiter_id !== undefined &&
       recruiter_id !== null &&
       recruiter_id !== ""
@@ -966,7 +975,7 @@ class Jobposts {
     return wrapper.data(applicants.data);
   }
   async getWorkerByApplication(payload) {
-    const { id, recruiter_id } = payload;
+    const { id, recruiter_id, company_id } = payload;
 
     // 1. Ambil application + recruiter owner
     const application = await this.query.findOneJobApplication({
@@ -977,7 +986,12 @@ class Jobposts {
       return wrapper.error(new NotFoundError("Application not found"));
     }
 
-    if (application.data.recruiter_id !== recruiter_id) {
+    const ownsByCompany =
+      company_id &&
+      application.data.company_id &&
+      application.data.company_id === company_id;
+    const ownsByRecruiter = application.data.recruiter_id === recruiter_id;
+    if (!ownsByCompany && !ownsByRecruiter) {
       return wrapper.error(
         new ForbiddenError("You are not allowed to access this worker"),
       );

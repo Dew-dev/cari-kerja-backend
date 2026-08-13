@@ -503,7 +503,8 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
         ja.id,
         ja.job_post_id,
         ja.application_status_id,
-        j.recruiter_id
+        j.recruiter_id,
+        j.company_id
       FROM job_applications ja
       JOIN job_posts j ON j.id = ja.job_post_id
       WHERE ja.id = $1
@@ -683,17 +684,28 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
     }
   }
 
-  async findOneJobPost({ id, recruiter_id }) {
+  async findOneJobPost({ id, recruiter_id, company_id }) {
     try {
-      const query = `
-      SELECT id, location, province, city, boost_type, boost_expires_at, is_hot, is_remote
+      const query = company_id
+        ? `
+      SELECT id, location, province, city, boost_type, boost_expires_at, is_hot, is_remote, recruiter_id, company_id
+      FROM job_posts
+      WHERE id = $1
+        AND company_id = $2
+      LIMIT 1;
+    `
+        : `
+      SELECT id, location, province, city, boost_type, boost_expires_at, is_hot, is_remote, recruiter_id, company_id
       FROM job_posts
       WHERE id = $1
         AND recruiter_id = $2
       LIMIT 1;
     `;
 
-      const result = await this.db.executeQuery(query, [id, recruiter_id]);
+      const result = await this.db.executeQuery(query, [
+        id,
+        company_id || recruiter_id,
+      ]);
 
       return wrapper.data(result.rows[0]);
     } catch (error) {
@@ -701,7 +713,7 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
       return wrapper.error("Failed to find job post");
     }
   }
-  async findJobWithTags({ id, recruiter_id }) {
+  async findJobWithTags({ id, recruiter_id, company_id }) {
     try {
       const query = `
       SELECT
@@ -713,11 +725,14 @@ LEFT JOIN resumes re ON re.id = ja.resume_id
           WHERE jpt.job_post_id = j.id
         ) AS tags
       FROM job_posts j
-      WHERE j.id = $1 AND j.recruiter_id = $2
+      WHERE j.id = $1 AND ${company_id ? "j.company_id" : "j.recruiter_id"} = $2
       LIMIT 1;
     `;
 
-      const result = await this.db.executeQuery(query, [id, recruiter_id]);
+      const result = await this.db.executeQuery(query, [
+        id,
+        company_id || recruiter_id,
+      ]);
       return wrapper.data(result.rows[0]);
     } catch (error) {
       logger.error(ctx, "findJobWithTags", "Query failed", error);

@@ -5,17 +5,28 @@ const { ForbiddenError, NotFoundError } = require("../errors");
 const OPEN_JOB_STATUS_ID = 1;
 
 /**
- * Gate publish: recruiter harus is_verified sebelum status OPEN.
+ * Gate publish: company must be verified (falls back to recruiter.is_verified).
  * @param {{ executeQuery: Function }} db
  * @param {string} recruiterId
  */
 const assertRecruiterVerifiedForPublish = async (db, recruiterId) => {
   if (!recruiterId) {
-    return wrapper.error(new ForbiddenError("VERIFICATION_REQUIRED: Company must be verified before publishing jobs"));
+    return wrapper.error(
+      new ForbiddenError(
+        "VERIFICATION_REQUIRED: Company must be verified before publishing jobs"
+      )
+    );
   }
 
   const result = await db.executeQuery(
-    `SELECT is_verified FROM recruiters WHERE id = $1 AND deleted_at IS NULL LIMIT 1`,
+    `
+    SELECT
+      COALESCE(c.is_verified, r.is_verified, FALSE) AS is_verified
+    FROM recruiters r
+    LEFT JOIN companies c ON c.id = r.company_id AND c.deleted_at IS NULL
+    WHERE r.id = $1 AND r.deleted_at IS NULL
+    LIMIT 1
+    `,
     [recruiterId]
   );
 

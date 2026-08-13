@@ -51,7 +51,12 @@ const getJobpostById = async (req, res) => {
 };
 
 const createJobPost = async (req, res) => {
-  const payload = { ...req.body, recruiter_id: req.userMeta.recruiter_id };
+  const payload = {
+    ...req.body,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
+    company_id: req.userMeta.company_id,
+    created_by_user_id: req.userMeta.id,
+  };
   const validatePayload = validator.isValidPayload(
     payload,
     commandModel.createJobPostParamType
@@ -167,8 +172,12 @@ const getHotJobposts = async (req, res) => {
 };
 
 const getJobpostsSelf = async (req, res) => {
-  const payload = { ...req.query, recruiter_id: req.userMeta.recruiter_id, self:true };
-  ////console.log(payload);
+  const payload = {
+    ...req.query,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
+    company_id: req.userMeta.company_id,
+    self: true,
+  };
 
   const validatePayload = validator.isValidPayload(
     payload,
@@ -278,7 +287,7 @@ const getCurrencyByCode = async (req, res) => {
 const updateJobPostStatus = async (req, res) => {
   const payload = {
     ...req.body,
-    recruiter_id: req.userMeta?.recruiter_id,
+    recruiter_id: req.userMeta?.recruiter_id, company_id: req.userMeta?.company_id,
   };
   const { id } = req.params;
 
@@ -306,7 +315,7 @@ const updateApplicationStatus = async (req, res) => {
   const payload = {
     id: req.params.id,
     application_status_id: req.body.application_status_id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(
@@ -327,7 +336,7 @@ const updateApplicationStatus = async (req, res) => {
 const getWorkerByApplication = async (req, res) => {
   const payload = {
     id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(
@@ -346,7 +355,7 @@ const getWorkerByApplication = async (req, res) => {
 const updateJobPost = async (req, res) => {
   const payload = {
     id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
 
     title: req.body.title,
     description: req.body.description,
@@ -386,7 +395,7 @@ const updateJobPost = async (req, res) => {
 const duplicateJobPost = async (req, res) => {
   const payload = {
     id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(
@@ -404,7 +413,7 @@ const duplicateJobPost = async (req, res) => {
 const archiveJobPost = async (req, res) => {
   const payload = {
     id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(
@@ -423,7 +432,7 @@ const archiveJobPost = async (req, res) => {
 const restoreJobPost = async (req, res) => {
   const payload = {
     id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(
@@ -442,7 +451,7 @@ const restoreJobPost = async (req, res) => {
 const deleteJobPost = async (req, res) => {
   const payload = {
     id: req.params.id,
-    recruiter_id: req.userMeta.recruiter_id,
+    recruiter_id: req.userMeta.recruiter_id, company_id: req.userMeta.company_id,
   };
 
   const validatePayload = validator.isValidPayload(

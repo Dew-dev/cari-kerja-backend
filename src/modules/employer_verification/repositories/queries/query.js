@@ -5,11 +5,15 @@ class Query {
 
   async findRecruiterByUserId(userId) {
     const result = await this.db.executeQuery(
-      `SELECT r.id, r.user_id, r.company_name, r.is_verified,
-              r.verification_status, r.verification_deadline_at,
+      `SELECT r.id, r.user_id, r.company_id,
+              COALESCE(c.company_name, r.company_name) AS company_name,
+              COALESCE(c.is_verified, r.is_verified) AS is_verified,
+              COALESCE(c.verification_status, r.verification_status) AS verification_status,
+              COALESCE(c.verification_deadline_at, r.verification_deadline_at) AS verification_deadline_at,
               u.is_suspended, u.suspension_reason, u.email
        FROM recruiters r
        JOIN users u ON u.id = r.user_id
+       LEFT JOIN companies c ON c.id = r.company_id AND c.deleted_at IS NULL
        WHERE r.user_id = $1 AND r.deleted_at IS NULL AND u.deleted_at IS NULL
        LIMIT 1`,
       [userId]

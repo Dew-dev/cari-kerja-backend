@@ -13,6 +13,7 @@ class Query {
         name,
         display_name,
         max_active_posts,
+        max_seats,
         price_idr,
         duration_days,
         is_active
@@ -68,7 +69,7 @@ class Query {
    */
   async getSubscriptionPlanById(id) {
     const query = `
-      SELECT id, name, display_name, max_active_posts, price_idr, duration_days, is_active
+      SELECT id, name, display_name, max_active_posts, max_seats, price_idr, duration_days, is_active
       FROM subscription_plans
       WHERE id = $1 AND is_active = TRUE
       LIMIT 1;
@@ -105,9 +106,9 @@ class Query {
   /**
    * Ambil payment orders recruiter dengan pagination
    */
-  async getPaymentOrders({ recruiter_id, status, order_type, limit, offset }) {
-    const conditions = [`po.recruiter_id = $1`];
-    const values = [recruiter_id];
+  async getPaymentOrders({ company_id, status, order_type, limit, offset }) {
+    const conditions = [`po.company_id = $1`];
+    const values = [company_id];
     let idx = 2;
 
     if (status) {
@@ -152,9 +153,9 @@ class Query {
   /**
    * Hitung total payment orders untuk pagination
    */
-  async countPaymentOrders({ recruiter_id, status, order_type }) {
-    const conditions = [`po.recruiter_id = $1`];
-    const values = [recruiter_id];
+  async countPaymentOrders({ company_id, status, order_type }) {
+    const conditions = [`po.company_id = $1`];
+    const values = [company_id];
     let idx = 2;
 
     if (status) {
@@ -177,7 +178,7 @@ class Query {
   /**
    * Ambil detail satu order
    */
-  async getOrderDetail({ id, recruiter_id }) {
+  async getOrderDetail({ id, company_id }) {
     const query = `
       SELECT
         po.id,
@@ -196,10 +197,10 @@ class Query {
         po.updated_at
       FROM payment_orders po
       WHERE po.id = $1
-        AND po.recruiter_id = $2
+        AND po.company_id = $2
       LIMIT 1;
     `;
-    return this.db.executeQuery(query, [id, recruiter_id]);
+    return this.db.executeQuery(query, [id, company_id]);
   }
 
   /**
@@ -228,10 +229,11 @@ class Query {
   /**
    * Ambil paket subscription aktif recruiter
    */
-  async getActiveSubscription(recruiter_id) {
+  async getActiveSubscription(company_id) {
     const query = `
       SELECT
         rs.id,
+        rs.company_id,
         rs.recruiter_id,
         rs.plan_id,
         rs.starts_at,
@@ -240,23 +242,24 @@ class Query {
         sp.name AS plan_name,
         sp.display_name AS plan_display_name,
         sp.max_active_posts,
+        sp.max_seats,
         sp.price_idr,
         sp.duration_days
       FROM recruiter_subscriptions rs
       JOIN subscription_plans sp ON sp.id = rs.plan_id
-      WHERE rs.recruiter_id = $1
+      WHERE rs.company_id = $1
         AND rs.is_active = TRUE
         AND rs.expires_at > NOW()
       ORDER BY rs.expires_at DESC
       LIMIT 1;
     `;
-    return this.db.executeQuery(query, [recruiter_id]);
+    return this.db.executeQuery(query, [company_id]);
   }
 
   /**
-   * Ambil slot satuan yang belum digunakan milik recruiter
+   * Ambil slot satuan yang belum digunakan milik company
    */
-  async getAvailableSinglePosts(recruiter_id) {
+  async getAvailableSinglePosts(company_id) {
     const query = `
       SELECT
         rsp.id,
@@ -269,43 +272,43 @@ class Query {
         spp.price_idr
       FROM recruiter_single_posts rsp
       JOIN single_post_plans spp ON spp.id = rsp.plan_id
-      WHERE rsp.recruiter_id = $1
+      WHERE rsp.company_id = $1
         AND rsp.is_active = TRUE
         AND rsp.is_used = FALSE
         AND rsp.expires_at > NOW()
       ORDER BY rsp.expires_at ASC;
     `;
-    return this.db.executeQuery(query, [recruiter_id]);
+    return this.db.executeQuery(query, [company_id]);
   }
 
   /**
-   * Hitung jumlah job post aktif recruiter
+   * Hitung jumlah job post aktif company
    */
-  async countActiveJobPosts(recruiter_id) {
+  async countActiveJobPosts(company_id) {
     const query = `
       SELECT COUNT(*) AS count
       FROM job_posts jp
-      WHERE jp.recruiter_id = $1
+      WHERE jp.company_id = $1
         AND jp.archived_at IS NULL
         AND jp.status_id IN (
           SELECT id FROM job_post_statuses WHERE name IN ('active', 'published')
         );
     `;
-    return this.db.executeQuery(query, [recruiter_id]);
+    return this.db.executeQuery(query, [company_id]);
   }
 
   /**
    * Hitung job post aktif menggunakan fallback status (untuk project ini)
    */
-  async countActiveJobPostsFallback(recruiter_id) {
+  async countActiveJobPostsFallback(company_id) {
     const query = `
       SELECT COUNT(*) AS count
       FROM job_posts
-      WHERE recruiter_id = $1
+      WHERE company_id = $1
         AND archived_at IS NULL
         AND deleted_at IS NULL;
     `;
-    return this.db.executeQuery(query, [recruiter_id]);
+    return this.db.executeQuery(query, [company_id]);
   }
 
   /**
@@ -338,7 +341,7 @@ class Query {
    */
   async getJobPostOwner(job_post_id) {
     const query = `
-      SELECT id, recruiter_id
+      SELECT id, recruiter_id, company_id
       FROM job_posts
       WHERE id = $1
         AND deleted_at IS NULL

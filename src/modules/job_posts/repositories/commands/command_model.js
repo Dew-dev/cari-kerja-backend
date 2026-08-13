@@ -12,6 +12,8 @@ const jobPostQuestionCreateParamType = joi.object({
 
 const createJobPostParamType = joi.object({
   recruiter_id: joi.string().required(),
+  company_id: joi.string().uuid().optional().allow(null, ""),
+  created_by_user_id: joi.string().uuid().optional().allow(null, ""),
   title: joi.string().required(),
   job_title_id: joi.string().uuid().optional().allow(null),
   job_title: joi.string().max(120).optional().allow("", null),

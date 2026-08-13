@@ -65,7 +65,10 @@ class Recruiter {
   async updateRecruiterVip(payload) {
     const { id, user_id, is_vip, vip_start_at, vip_end_at } = payload;
 
-    const recruiter = await this.query.findOne({ id, user_id }, { id: 1 });
+    const recruiter = await this.query.findOne(
+      { id, user_id },
+      { id: 1, company_id: 1 }
+    );
 
     if (recruiter.err || !recruiter.data) {
       return wrapper.error(new NotFoundError("Recruiter Not Found!"));
@@ -85,8 +88,28 @@ class Recruiter {
       return wrapper.error(new InternalServerError("Update Recruiter VIP Failed"));
     }
 
+    if (recruiter.data.company_id) {
+      await this.command.db.executeQuery(
+        `
+        UPDATE companies
+        SET is_vip = $2,
+            vip_start_at = $3,
+            vip_end_at = $4,
+            updated_at = NOW()
+        WHERE id = $1
+        `,
+        [
+          recruiter.data.company_id,
+          updateData.is_vip,
+          updateData.vip_start_at,
+          updateData.vip_end_at,
+        ]
+      );
+    }
+
     return wrapper.data({
       id,
+      company_id: recruiter.data.company_id || null,
       ...updateData,
     });
   }
