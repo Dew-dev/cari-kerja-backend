@@ -162,6 +162,8 @@ class Query {
   }
 
   async findPendingInviteByEmail(companyId, email) {
+    const { encrypt } = require("../../../../helpers/utils/crypto_helper");
+    const encryptedEmail = encrypt(String(email).trim().toLowerCase());
     return this.db.executeQuery(
       `
       SELECT * FROM company_invitations
@@ -170,7 +172,7 @@ class Query {
         AND status = 'pending'
       LIMIT 1
       `,
-      [companyId, email]
+      [companyId, encryptedEmail]
     );
   }
 
@@ -191,14 +193,16 @@ class Query {
   }
 
   async findUserByEmail(email) {
+    const { encrypt } = require("../../../../helpers/utils/crypto_helper");
+    const encryptedEmail = encrypt(String(email).trim().toLowerCase());
     return this.db.executeQuery(
       `
       SELECT id, email, role_id, username
       FROM users
-      WHERE lower(email) = lower($1)
+      WHERE email = $1 OR username = $1
       LIMIT 1
       `,
-      [email]
+      [encryptedEmail]
     );
   }
 }

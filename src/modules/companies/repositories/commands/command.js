@@ -28,6 +28,9 @@ class Command {
   }
 
   async revokePendingInvites(companyId, email) {
+    const { encrypt } = require("../../../../helpers/utils/crypto_helper");
+    // Emails are stored encrypted (deterministic). Plaintext never matches ciphertext.
+    const encryptedEmail = encrypt(String(email).trim().toLowerCase());
     return this.db.executeQuery(
       `
       UPDATE company_invitations
@@ -36,7 +39,7 @@ class Command {
         AND lower(email) = lower($2)
         AND status = 'pending'
       `,
-      [companyId, email]
+      [companyId, encryptedEmail]
     );
   }
 
