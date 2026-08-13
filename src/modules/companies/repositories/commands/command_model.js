@@ -33,6 +33,13 @@ const createInvitationParamType = joi.object({
   role: joi.string().valid("admin", "recruiter").default("recruiter"),
 });
 
+const checkInviteEmailParamType = joi.object({
+  email: joi
+    .string()
+    .email({ tlds: { allow: false } })
+    .required(),
+});
+
 const invitationIdParamType = joi.object({
   id: joi.string().uuid().required(),
 });
@@ -57,6 +64,7 @@ module.exports = {
   removeMemberParamType,
   transferOwnershipParamType,
   createInvitationParamType,
+  checkInviteEmailParamType,
   invitationIdParamType,
   acceptInvitationParamType,
   previewInvitationParamType,

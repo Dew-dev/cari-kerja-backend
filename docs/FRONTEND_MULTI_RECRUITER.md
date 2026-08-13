@@ -1,4 +1,4 @@
-# Frontend: Multi-recruiter Company
+﻿# Frontend: Multi-recruiter Company
 
 Source: backend plan multi-recruiter company flow.
 Copy this document to the frontend agent. Do not change backend from the FE side.
@@ -119,8 +119,13 @@ Halaman `/recruiter/company/team`:
 **Invitations**
 
 - Form: email + role (`admin`|`recruiter` — owner biasanya tidak di-invite; transfer terpisah)
+- **Sebelum submit (opsional blur):** `POST /companies/me/invitations/check-email` `{ email }`
+  - Response: `{ email, account_registered, role_id, can_invite, reason, message }`
+  - `can_invite: false` → tampilkan `message` (worker / already member / other company / admin)
+  - `account_registered: true` + `can_invite: true` → hint: akun recruiter sudah ada, cukup terima undangan setelah login
 - List pending: email, role, invited_by, expires_at, aksi resend / revoke
 - Handle error seat limit / already member / worker email dengan pesan BE
+- Create invite response juga mengembalikan `account_registered` + `account_role_id`
 
 API (sesuaikan exact path saat BE merge; asumsi):
 
@@ -264,6 +269,7 @@ POST   /companies/me/transfer-ownership  # { new_owner_user_id }
 
 # Invites
 GET    /companies/me/invitations
+POST   /companies/me/invitations/check-email  # { email } → registered? can_invite?
 POST   /companies/me/invitations         # { email, role }
 POST   /companies/me/invitations/:id/resend
 DELETE /companies/me/invitations/:id

@@ -15,6 +15,7 @@ module.exports = {
   transferOwnership: (payload, userMeta) =>
     domain.transferOwnership(payload, userMeta),
   createInvitation: (payload, userMeta) => domain.createInvitation(payload, userMeta),
+  checkInviteEmail: (payload, userMeta) => domain.checkInviteEmail(payload, userMeta),
   resendInvitation: (payload, userMeta) => domain.resendInvitation(payload, userMeta),
   revokeInvitation: (payload, userMeta) => domain.revokeInvitation(payload, userMeta),
   previewInvitation: (payload) => domain.previewInvitation(payload),

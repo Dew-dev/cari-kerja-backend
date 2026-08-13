@@ -274,37 +274,14 @@ class Domain {
       );
     }
 
-    const email = String(payload.email).trim().toLowerCase();
-    const existingUser = await this.query.findUserByEmail(email);
-    if (existingUser?.rows?.[0]) {
-      const u = existingUser.rows[0];
-      if (u.role_id === 1) {
-        return wrapper.error(
-          new ConflictError("This email belongs to a job seeker account and cannot join a company")
-        );
-      }
-      const existingMember = await this.query.findMember({
-        companyId: userMeta.company_id,
-        userId: u.id,
-      });
-      if (existingMember?.rows?.[0]?.status === "active") {
-        return wrapper.error(new ConflictError("User is already a member of this company"));
-      }
-      // v1: one active company per user
-      const otherMembership = await this.db.executeQuery(
-        `
-        SELECT id FROM company_members
-        WHERE user_id = $1 AND status = 'active' AND company_id <> $2
-        LIMIT 1
-        `,
-        [u.id, userMeta.company_id]
-      );
-      if (otherMembership?.rows?.length) {
-        return wrapper.error(
-          new ConflictError("User already belongs to another company")
-        );
-      }
+    const emailCheck = await this._evaluateInviteEmail(
+      payload.email,
+      userMeta.company_id
+    );
+    if (!emailCheck.can_invite) {
+      return wrapper.error(new ConflictError(emailCheck.message));
     }
+    const email = emailCheck.email;
 
     const seatsRes = await this.query.getActivePlanMaxSeats(userMeta.company_id);
     const maxSeats = seatsRes?.rows?.[0]?.max_seats ?? 1;
@@ -374,7 +351,122 @@ class Domain {
       role: payload.role || "recruiter",
       expires_at: expiresAt,
       status: "pending",
+      account_registered: emailCheck.account_registered,
+      account_role_id: emailCheck.role_id,
     });
+  }
+
+  /**
+   * Pre-check invite email: registered on platform? allowed to invite?
+   */
+  async checkInviteEmail(payload, userMeta) {
+    const ctxErr = this._requireCompanyContext(userMeta);
+    if (ctxErr) return ctxErr;
+    if (!canManageTeam(userMeta.company_role)) {
+      return wrapper.error(new ForbiddenError("Only owner/admin can invite members"));
+    }
+    if (isDisposableEmail(payload.email)) {
+      return wrapper.error(
+        new BadRequestError("CONTENT_REJECTED: Disposable email addresses are not allowed")
+      );
+    }
+
+    const emailCheck = await this._evaluateInviteEmail(
+      payload.email,
+      userMeta.company_id
+    );
+    return wrapper.data({
+      email: emailCheck.email,
+      account_registered: emailCheck.account_registered,
+      role_id: emailCheck.role_id,
+      can_invite: emailCheck.can_invite,
+      reason: emailCheck.reason,
+      message: emailCheck.message,
+    });
+  }
+
+  async _evaluateInviteEmail(rawEmail, companyId) {
+    const email = String(rawEmail).trim().toLowerCase();
+    const existingUser = await this.query.findUserByEmail(email);
+    const user = existingUser?.rows?.[0] || null;
+
+    if (!user) {
+      return {
+        email,
+        account_registered: false,
+        role_id: null,
+        can_invite: true,
+        reason: null,
+        message: null,
+      };
+    }
+
+    if (Number(user.role_id) === 1) {
+      return {
+        email,
+        account_registered: true,
+        role_id: 1,
+        can_invite: false,
+        reason: "WORKER_ACCOUNT",
+        message:
+          "This email is already registered as a job seeker and cannot join a company",
+      };
+    }
+
+    if (Number(user.role_id) === 3 || Number(user.role_id) === 4) {
+      return {
+        email,
+        account_registered: true,
+        role_id: Number(user.role_id),
+        can_invite: false,
+        reason: "ADMIN_ACCOUNT",
+        message: "This email belongs to an admin account and cannot be invited",
+      };
+    }
+
+    const existingMember = await this.query.findMember({
+      companyId,
+      userId: user.id,
+    });
+    if (existingMember?.rows?.[0]?.status === "active") {
+      return {
+        email,
+        account_registered: true,
+        role_id: Number(user.role_id),
+        can_invite: false,
+        reason: "ALREADY_MEMBER",
+        message: "This email is already a member of your company",
+      };
+    }
+
+    const otherMembership = await this.db.executeQuery(
+      `
+      SELECT id FROM company_members
+      WHERE user_id = $1 AND status = 'active' AND company_id <> $2
+      LIMIT 1
+      `,
+      [user.id, companyId]
+    );
+    if (otherMembership?.rows?.length) {
+      return {
+        email,
+        account_registered: true,
+        role_id: Number(user.role_id),
+        can_invite: false,
+        reason: "OTHER_COMPANY",
+        message: "This email is already registered and belongs to another company",
+      };
+    }
+
+    // Registered recruiter without blocking membership — invite OK (accept via login).
+    return {
+      email,
+      account_registered: true,
+      role_id: Number(user.role_id),
+      can_invite: true,
+      reason: "EXISTING_RECRUITER",
+      message: "Email is already registered as a recruiter; they can accept after login",
+    };
   }
 
   async resendInvitation(payload, userMeta) {

@@ -162,6 +162,19 @@ const createInvitation = async (req, res) => {
   return sendResponse(result, res);
 };
 
+const checkInviteEmail = async (req, res) => {
+  const validatePayload = validator.isValidPayload(
+    req.body?.email != null ? req.body : req.query,
+    commandModel.checkInviteEmailParamType
+  );
+  if (validatePayload.err) return sendResponse(validatePayload, res);
+  const result = await commandHandler.checkInviteEmail(
+    validatePayload.data,
+    req.userMeta
+  );
+  return sendResponse(result, res);
+};
+
 const resendInvitation = async (req, res) => {
   const validatePayload = validator.isValidPayload(
     req.params,
@@ -225,6 +238,7 @@ module.exports = {
   transferOwnership,
   listInvitations,
   createInvitation,
+  checkInviteEmail,
   resendInvitation,
   revokeInvitation,
   previewInvitation,

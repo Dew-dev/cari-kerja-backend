@@ -194,7 +194,9 @@ class Query {
 
   async findUserByEmail(email) {
     const { encrypt } = require("../../../../helpers/utils/crypto_helper");
-    const encryptedEmail = encrypt(String(email).trim().toLowerCase());
+    const normalized = String(email).trim().toLowerCase();
+    const encryptedEmail = encrypt(normalized);
+    // Match users module: email/username stored as encrypted deterministic ciphertext.
     return this.db.executeQuery(
       `
       SELECT id, email, role_id, username
