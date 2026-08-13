@@ -95,7 +95,7 @@ describe("Job Applications Command Domain", () => {
       const result = await domain.createJobApplication(payload);
 
       expect(result.err).toBeInstanceOf(require("../../../src/helpers/errors").ConflictError);
-      expect(result.err.message).toBe("Anda sudah melamar pekerjaan ini.");
+      expect(result.err.message).toBe("DUPLICATE_SUBMISSION: Anda sudah melamar pekerjaan ini.");
       expect(mockCommand.insertOne).not.toHaveBeenCalled();
     });
   });

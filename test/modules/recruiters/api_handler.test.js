@@ -104,7 +104,7 @@ describe("Recruiters API Handler", () => {
       const req = createMockRequest({
         userMeta: { id: userId, recruiter_id: recruiterId },
         body: { company_name: "Self Updated" },
-        file: { filename: "avatar.png" },
+        file: { filename: "avatar.png", path: "/tmp/avatar.png" },
       });
       commandHandler.updateOneRecruiter.mockResolvedValue(wrapper.data({ id: recruiterId }));
 

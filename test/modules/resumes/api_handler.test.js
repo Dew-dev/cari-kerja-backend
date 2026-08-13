@@ -89,7 +89,7 @@ describe("Resumes API Handler", () => {
     it("should add resume with file upload path", async () => {
       const req = createWorkerRequest({
         body: validBody,
-        file: { filename: "cv.pdf" },
+        file: { filename: "cv.pdf", path: "/tmp/cv.pdf" },
       });
       commandHandler.addResume.mockResolvedValue(wrapper.data({ id: resumeId }));
 

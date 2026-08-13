@@ -9,10 +9,12 @@ const uuidCsvOrArray = joi.alternatives().try(
 const getStagesParamType = joi.object({
   job_post_id: joi.string().uuid().required(),
   recruiter_id: joi.string().uuid().required(),
+  company_id: joi.string().uuid().optional(),
 });
 
 const getPipelineCandidatesParamType = joi.object({
   recruiter_id: joi.string().uuid().required(),
+  company_id: joi.string().uuid().optional(),
   job_post_id: uuidCsvOrArray.optional(),
   search: joi.string().trim().allow("").optional(),
   stage_type: joi.string().valid(...STAGE_TYPES).optional(),
@@ -28,12 +30,14 @@ const getPipelineCandidatesParamType = joi.object({
 
 const getPipelineAnalyticsParamType = joi.object({
   recruiter_id: joi.string().uuid().required(),
+  company_id: joi.string().uuid().optional(),
   job_post_id: uuidCsvOrArray.optional(),
 });
 
 const getApplicationTimelineParamType = joi.object({
   application_id: joi.string().uuid().required(),
   recruiter_id: joi.string().uuid().required(),
+  company_id: joi.string().uuid().optional(),
 });
 
 module.exports = {

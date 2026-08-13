@@ -51,6 +51,7 @@ describe("Job Alerts Command Domain", () => {
       expect(result.data).toEqual({
         enabled: true,
         has_email: true,
+        telegram_available: false,
         active: true,
       });
     });

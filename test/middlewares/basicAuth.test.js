@@ -1,10 +1,17 @@
+jest.mock("../../src/config/global_config", () => {
+  const confidence = require("confidence");
+  const store = new confidence.Store({
+    basicAuth: { username: "test-user", password: "test-pass" },
+  });
+  return store;
+});
+
 const basicAuth = require("../../src/middlewares/basicAuth");
-const config = require("../../src/config/global_config");
 const { createMockRequest, createMockResponse } = require("../helpers/httpMocks");
 
 describe("basicAuth middleware", () => {
-  const username = config.get("/basicAuth/username");
-  const password = config.get("/basicAuth/password");
+  const username = "test-user";
+  const password = "test-pass";
 
   const getSentPayload = (res) => res.send.mock.calls[0]?.[0];
 

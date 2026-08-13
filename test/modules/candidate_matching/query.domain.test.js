@@ -75,8 +75,8 @@ describe("Candidate Matching Query Domain", () => {
     });
 
     expect(result.err).toBeNull();
-    expect(result.data.match_status).toBe("pending");
-    expect(result.data.match_score).toBeNull();
+    expect(result.data.match_status).toBe("failed");
+    expect(result.data.match_score).toBe(0);
   });
 
   it("forbids other recruiters", async () => {

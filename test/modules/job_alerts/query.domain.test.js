@@ -29,6 +29,7 @@ describe("Job Alerts Query Domain", () => {
     expect(result.data).toEqual({
       enabled: true,
       has_email: true,
+      telegram_available: false,
       active: true,
       last_sent_at: null,
     });

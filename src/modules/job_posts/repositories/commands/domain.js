@@ -1138,6 +1138,7 @@ class Jobpost {
     }
 
     // Kuota posting berlaku juga untuk duplicate (sebelumnya bypass)
+    const original = job.data;
     const quotaCheckResult = await this._checkPostingQuota(
       original.company_id || recruiter_id
     );
@@ -1145,7 +1146,6 @@ class Jobpost {
       return wrapper.error(quotaCheckResult.err);
     }
 
-    const original = job.data;
 
     // 2️⃣ create job baru (DRAFT)
     // is_remote is NOT NULL — must pass a boolean (explicit NULL bypasses DB default).
@@ -1260,8 +1260,8 @@ class Jobpost {
       message: "Job duplicated successfully",
     });
   }
-  async archiveJobPost({ id, recruiter_id }) {
-    const job = await this.query.findOneJobPost({ id, recruiter_id, company_id: payload.company_id });
+  async archiveJobPost({ id, recruiter_id, company_id }) {
+    const job = await this.query.findOneJobPost({ id, recruiter_id, company_id });
 
     if (job.err || !job.data) {
       return wrapper.error(
@@ -1274,8 +1274,8 @@ class Jobpost {
     return wrapper.data("Job archived");
   }
 
-  async restoreJobPost({ id, recruiter_id }) {
-    const job = await this.query.findOneJobPost({ id, recruiter_id, company_id: payload.company_id });
+  async restoreJobPost({ id, recruiter_id, company_id }) {
+    const job = await this.query.findOneJobPost({ id, recruiter_id, company_id });
 
     if (job.err || !job.data) {
       return wrapper.error(
@@ -1288,8 +1288,8 @@ class Jobpost {
     return wrapper.data("Job restored");
   }
 
-  async deleteJobPost({ id, recruiter_id }) {
-    const job = await this.query.findOneJobPost({ id, recruiter_id, company_id: payload.company_id });
+  async deleteJobPost({ id, recruiter_id, company_id }) {
+    const job = await this.query.findOneJobPost({ id, recruiter_id, company_id });
 
     if (job.err || !job.data) {
       return wrapper.error(
