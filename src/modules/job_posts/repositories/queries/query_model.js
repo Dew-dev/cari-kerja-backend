@@ -33,6 +33,9 @@ const getJobpostsParamType = joi.object({
   location: joi.string().optional(),
   province_name: joi.string().optional(),
   cities_name: joi.string().optional(),
+  // Soft location preference for sort only (ignored when cities_name / province_name set)
+  prefer_city: joi.string().trim().max(128).optional().allow("", null),
+  prefer_province: joi.string().trim().max(128).optional().allow("", null),
   boost_type: joi.string().valid("hot", "top10").optional(),
   is_hot: joi.boolean().optional(),
   is_remote: joi.boolean().optional(),

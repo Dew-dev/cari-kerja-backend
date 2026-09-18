@@ -140,6 +140,7 @@ class Query {
     conditions,
     orderColumn,
     orderDirection,
+    orderPrefix = "",
     idx,
     values,
     limit,
@@ -256,7 +257,7 @@ class Query {
     c.id,
     cat.id,
     jps.id
-              ORDER BY ${user_id ? 'skill_match_count DESC,' : ''} ${orderColumn} ${orderDirection}
+              ORDER BY ${orderPrefix}${user_id ? "skill_match_count DESC, " : ""}${orderColumn} ${orderDirection}
               LIMIT $${idx}
               OFFSET $${idx + 1};
             `;
