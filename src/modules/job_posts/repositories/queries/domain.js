@@ -29,6 +29,8 @@ class Jobposts {
       location,
       province_name, // 🌍 Province name filter
       cities_name, // 🌍 City name filter
+      prefer_city, // soft sort preference (not a filter)
+      prefer_province, // soft sort preference (not a filter)
       boost_type,
       is_hot,
       is_remote,
@@ -494,10 +496,49 @@ class Jobposts {
       idx += 1;
     }
 
+    // Soft location preference: boost matching city/province to the top without filtering.
+    // Ignored when searchbar already set explicit cities_name / province_name filters.
+    const hasExplicitCity =
+      cities_name !== undefined &&
+      cities_name !== null &&
+      String(cities_name).trim() !== "";
+    const hasExplicitProvince =
+      province_name !== undefined &&
+      province_name !== null &&
+      String(province_name).trim() !== "";
+    const preferOrderParts = [];
+    if (
+      !hasExplicitCity &&
+      prefer_city !== undefined &&
+      prefer_city !== null &&
+      String(prefer_city).trim() !== ""
+    ) {
+      preferOrderParts.push(
+        `(CASE WHEN j.city ILIKE $${idx} THEN 0 ELSE 1 END)`
+      );
+      values.push(String(prefer_city).trim());
+      idx += 1;
+    }
+    if (
+      !hasExplicitProvince &&
+      prefer_province !== undefined &&
+      prefer_province !== null &&
+      String(prefer_province).trim() !== ""
+    ) {
+      preferOrderParts.push(
+        `(CASE WHEN j.province ILIKE $${idx} THEN 0 ELSE 1 END)`
+      );
+      values.push(String(prefer_province).trim());
+      idx += 1;
+    }
+    const orderPrefix =
+      preferOrderParts.length > 0 ? `${preferOrderParts.join(", ")}, ` : "";
+
     const data = {
       conditions: conditionsString,
       orderColumn,
       orderDirection,
+      orderPrefix,
       idx,
       values,
       limit,
