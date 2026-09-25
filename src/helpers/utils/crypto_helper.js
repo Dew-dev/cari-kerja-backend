@@ -64,7 +64,11 @@ const sensitiveKeys = [
   "worker_name", "worker_telephone", "user_email", "user_username",
   "user_name", "candidate_name",
   "company_name", "contact_name", "contact_phone", "company_email", "company_address",
-  "sender_name"
+  "sender_name",
+  // Chat query aliases (SELECT ... AS recruiter_company / recruiter_name / ...)
+  "recruiter_company", "recruiter_name", "recruiter_username",
+  "worker_username",
+  "sender_company", "sender_username",
 ];
 
 const isSensitiveKey = (key) => {

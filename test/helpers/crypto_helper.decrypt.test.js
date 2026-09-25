@@ -23,4 +23,22 @@ describe("crypto_helper decrypt for notification fields", () => {
     const spaced = `${cipher.slice(0, 10)} ${cipher.slice(10)}`;
     expect(decrypt(spaced)).toBe(plain);
   });
+
+  it("decrypts chat recruiter aliases (recruiter_company / recruiter_name)", () => {
+    const company = "EGI Resources";
+    const contact = "Budi Santoso";
+    const row = decryptRows({
+      recruiter_company: encrypt(company),
+      recruiter_name: encrypt(contact),
+      recruiter_username: encrypt("budi.hr"),
+      worker_username: encrypt("andi.worker"),
+      sender_company: encrypt(company),
+    });
+
+    expect(row.recruiter_company).toBe(company);
+    expect(row.recruiter_name).toBe(contact);
+    expect(row.recruiter_username).toBe("budi.hr");
+    expect(row.worker_username).toBe("andi.worker");
+    expect(row.sender_company).toBe(company);
+  });
 });
