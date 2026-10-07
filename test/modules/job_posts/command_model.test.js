@@ -49,13 +49,21 @@ describe("Job Posts Command Model", () => {
     expect(value.application_status_id).toBeUndefined();
   });
 
-  it("should validate createJobApplication payload without application_status_id", () => {
-    const { error, value } = commandModel.createJobApplicationParamType.validate({
-      job_post_id: jobPostId,
-      worker_id: workerId,
+  it("should validate jobPostStatusUpdate payload including auth recruiter_id", () => {
+    const { error } = commandModel.jobPostStatusUpdateParamType.validate({
+      id: jobPostId,
+      status_id: 1,
+      recruiter_id: recruiterId,
     });
     expect(error).toBeUndefined();
-    expect(value.application_status_id).toBeUndefined();
+  });
+
+  it("should reject jobPostStatusUpdate without recruiter_id", () => {
+    const { error } = commandModel.jobPostStatusUpdateParamType.validate({
+      id: jobPostId,
+      status_id: 1,
+    });
+    expect(error).toBeDefined();
   });
 });
 
